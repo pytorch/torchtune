@@ -97,7 +97,6 @@ class TestHuggingFaceBaseTokenizer:
         hf_tokenizer_adds_bos,
         mocker,
     ):
-
         # Patch tokenizer's token_to_id method for BOS and EOS
         # since they are not present in the original tokenizer model
         def patch_token_to_id_for_dummy_tokenizer(*args, **kwargs):

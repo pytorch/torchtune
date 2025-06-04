@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 import torch
 from torch import nn
@@ -173,10 +173,10 @@ class DeepFusionModel(nn.Module):
         tokens: torch.Tensor,
         *,
         mask: Optional[torch.Tensor] = None,
-        encoder_input: Optional[Dict] = None,
+        encoder_input: Optional[dict] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
-    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+    ) -> Union[torch.Tensor, list[torch.Tensor]]:
         """
         Args:
             tokens (torch.Tensor): input tensor with shape ``[b x s]``
@@ -185,7 +185,7 @@ class DeepFusionModel(nn.Module):
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            encoder_input (Optional[Dict]): Optional input for the encoder.
+            encoder_input (Optional[dict]): Optional input for the encoder.
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
                 to embedding j in the decoder. Mask has shape ``[b x s x s_e]``. Default is None.

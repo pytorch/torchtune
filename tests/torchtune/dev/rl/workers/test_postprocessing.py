@@ -8,6 +8,9 @@ import importlib
 import time
 
 import pytest
+import torch
+from omegaconf import OmegaConf
+from tests.test_utils import gen_log_file_name, gpu_test, rl_test, skip_if_lt_python_310
 
 _has_ray = importlib.util.find_spec("ray") is not None
 
@@ -24,10 +27,6 @@ else:
     def remote(*args, **kwargs):
         return lambda cls: cls
 
-
-import torch
-from omegaconf import OmegaConf
-from tests.test_utils import gen_log_file_name, gpu_test, rl_test, skip_if_lt_python_310
 
 grpo_samples = 4
 max_generated_tokens = 32
@@ -93,6 +92,15 @@ class TestPostProcessingWorker:
                 "temperature": 1.0,
             },
             "num_steps": 3,
+            "reward_functions": [
+                {
+                    "_component_": "torchtune.dev.rl.rewards.ThinkingAnswerFormattingReward",
+                    "think_tag": "think",
+                    "answer_tag": "answer",
+                    "positive_reward": 1.0,
+                    "negative_reward": 0.0,
+                }
+            ],
         }
         return OmegaConf.create(cfg)
 
@@ -130,12 +138,10 @@ class TestPostProcessingWorker:
                         ).to(dtype=torch.bool),
                         seq_lens=torch.randint(0, 100, (grpo_samples,)),
                         answers=NonTensorData(["42"] * grpo_samples),
-                        policy_version=None,
-                        rewards=None,
-                        advantages=None,
-                        successes=None,
-                        reward_metadata=None,
                         sequence_ids=None,
+                        policy_version=None,
+                        advantages=None,
+                        reward_outputs=None,
                     )
                 )
             replay_buffer = []
@@ -147,11 +153,15 @@ class TestPostProcessingWorker:
                 replay_buffer=replay_buffer,
             )
             actor_handles = [postprocessing_worker.run.remote()]
+            ray.get(actor_handles)
 
             # dummy trainer to wait for queue to empty
             dummy_trainer = DummyTrainer.remote(rollout_queue=rollout_queue)
             dummy_trainer_handles = [dummy_trainer.train.remote()]
             ray.get(dummy_trainer_handles)
+
+        except Exception as e:
+            raise RuntimeError("Test failed") from e
 
         finally:
             ray.shutdown()

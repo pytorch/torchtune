@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -13,7 +13,7 @@ from torchtune.modules.attention_utils import packed_block_causal_mask
 
 
 def left_pad_sequence(
-    sequences: List[torch.Tensor],
+    sequences: list[torch.Tensor],
     batch_first: bool = False,
     padding_value: float = 0,
 ) -> torch.Tensor:
@@ -28,7 +28,7 @@ def left_pad_sequence(
         trailing dimensions and type of all the Tensors in sequences are same.
 
     Args:
-        sequences (List[torch.Tensor]): list of variable length sequences.
+        sequences (list[torch.Tensor]): list of variable length sequences.
         batch_first (bool): if ``True``, the output will be in ``B x T x *``
             format, ``T x B x *`` otherwise. Default False.
         padding_value (float): value for padded elements. Default: 0.
@@ -54,11 +54,11 @@ def left_pad_sequence(
 
 
 def padded_collate(
-    batch: List[Dict[str, List[int]]],
+    batch: list[dict[str, list[int]]],
     *,
     pad_direction: str,
-    keys_to_pad: List[str],
-    padding_idx: Union[int, Dict[str, int]],
+    keys_to_pad: list[str],
+    padding_idx: Union[int, dict[str, int]],
     pad_to_multiple_of: int = 1,
     stack_on_new_dim: bool = False,
 ):
@@ -72,13 +72,13 @@ def padded_collate(
         any collation (see example below).
 
     Args:
-        batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
+        batch (list[dict[str, list[int]]]): A list of dictionaries containing inputs.
         pad_direction (str): whether to pad entries from the left, or right. If ``pad_direction="right"``, we use
             :func:`torch.nn.utils.rnn.pad_sequence`, otherwise if ``pad_direction="left"``,
             we use :func:`torchtune.data.left_pad_sequence`.
-        keys_to_pad (List[str]): Batch element keys to apply padding to. Should be a subset
+        keys_to_pad (list[str]): Batch element keys to apply padding to. Should be a subset
             of keys in the batch.
-        padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all
+        padding_idx (Union[int, dict[str, int]]): Either a single integer padding value to apply to all
             ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
             padding values.
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
@@ -188,17 +188,17 @@ def padded_collate(
 
 
 def padded_collate_sft(
-    batch: List[Dict[str, Any]],
+    batch: list[dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_to_multiple_of: int = 1,
     stack_on_new_dim: bool = False,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
 
     Args:
-        batch (List[Dict[str, Any]]): A list of dictionaries containing samples, including tokens and labels.
+        batch (list[dict[str, Any]]): A list of dictionaries containing samples, including tokens and labels.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
@@ -206,7 +206,7 @@ def padded_collate_sft(
         stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False
 
     Returns:
-        Dict[str, torch.Tensor]: Collated input and label tensors.
+        dict[str, torch.Tensor]: Collated input and label tensors.
 
     Example:
         >>> token_pairs = [
@@ -273,24 +273,24 @@ def padded_collate_sft(
 # TODO: Generalize this to support any type of encoder input, right now this assumes
 # a specific encoder_input signature
 def padded_collate_tiled_images_and_mask(
-    batch: List[Dict[str, Any]],
+    batch: list[dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_direction: str = "right",
     pad_max_tiles: Optional[int] = None,
     pad_max_images: Optional[int] = None,
     pad_to_multiple_of: int = 1,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """Pad a batch of text sequences, tiled image tensors, aspect ratios,
     and cross attention masks. This can be used for both training and inference.
 
     ``batch`` is expected to be a list of sample dicts containing the following::
-        - "tokens": List[int] of length text_seq_len, varies across samples
-        - "labels": List[int] of length text_seq_len, varies across samples
-        - "encoder_input": Dict[str, List[torch.Tensor]]
-            - "images": List[torch.Tensor], each with shape (n_tiles, c, h, w)
-            - "aspect_ratio": List[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
-        - "encoder_mask": List[Tensor], each with shape (text_seq_len, image_seq_len)
+        - "tokens": list[int] of length text_seq_len, varies across samples
+        - "labels": list[int] of length text_seq_len, varies across samples
+        - "encoder_input": dict[str, list[torch.Tensor]]
+            - "images": list[torch.Tensor], each with shape (n_tiles, c, h, w)
+            - "aspect_ratio": list[torch.Tensor], each with shape (2, ) to indicate h_ratio, w_ratio
+        - "encoder_mask": list[Tensor], each with shape (text_seq_len, image_seq_len)
 
     Shape notation:
         - c = channel dim
@@ -308,7 +308,7 @@ def padded_collate_tiled_images_and_mask(
         (4) Pad aspect ratios with (1,1) for all added padding images
 
     Args:
-        batch (List[Dict[str, Any]]): A list of sample dicts containing tokens,
+        batch (list[dict[str, Any]]): A list of sample dicts containing tokens,
             labels, images, encoder_mask, and aspect_ratio.
         padding_idx (int): Padding index for input token ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
@@ -323,7 +323,7 @@ def padded_collate_tiled_images_and_mask(
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
 
     Returns:
-        Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.
+        dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.
             - tokens: Tensor of shape (bsz, max_seq_len)
             - labels: Tensor of shape (bsz, max_seq_len)
             - images: Tensor of shape (bsz, max_num_images, max_num_tiles, c, h, w)
@@ -553,21 +553,21 @@ def padded_collate_tiled_images_and_mask(
 
 
 def padded_collate_packed(
-    batch: List[PACK_TYPE],
-) -> Dict[str, torch.Tensor]:
+    batch: list[PACK_TYPE],
+) -> dict[str, torch.Tensor]:
     """Collate packed sequences into a batch. Only convert the seq lens into
     a block mask for use with attention. Tokens, labels, and input_pos are
     already padded to the same length within :class:`~torchtune.datasets.PackedDataset`.
 
     Args:
-        batch (List[PACK_TYPE]): A list of pack dictionaries containing the following keys:
+        batch (list[PACK_TYPE]): A list of pack dictionaries containing the following keys:
             - tokens: input token ids
             - labels: label token ids
             - input_pos: relative position ids for each sequence in pack
             - seq_lens: lengths of each sample within the pack
 
     Returns:
-        Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
+        dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
 
     Example:
         >>> token_pairs = [
@@ -614,11 +614,11 @@ def padded_collate_packed(
 
 
 def padded_collate_dpo(
-    batch: List[Dict[str, List[int]]],
+    batch: list[dict[str, list[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_to_multiple_of: int = 1,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Pad a batch of sequences for Direct Preference Optimization (DPO).
 
     This function takes a batch of sequences, where each sequence is represented
@@ -626,7 +626,7 @@ def padded_collate_dpo(
     sequence component, such as input_ids or labels.
 
     Args:
-        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary
+        batch (list[dict[str, list[int]]]): A list of dictionaries, where each dictionary
             represents a sequence with multiple components, 'chosen_input_ids',
             'chosen_labels', 'rejected_input_ids', and 'rejected_labels' are required.
         padding_idx (int): Padding index for input ids. Defaults to 0.
@@ -634,7 +634,7 @@ def padded_collate_dpo(
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
+        tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
         input ids and labels.
 
     Example:
@@ -695,7 +695,7 @@ def padded_collate_dpo(
 # improve this
 # add to other functions
 # update two generation recipes
-def _stack_encoder_input(batch: List[Dict[str, Any]], new_dim=False) -> Dict[str, Any]:
+def _stack_encoder_input(batch: list[dict[str, Any]], new_dim=False) -> dict[str, Any]:
     """Recursively traverse dict for list of tensors to stack or cat"""
     stacked_batch = {}
     for k, v in batch[0].items():

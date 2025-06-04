@@ -6,7 +6,7 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+from typing import Any, Literal, Mapping, Optional, Union
 from warnings import warn
 
 from torchtune.data._utils import format_content_with_images, load_image
@@ -40,7 +40,7 @@ class Message:
         role (Role): role of the message writer. Can be "system" for system prompts,
             "user" for human prompts, "assistant" for model responses, or "ipython"
             for tool call returns.
-        content (Union[str, List[Dict[str, Any]]]): content of the message. If it is text only content,
+        content (Union[str, list[dict[str, Any]]]): content of the message. If it is text only content,
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
 
@@ -68,7 +68,7 @@ class Message:
     def __init__(
         self,
         role: Role,
-        content: Union[str, List[Dict[str, Any]]],
+        content: Union[str, list[dict[str, Any]]],
         masked: bool = False,
         ipython: bool = False,
         eot: bool = True,
@@ -81,7 +81,7 @@ class Message:
 
         self._validate_message()
 
-    def _convert_to_list_of_dict(self, content) -> List[Dict[str, Any]]:
+    def _convert_to_list_of_dict(self, content) -> list[dict[str, Any]]:
         """User is currently allowed to pass in a string for text-only content.
         This ensures that the content is formatted as a list of dictionaries."""
         if isinstance(content, str):
@@ -89,7 +89,7 @@ class Message:
 
         assert isinstance(
             content, list
-        ), f"content must be of type List[Dict[str, Any]], got {content}"
+        ), f"content must be of type list[dict[str, Any]], got {content}"
 
         return content
 
@@ -112,7 +112,7 @@ class Message:
             eot=d.get("eot", True),
         )
 
-    def get_media(self) -> List["PIL.Image.Image"]:
+    def get_media(self) -> list["PIL.Image.Image"]:
         """
         Returns media content of the message.
         """
@@ -166,7 +166,7 @@ class InputOutputToMessages(Transform):
         train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
             Deprecated parameter and will be removed in a future release.
             Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "input"
             and "output" column names to the actual column names in the dataset. Keys should
             be "input" and "output" and values should be the actual column names. Default is None,
             keeping the default "input" and "output" column names.
@@ -197,7 +197,7 @@ class InputOutputToMessages(Transform):
     def __init__(
         self,
         train_on_input: Optional[bool] = None,
-        column_map: Optional[Dict[str, str]] = None,
+        column_map: Optional[dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
         masking_strategy: Optional[str] = "train_on_assistant",
@@ -324,7 +324,7 @@ class ChosenRejectedToMessages(Transform):
         train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
             Deprecated parameter and will be removed in a future release.
             Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected
+        column_map (Optional[dict[str, str]]): a mapping to change the expected
             "chosen" and "rejected" column names to the actual column names in the dataset.
             Keys should be "chosen" and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
@@ -347,7 +347,7 @@ class ChosenRejectedToMessages(Transform):
     def __init__(
         self,
         train_on_input: Optional[bool] = None,
-        column_map: Optional[Dict[str, str]] = None,
+        column_map: Optional[dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         masking_strategy: Optional[str] = "train_on_assistant",
     ):
@@ -443,7 +443,7 @@ class ShareGPTToMessages(Transform):
         train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
             Deprecated parameter and will be removed in a future release.
             Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. Key should be "conversations" and value should
             be the new column name. If None, keep the default "conversations".
             Default is None.
@@ -475,7 +475,7 @@ class ShareGPTToMessages(Transform):
     def __init__(
         self,
         train_on_input: Optional[bool] = None,
-        column_map: Optional[Dict[str, str]] = None,
+        column_map: Optional[dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
         image_tag: Optional[str] = "<image>",
@@ -517,7 +517,7 @@ class ShareGPTToMessages(Transform):
                 to a list of dict messages.
 
         Returns:
-            List[Message]: A list of messages with "role" and "content" fields.
+            list[Message]: A list of messages with "role" and "content" fields.
         """
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
         messages = []
@@ -617,7 +617,7 @@ class OpenAIToMessages(Transform):
         train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
             Deprecated parameter and will be removed in a future release.
             Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns ("messages")
             to the new column names in the dataset. Key should be "messages" and value should be
             the new column name. If None, keep the default "messages".
             Default is None.
@@ -641,7 +641,7 @@ class OpenAIToMessages(Transform):
     def __init__(
         self,
         train_on_input: Optional[bool] = None,
-        column_map: Optional[Dict[str, str]] = None,
+        column_map: Optional[dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         masking_strategy: Optional[str] = "train_on_assistant",
     ):
@@ -671,8 +671,8 @@ class OpenAIToMessages(Transform):
             self._column_map = {"messages": "messages"}
 
     def _convert_from_openai_content(
-        self, content: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, content: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Converts a list of content dicts from the OpenAI format to the torchtune format."""
         converted_content = []
         for content_dict in content:
@@ -698,7 +698,7 @@ class OpenAIToMessages(Transform):
                 to a list of dict messages.
 
         Returns:
-            List[Message]: A list of messages with "role" and "content" fields.
+            list[Message]: A list of messages with "role" and "content" fields.
         """
         updated_messages = []
         if self.new_system_prompt is not None:
@@ -752,7 +752,7 @@ class AlpacaToMessages(Transform):
         train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
             Deprecated parameter and will be removed in a future release.
             Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "instruction", "input",
             and "output" column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
         masking_strategy (Optional[str]): masking strategy to use for model training.
@@ -772,7 +772,7 @@ class AlpacaToMessages(Transform):
     def __init__(
         self,
         train_on_input: Optional[bool] = None,
-        column_map: Optional[Dict[str, str]] = None,
+        column_map: Optional[dict[str, str]] = None,
         masking_strategy: Optional[str] = "train_on_all",
     ):
         if train_on_input is not None:
@@ -849,7 +849,7 @@ class AlpacaToMessages(Transform):
 
 
 def validate_messages(
-    messages: List[Message],
+    messages: list[Message],
 ) -> None:
     """
     Given a list of messages, ensure that messages form a valid
@@ -863,7 +863,7 @@ def validate_messages(
 
 
     Args:
-        messages (List[Message]): the messages to validate.
+        messages (list[Message]): the messages to validate.
 
     Raises:
         ValueError: If the messages are invalid.
@@ -898,12 +898,12 @@ def validate_messages(
         last_message = message
 
 
-def mask_messages(messages: List[Message], masking_strategy: MaskingStrategy) -> None:
+def mask_messages(messages: list[Message], masking_strategy: MaskingStrategy) -> None:
     """
     Set the masked attribute for each message in the list based on the specified masking strategy.
 
     Args:
-        messages (List[Message]): a list of messages to mask.
+        messages (list[Message]): a list of messages to mask.
         masking_strategy (MaskingStrategy): masking strategy to use.
             Must be one of `train_on_all`, `train_on_assistant`, `train_on_last`.
 

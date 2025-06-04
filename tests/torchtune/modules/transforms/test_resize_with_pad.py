@@ -49,7 +49,6 @@ class TestTransforms:
         ],
     )
     def test_resize_with_pad(self, params):
-
         image_size = params["image_size"]
         target_size = params["target_size"]
         max_size = params["max_size"]

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from torch import nn
 
@@ -38,7 +38,7 @@ def clip_vision_encoder(
     cls_output_dim: int = 512,
     attn_bias: bool = True,
     use_rope: bool = False,
-    out_indices: Optional[List[int]] = None,
+    out_indices: Optional[list[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
@@ -68,7 +68,7 @@ def clip_vision_encoder(
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
         use_rope (bool): If True, include 2D rope in attention in each transformer layer. Default: False
-        out_indices (Optional[List[int]]): The indices of hidden layers to return.
+        out_indices (Optional[list[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
@@ -267,7 +267,7 @@ def clip_mlp(
 
 
 def lora_clip_vision_encoder(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     *,
     # clip encoder parameters
@@ -279,7 +279,7 @@ def lora_clip_vision_encoder(
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = False,
-    out_indices: Optional[List[int]] = None,
+    out_indices: Optional[list[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
@@ -295,7 +295,7 @@ def lora_clip_vision_encoder(
     Build a LoRA implementation of the CLIP vision encoder.
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -311,7 +311,7 @@ def lora_clip_vision_encoder(
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False
-        out_indices (Optional[List[int]]): The indices of hidden layers to return.
+        out_indices (Optional[list[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
@@ -438,7 +438,7 @@ def lora_clip_vision_encoder(
 
 
 def lora_clip_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
@@ -460,7 +460,7 @@ def lora_clip_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         embed_dim (int): embedding dimension for self-attention

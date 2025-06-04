@@ -7,7 +7,7 @@
 import os
 import time
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import ray
 import torch
@@ -41,7 +41,7 @@ class TrainingWorker:
 
     Args:
         cfg (DictConfig): Configuration object containing training parameters.
-        environment_variables (Dict[str, str]): Environment variables for distributed training setup.
+        environment_variables (dict[str, str]): Environment variables for distributed training setup.
         replay_buffer (RayReplayBuffer): Shared replay buffer for sampling trajectories.
 
     Raises:
@@ -51,7 +51,7 @@ class TrainingWorker:
     def __init__(
         self,
         cfg: DictConfig,
-        environment_variables: Dict[str, str],
+        environment_variables: dict[str, str],
         replay_buffer: RayReplayBuffer,
     ):
         self.cfg = cfg
@@ -202,7 +202,7 @@ class TrainingWorker:
             torch.device("cuda:0"),  # FIXME: Hardcoded device
         )
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
@@ -220,8 +220,8 @@ class TrainingWorker:
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -380,7 +380,7 @@ class TrainingWorker:
         self._vllm_engines = engines
 
     def cleanup_after_step(
-        self, trajectory: GRPOTrajectory, l_grpo_stats: List[GRPOStats]
+        self, trajectory: GRPOTrajectory, l_grpo_stats: list[GRPOStats]
     ) -> None:
         """Clean up memory after a training step."""
         for v in trajectory:
@@ -498,7 +498,7 @@ class TrainingWorker:
         self,
         grpo_trajectory: GRPOTrajectory,
         grpo_stats: GRPOStats,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         context_length: int,
     ) -> None:
         """
@@ -511,7 +511,7 @@ class TrainingWorker:
         Args:
             grpo_trajectory (GRPOTrajectory): Object containing sequence data (query_responses, logprobs, etc.).
             grpo_stats (GRPOStats): Object with GRPO-related statistics (loss, policy_loss, etc.).
-            metadata (Dict[str, Any]): Dictionary containing rewards, successes, policy_version, etc.
+            metadata (dict[str, Any]): Dictionary containing rewards, successes, policy_version, etc.
             context_length (int): Integer length of the prompt context.
         """
 
@@ -572,15 +572,8 @@ class TrainingWorker:
             per_sample_dict["answers"] = grpo_trajectory.answers[idx]
             per_sample_dict["policy_version"] = metadata["policy_version"][idx]
 
-            # Add rewards dynamically based on func_names
-            rewards = metadata["rewards"][idx].tolist()
-            for func_name, reward in zip(func_names, rewards):
-                per_sample_dict[f"reward_{func_name}"] = reward
-
-            # Add successes dynamically based on func_names
-            successes = metadata["successes"][idx].tolist()
-            for func_name, success in zip(func_names, successes):
-                per_sample_dict[f"success_{func_name}"] = success
+            for reward_output in metadata["reward_outputs"][idx]:
+                per_sample_dict.update(reward_output.log(prefix="rewards"))
 
             # Add GRPO statistics, handling per-sample vs. scalar cases
             # TODO: currently has one scalar per batch. We should enable a scalar per sentence.
@@ -680,7 +673,6 @@ class TrainingWorker:
         self._profiler.start()
 
         while self._steps_run < self._total_dialog_turns:
-
             # Memory profiling start
             if (
                 self._is_rank_zero
@@ -854,14 +846,14 @@ class TrainingWorker:
 
     def _prepare_trajectory(
         self, raw_trajectory: Trajectory
-    ) -> Tuple[GRPOTrajectory, int, Dict[str, Any]]:
+    ) -> tuple[GRPOTrajectory, int, dict[str, Any]]:
         """Process raw trajectory, compute rewards, and prepare for optimization.
 
         Args:
             raw_trajectory (Trajectory): The trajectory sampled from the replay buffer.
 
         Returns:
-            Tuple[trajectory, context_length, metadata]
+            tuple[trajectory, context_length, metadata]
         """
         # Extract components from raw trajectory
         query_responses = raw_trajectory.query_responses
@@ -921,9 +913,7 @@ class TrainingWorker:
             "avg_policy_age": avg_policy_age,
             "sequence_ids": raw_trajectory.sequence_ids,
             "policy_version": raw_trajectory.policy_version,
-            "rewards": raw_trajectory.rewards,
-            "successes": raw_trajectory.successes,
-            "reward_metadata": raw_trajectory.reward_metadata,
+            "reward_outputs": raw_trajectory.reward_outputs,
             "query_response_padding_masks": raw_trajectory.query_response_padding_masks,
         }
 

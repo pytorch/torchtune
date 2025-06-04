@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -158,6 +158,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
+        self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -166,6 +167,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dp_replicate=data_replicate,
             dp_shard=data_shard,
             tp=self.tp_degree,
+            cp=self.cp_degree,
             world_size=self.world_size,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
@@ -231,7 +233,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._activation_offloading_use_streams = cfg.get(
             "activation_offloading_use_streams", True
         )
-        if self._activation_offloading_use_streams and self.parallel_dims.tp_enabled:
+        if (
+            self._enable_activation_offloading
+            and self._activation_offloading_use_streams
+            and self.parallel_dims.tp_enabled
+        ):
             warn(
                 message=(
                     "Using activation offloading with streams is not advised in tensor parallel, and may "
@@ -267,7 +273,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -338,6 +344,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
             self._compile_scale_grads = compile.get("scale_grads", True)
+        if self._compile_model:
+            # Capture scalar outputs is required to compile MoE
+            torch._dynamo.config.capture_scalar_outputs = True
 
         # This indirection is needed to apply torch.compile to scale_grads step.
         self._grad_scaler = training.scale_grads_
@@ -563,8 +572,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         activation_offloading_use_streams: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
     ) -> nn.Module:
@@ -598,6 +607,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 raise ValueError(
                     "FP8 training does not support tensor parallelism yet. "
                     "This will be enabled in the near future."
+                )
+            if self.cp_degree > 1:
+                raise ValueError(
+                    "Context Parallel for fp8 training is not currently supported"
                 )
             model = convert_to_float8_training(model, self._fp8_recipe_name)
 
@@ -661,6 +674,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
+        # Define context manager for context parallelism
+        self.context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            world_mesh=self.world_mesh,
+            model=model,
+        )
+
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
@@ -703,7 +723,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
@@ -758,7 +778,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -793,7 +813,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tp_degree,
+                    pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
                 else padded_collate_packed
@@ -804,7 +824,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
@@ -826,7 +846,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return loss
 
-    def validate(self) -> Dict[str, float]:
+    def validate(self) -> dict[str, float]:
         """
         Run validation loop and return average validation loss.
         """
@@ -916,17 +936,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
-                running_loss += current_loss
+                with self.context_parallel_manager(list(batch.values())):
+                    current_loss = self._loss_step(batch) * current_num_tokens
+                    running_loss += current_loss
+                    # For optimizer in backward, we need to normalize before calling backward
+                    # This case and gradient accumulation are mutually exclusive
+                    if self._optimizer_in_bwd:
+                        torch.distributed.all_reduce(num_tokens)
+                        torch.distributed.all_reduce(running_loss)
+                        current_loss = current_loss * (self.dp_degree / num_tokens)
+                    current_loss.backward()
 
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss * (self.dp_degree / num_tokens)
-
-                current_loss.backward()
                 # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
@@ -937,7 +957,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         self._grad_scaler(
-                            self._model.parameters(),
+                            list(self._model.parameters()),
                             self.world_size / num_tokens,
                             False if self.parallel_dims.tp_enabled else None,
                         )

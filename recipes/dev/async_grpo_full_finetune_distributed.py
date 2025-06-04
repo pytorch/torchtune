@@ -7,7 +7,7 @@
 import functools
 import os
 import time
-from typing import Any, Dict
+from typing import Any
 
 import ray
 import torch
@@ -36,7 +36,7 @@ log = utils.get_logger("DEBUG")
 def vllm_generate(
     tensordict: TensorDictBase | Trajectory,
     vllm_instance,  # The LLM object
-    generate_kwargs: Dict[str, Any] | None = None,
+    generate_kwargs: dict[str, Any] | None = None,
     tokenizer=None,
     text_key: str = "text",
     token_key: str = "tokens",
@@ -47,7 +47,6 @@ def vllm_generate(
     pad_output: bool = True,
     padding_value: int = -1,
 ) -> TensorDict:
-
     args = ()
 
     if generate_kwargs is None:

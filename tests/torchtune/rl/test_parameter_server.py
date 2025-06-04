@@ -20,7 +20,6 @@ else:
 
 
 import os
-from typing import Dict
 
 import pytest
 import torch
@@ -115,7 +114,7 @@ class DummyCollector:
 @pytest.mark.skipif(not _has_ray or not _has_vllm, reason="requires ray and vllm")
 @skip_if_lt_python_310()
 class TestParamServer:
-    def _get_env_vars(self, rank, world_size) -> Dict[str, str]:
+    def _get_env_vars(self, rank, world_size) -> dict[str, str]:
         env_vars = {
             "RANK": str(rank),
             "WORLD_SIZE": str(world_size),
