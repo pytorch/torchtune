@@ -206,6 +206,7 @@ class TestKDSingleDeviceRecipe:
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
+            checkpointer.recipe_checkpoint='recipe_state.pt' \
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
