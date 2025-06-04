@@ -366,9 +366,10 @@ def setup_data(
 
 ```python
 for epoch in range(n_epochs):
-    my_iterable_dataset.set_epoch(epoch)
-    # Fast + reshuffled at each epoch using effective_seed = seed + epoch
-    for example in my_iterable_dataset:
+    # TODO: review the proper way to reshuffle after each epoch
+    # https://huggingface.co/docs/datasets/v3.6.0/en/about_mapstyle_vs_iterable#speed-differences
+    self._dataloader.set_epoch(epoch)
+    for example in dataloader:
         pass
 ```
 
