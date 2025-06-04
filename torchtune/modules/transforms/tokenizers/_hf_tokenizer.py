@@ -180,7 +180,7 @@ def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
         if isinstance(token, str):
             content = token
         else:
-            content = token.get("content")
+            content = token.get("content", None)
 
         if content:
             special_tokens.add(content)
