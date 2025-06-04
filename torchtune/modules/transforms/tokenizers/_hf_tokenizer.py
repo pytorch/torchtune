@@ -6,10 +6,10 @@
 
 import json
 
+from typing import Any, Optional
+
 import jinja2
 from jinja2 import StrictUndefined
-
-from typing import Any
 
 from tokenizers import Tokenizer
 from torchtune.data import Message, truncate
@@ -39,8 +39,8 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self,
         tokenizer_json_path: str,
         *,
-        tokenizer_config_json_path: str | None = None,
-        generation_config_path: str | None = None,
+        tokenizer_config_json_path: Optional[str] = None,
+        generation_config_path: Optional[str] = None,
     ):
         self.tokenizer = Tokenizer.from_file(tokenizer_json_path)
         if not (tokenizer_config_json_path or generation_config_path):
@@ -194,12 +194,31 @@ def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
 
 
 class HuggingFaceModelTokenizer(ModelTokenizer):
+    """
+    A wrapper around Hugging Face model specific tokenizers.
+    This can be used to build a tokenizer with specified model chat template.
+
+    This class will create HuggingFaceBaseTokenizer and load all required tokenizer files.
+    Then, it will load all special tokens and chat template from tokenizer config file.
+
+    It can be used to tokenize messages with correct chat template, and it eliminates the requirement of
+    the specific ModelTokenizer and custom PromptTemplate.
+
+    Args:
+        tokenizer_json_path (str): Path to tokenizer.json file
+        tokenizer_config_json_path (Optional[str]): Path to tokenizer_config.json file. Default: None
+        generation_config_path (Optional[str]): Path to generation_config.json file.
+            Default: None
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
+    """
+
     def __init__(
         self,
         tokenizer_json_path: str,
         *,
-        tokenizer_config_json_path: str | None = None,
-        generation_config_path: str | None = None,
+        tokenizer_config_json_path: Optional[str] = None,
+        generation_config_path: Optional[str] = None,
         truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
@@ -240,7 +259,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         self,
         messages: list[Message],
         add_eos: bool = True,
-        max_seq_len: int | None = None,
+        max_seq_len: Optional[int] = None,
     ) -> tuple[list[int], list[bool]]:
         tokenized_messages = []
         mask = []
