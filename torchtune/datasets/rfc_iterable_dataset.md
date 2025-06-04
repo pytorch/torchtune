@@ -155,7 +155,8 @@ dataset_setup:
     multidataset_stopping_strategy: "first_exhausted"  # or "all_exhausted"
 ```
 
-#### Builder Example (torchtune/datasets/alpaca_dataset.py)
+#### Builder Example
+Location: torchtune/datasets/alpaca_dataset.py
 
 ```python
 def alpaca_dataset(
@@ -300,10 +301,11 @@ def setup_data(
     weights = []
     dataset_defaults = {} if dataset_defaults is None else dataset_defaults
 
-    # Add to a list just for processing
+    # Add dataset to a list just for processing
     if not isinstance(dataset_cfg, list):
         dataset_cfg = [dataset_cfg]
 
+    # instantiate
     for base_cfg in dataset_cfg:
         weight = base_cfg.get("weight", 1.0)
         weights.append(weight)
@@ -325,7 +327,6 @@ def setup_data(
     else:
         ds = iterable_datasets[0]
 
-    # FIXME: remove from config
     if setup_cfg.packing:
         # Subclass of IterableDataset, takes any iterator as input
         ds = instantiate(
