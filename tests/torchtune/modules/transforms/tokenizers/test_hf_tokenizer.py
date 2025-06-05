@@ -9,9 +9,11 @@ import pytest
 from tests.common import ASSETS
 from tokenizers import Tokenizer
 from tokenizers.processors import TemplateProcessing
+from torchtune.data import Message
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
 from torchtune.modules.transforms.tokenizers import (
     HuggingFaceBaseTokenizer,
+    HuggingFaceModelTokenizer,
     TikTokenBaseTokenizer,
 )
 
@@ -140,3 +142,101 @@ class TestHuggingFaceBaseTokenizer:
         hf_text = hf_tokenizer.decode(token_ids)
         assert tt_text == hf_text
         assert hf_text == texts[0]
+
+
+GEMMA_TOKENIZER_CONFIG_PATH = ASSETS / "tokenizer_config_gemma.json"
+GEMMA_GENERATION_CONFIG_PATH = ASSETS / "generation_config_gemma.json"
+GEMMA_TOKENIZER_PATH = ASSETS / "tokenizer_gemma_cropped.json"
+
+
+class TestHuggingFaceModelTokenizer:
+    @pytest.fixture
+    def model_tokenizer(self):
+        return HuggingFaceModelTokenizer(
+            tokenizer_json_path=str(GEMMA_TOKENIZER_PATH),
+            tokenizer_config_json_path=str(GEMMA_TOKENIZER_CONFIG_PATH),
+            generation_config_path=str(GEMMA_GENERATION_CONFIG_PATH),
+        )
+
+    @pytest.fixture
+    def messages(self):
+        return [
+            Message(
+                role="user",
+                content="hello there",
+                masked=False,
+            ),
+            Message(
+                role="assistant",
+                content="hi",
+                masked=False,
+            ),
+            Message(
+                role="user",
+                content="whatsup?",
+                masked=False,
+            ),
+        ]
+
+    def test_no_mask(self, model_tokenizer, messages):
+        tokens, mask = model_tokenizer.tokenize_messages(messages)
+
+        assert tokens[:-4] == [
+            2,
+            106,
+            1645,
+            108,
+            17534,
+            1104,
+            107,
+            108,
+            106,
+            2516,
+            108,
+            544,
+            107,
+            108,
+            106,
+            1645,
+            108,
+            5049,
+            15827,
+            235336,
+            107,
+            108,
+        ]
+        assert mask[:-4] == [False] * 22
+
+    def test_with_mask(self, model_tokenizer, messages):
+        """
+        In this test we mask the first message and verify that it does not affect tokens,
+        and message mask is changed in the correct way.
+        """
+        messages[0].masked = True
+        tokens, mask = model_tokenizer.tokenize_messages(messages)
+
+        assert tokens[:-4] == [
+            2,
+            106,
+            1645,
+            108,
+            17534,
+            1104,
+            107,
+            108,
+            106,
+            2516,
+            108,
+            544,
+            107,
+            108,
+            106,
+            1645,
+            108,
+            5049,
+            15827,
+            235336,
+            107,
+            108,
+        ]
+        assert mask[:-4] == [True] * 8 + [False] * 14
