@@ -243,64 +243,76 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # Normalize the loss
         return total_loss / total_elements
 
-    def compute_entropy(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
-        """
-        Computes the entropy of the model's output probabilities for the target labels.
+    def compute_entropy(self, logits: List[torch.Tensor], labels: torch.Tensor,ent_weight: float = 0.0) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Memory-optimized entropy calculation."""
+        logits_chunks = [logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits]
+        labels_chunks = [label_chunk.reshape(-1) for label_chunk in labels.chunk(self.num_output_chunks, dim=1)]
         
-        Args:
-            logits (List[Tensor]): List of chunked logits from the model output
-            labels (torch.Tensor): The target labels
+        # Initialize empty tensors for more efficient operation
+        full_token_entropy_mean = 0
+        per_token_entropy_sum = 0
+        full_token_entropy_sum = 0
+        per_token_entropy_mean = 0
+        chunk_count = 0
+        valid_token_count = 0  # Track valid tokens for proper normalization
+        
+        # Process chunks one by one
+        for i, (logits_chunk, labels_chunk) in enumerate(zip(logits_chunks, labels_chunks)):
+            # Create mask for valid tokens (not ignore_index)
+            # valid_mask = torch.ones_like(labels_chunk, dtype=torch.bool)
+            valid_mask = labels_chunk != self.ignore_index
+            valid_tokens_in_chunk = valid_mask.sum()
             
-        Returns:
-            Tensor: Scalar entropy value.
-        """
-        with torch.no_grad():
-            
-            # Process logits - chunking them like in the reference code
-            logits_chunks = [
-                logit_chunk.reshape(-1, logit_chunk.size(-1))
-                for logit_chunk in logits
-            ]
-            
-            # Chunk labels too
-            labels_chunks = [
-                target_chunk.reshape(-1)
-                for target_chunk in labels.chunk(
-                    self.num_output_chunks, dim=1
-                )
-            ]
-            
-            # Pre-compute entropy for each chunk
-            chunk_entropies,full_chunk_entropies = [],[]
-            for i, (logits_chunk, labels_chunk) in enumerate(
-                zip(logits_chunks, labels_chunks)
-            ):
-                # Convert to log probabilities
-                log_probs = torch.log(F.softmax(logits_chunk, dim=-1) + self.epsilon)
+            # Skip chunk if no valid tokens
+            if valid_tokens_in_chunk == 0:
+                continue
                 
-                # Get the log probabilities for the target labels
-                vocab_size = log_probs.size(-1)
-                valid_indices = labels_chunk.clamp(0, vocab_size - 1)
-                
-                # Extract the log probabilities for the specific target labels
-                gathered_log_probs = torch.gather(
-                    log_probs, dim=-1, index=valid_indices.unsqueeze(-1)
-                ).squeeze(-1)
-                
-                # Calculate probabilities from log probabilities
-                gathered_probs = gathered_log_probs.exp() + self.epsilon
-
+            chunk_count += 1
+            valid_token_count += valid_tokens_in_chunk
+            
+            # Calculate entropy components
+            log_probs = F.log_softmax(logits_chunk, dim=-1)
+            vocab_size = log_probs.size(-1)
+            valid_indices = labels_chunk.clamp(0, vocab_size - 1)
+            gathered_log_probs = torch.gather(log_probs, dim=-1, index=valid_indices.unsqueeze(-1)).squeeze(-1)
+            gathered_probs = gathered_log_probs.exp() + self.epsilon
+            
+            # Per-token metrics (always detached) - apply mask
+            with torch.no_grad():
+                per_token_ent = -gathered_probs * gathered_log_probs
+                # Apply mask and sum only valid tokens
+                per_token_ent_masked = per_token_ent * valid_mask
+                per_token_entropy_sum += per_token_ent_masked.sum().detach()
+                # Mean only over valid tokens in this chunk
+                per_token_entropy_mean += (per_token_ent_masked.sum() / valid_tokens_in_chunk).detach()
+            
+            # Full token entropy calculation
+            if ent_weight > 0:
                 ungathered_probs = log_probs.exp() + self.epsilon
-                
-                # Calculate entropy: -p * log(p) for the specific targets
-                per_token_entropy = -gathered_probs * gathered_log_probs  # shape: (batch_size * chunk_size)
-                
-                full_token_entropy = -ungathered_probs * log_probs
-                chunk_entropies.append(per_token_entropy)
-                full_chunk_entropies.append(full_token_entropy)
-            # Combine all chunk entropies
-            all_entropies = torch.cat(chunk_entropies)
+                full_token_ent = -ungathered_probs * log_probs
+                # Apply mask across vocab dimension by expanding valid_mask
+                valid_mask_expanded = valid_mask.unsqueeze(-1)  # Shape: [seq_len, 1]
+                full_token_ent_masked = full_token_ent * valid_mask_expanded
+                # Only keep gradients for mean computation which is used in loss
+                full_token_entropy_mean += (full_token_ent_masked.sum() / valid_tokens_in_chunk).detach() / len(logits_chunks)
+            else:
+                with torch.no_grad():
+                    ungathered_probs = log_probs.exp() + self.epsilon
+                    full_token_ent = -ungathered_probs * log_probs
+                    # Apply mask
+                    valid_mask_expanded = valid_mask.unsqueeze(-1)
+                    full_token_ent_masked = full_token_ent * valid_mask_expanded
+                    full_token_entropy_mean += (full_token_ent_masked.sum() / valid_tokens_in_chunk) / len(logits_chunks)
+            
+            with torch.no_grad():
+                full_token_entropy_sum += full_token_ent_masked.sum().detach()
+            
+            # Clean up this chunk's intermediate tensors
+            del log_probs, valid_indices, gathered_log_probs, gathered_probs, ungathered_probs
+            del full_token_ent, per_token_ent, full_token_ent_masked, per_token_ent_masked
+        
+        # Normalize means over all valid tokens across chunks
+        if chunk_count > 0:
+            per_token_entropy_mean = per_token_entropy_mean / chunk_count
 
-            full_all_entropies = torch.cat(full_chunk_entropies)            
-            # Return mean entropy
-            return all_entropies.sum(), full_all_entropies.sum(),all_entropies.mean(), full_all_entropies.mean()
+        return per_token_entropy_sum, full_token_entropy_sum, per_token_entropy_mean, full_token_entropy_mean    
