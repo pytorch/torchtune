@@ -134,7 +134,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             list[int]: The list of token ids.
         """
         token_ids = self.tokenizer.encode(text).ids
-        if add_bos and not self.hf_adds_bos:
+        if add_bos and not self.hf_adds_bos and not "<bos>" in text:
             token_ids.insert(0, self.bos_id)
         if add_eos and not self.hf_adds_eos:
             token_ids.append(self.eos_id)
