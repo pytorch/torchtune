@@ -11,7 +11,7 @@ from torchtune.modules.transforms.tokenizers import HuggingFaceModelTokenizer
 
 TOKENIZER_CONFIG_PATH = ASSETS / "tokenizer_config_gemma.json"
 GENERATION_CONFIG_PATH = ASSETS / "generation_config_gemma.json"
-TOKENIZER_PATH = ASSETS / "cropped.json"
+TOKENIZER_PATH = ASSETS / "tokenizer_gemma_cropped.json"
 
 
 class TestHuggingFaceModelTokenizer:
@@ -105,4 +105,4 @@ class TestHuggingFaceModelTokenizer:
             108,
         ]
 
-        assert mask[:-4] == [True] * 8 + [False] * 14
+        assert mask == [True] * 8 + [False] * 14
