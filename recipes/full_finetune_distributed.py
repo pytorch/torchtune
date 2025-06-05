@@ -171,7 +171,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Construct run_id using date, run_name, epoch and seed
         # TODO: we should just pass this in the config
         self.run_id = f"{date_part}_{run_name_part}"
-
+        self.ent_weight = cfg.get("ent_weight", 0.0)
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
@@ -1256,38 +1256,39 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
 
-                current_loss = (
+                combined_loss = (
                     self._loss_fn(logits, labels) * current_num_tokens * reward
                 )
                 # before you compute the entropy extract the single logit from the label
-
                 (
                     per_token_entropy_sum,
                     full_token_entropy_sum,
                     per_token_entropy_mean,
                     full_token_entropy_mean,
-                ) = self._loss_fn.compute_entropy(logits, labels)
-                # free logits otherwise it peaks backward memory
-                del logits
+                ) = self._loss_fn.compute_entropy(logits, labels,ent_weight = self.ent_weight)
 
                 # Update tracking with the correct variable names
                 running_per_token_ent_sum += per_token_entropy_sum.detach()
                 running_full_token_ent_sum += full_token_entropy_sum.detach()
                 running_per_token_ent_mean += per_token_entropy_mean.detach()
+                
+                del logits, per_token_entropy_sum,full_token_entropy_sum,per_token_entropy_mean
+
+                if self.ent_weight > 0:
+                    combined_loss = combined_loss + self.ent_weight * full_token_entropy_mean
                 running_full_token_ent_mean += full_token_entropy_mean.detach()
-                running_loss += current_loss
-                del per_token_entropy_sum
-                del full_token_entropy_sum
-                del per_token_entropy_mean
                 del full_token_entropy_mean
+                running_loss += combined_loss.detach()
+
 
                 # For optimizer in backward, we need to normalize before calling backward
                 # This case and gradient accumulation are mutually exclusive
                 if self._optimizer_in_bwd:
                     torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss / num_tokens
-                current_loss.backward()
+                    combined_loss = combined_loss / num_tokens
+                combined_loss.backward()
+                del combined_loss
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0 or (
                     (idx + 1) == n_samples
@@ -1322,8 +1323,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             )
                         self._optimizer.step()
                         log.info(f"optimizer step")
-
                         self._optimizer.zero_grad(set_to_none=True)
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                            import gc
+                            gc.collect()
+                            torch.cuda.synchronize()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
@@ -1374,9 +1379,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                     # Reset running stats for the next step
                     running_loss = 0
+                    combined_loss = 0
                     num_tokens = 0
-                    real_num_tokens = 0  # NOTE: added by us
-                    # Reset all entropy tracking variables
+                    real_num_tokens = 0
                     running_per_token_ent_sum = 0
                     running_full_token_ent_sum = 0
                     running_per_token_ent_mean = 0
@@ -1399,11 +1404,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
+                    
 
                 idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+            # Add after each epoch completes
+                
 
         self._profiler.stop()
 
