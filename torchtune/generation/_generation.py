@@ -437,7 +437,7 @@ def generate(
 
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
-        generated_tokens.masked_fill_(~stop_token_mask, pad_id)
+        generated_tokens.masked_fill_(~stop_token_mask.bool(), pad_id)
         generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits
