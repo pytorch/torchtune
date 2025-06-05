@@ -150,6 +150,9 @@ GEMMA_TOKENIZER_PATH = ASSETS / "tokenizer_gemma_cropped.json"
 
 
 class TestHuggingFaceModelTokenizer:
+    """
+    Tokenizer asset for this test was generated using https://gist.github.com/krammnic/a80602f5bff03921096876c995351da8
+    """
     @pytest.fixture
     def model_tokenizer(self):
         return HuggingFaceModelTokenizer(
@@ -183,28 +186,29 @@ class TestHuggingFaceModelTokenizer:
 
         assert tokens[:-4] == [
             2,
-            106,
-            1645,
-            108,
-            17534,
-            1104,
-            107,
-            108,
-            106,
-            2516,
-            108,
-            544,
-            107,
-            108,
-            106,
-            1645,
-            108,
-            5049,
-            15827,
-            235336,
-            107,
-            108,
+            4,
+            53,
+            74,
+            71,
+            14,
+            5,
+            6,
+            4,
+            51,
+            50,
+            49,
+            17,
+            5,
+            6,
+            4,
+            82,
+            22,
+            9,
+            5,
+            6,
+            4,
         ]
+
         assert mask[:-4] == [False] * 22
 
     def test_with_mask(self, model_tokenizer, messages):
@@ -217,26 +221,27 @@ class TestHuggingFaceModelTokenizer:
 
         assert tokens[:-4] == [
             2,
-            106,
-            1645,
-            108,
-            17534,
-            1104,
-            107,
-            108,
-            106,
-            2516,
-            108,
-            544,
-            107,
-            108,
-            106,
-            1645,
-            108,
-            5049,
-            15827,
-            235336,
-            107,
-            108,
+            4,
+            53,
+            74,
+            71,
+            14,
+            5,
+            6,
+            4,
+            51,
+            50,
+            49,
+            17,
+            5,
+            6,
+            4,
+            82,
+            22,
+            9,
+            5,
+            6,
+            4,
         ]
+
         assert mask[:-4] == [True] * 8 + [False] * 14
