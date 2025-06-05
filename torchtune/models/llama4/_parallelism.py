@@ -63,8 +63,8 @@ def decoder_only_tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
         layer_plan = {
             f"decoder.layers.{layer_id}.sa_norm": SequenceParallel(),
             f"decoder.layers.{layer_id}.attn": PrepareModuleInput(
-                input_layouts=(Shard(1), None),
-                desired_input_layouts=(Replicate(), None),
+                input_layouts=(Shard(1), Shard(1)),
+                desired_input_layouts=(Replicate(), Replicate()),
             ),
             f"decoder.layers.{layer_id}.attn.q_proj": ColwiseParallel(),
             f"decoder.layers.{layer_id}.attn.k_proj": ColwiseParallel(),

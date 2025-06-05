@@ -13,7 +13,7 @@ from warnings import warn
 
 import torch
 import torchtune.modules.common_utils as common_utils
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
@@ -145,17 +145,15 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
 
-    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
+    def load_teacher_checkpoint(self, cfg: DictConfig) -> dict[str, Any]:
         """
         Extract the teacher checkpoint state from file.
         """
-        # add checkpointer class to config to work with checkpoint_client
-        checkpointer_dict = {"checkpointer": cfg_checkpointer}
 
-        new_cfg_checkpointer = OmegaConf.create(checkpointer_dict)
-        teacher_checkpoint_client = CheckpointClient(
-            new_cfg_checkpointer,
+        teacher_checkpointer = config.instantiate(
+            cfg.teacher_checkpointer,
         )
+        teacher_checkpoint_client = CheckpointClient(cfg, teacher_checkpointer)
         checkpoint_dict = teacher_checkpoint_client.load_base_checkpoint()
         return checkpoint_dict
 
@@ -218,9 +216,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 "NPU does not support model compilation. Please set `compile: False` in the config."
             )
 
-        teacher_checkpoint_dict = self.load_teacher_checkpoint(
-            cfg_checkpointer=cfg.teacher_checkpointer
-        )
+        teacher_checkpoint_dict = self.load_teacher_checkpoint(cfg=cfg)
 
         common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
 
@@ -568,7 +564,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -605,11 +601,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop.
         """
-
-        if self._compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
