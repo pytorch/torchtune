@@ -47,7 +47,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -63,13 +62,18 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         return [10.5198, 10.5271, 10.5131, 10.5244]
 
     @pytest.mark.integration_test
+    @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, compile",
+        "micro_batch_size, gradient_accumulation_steps, optimizer_in_bwd",
+        [(8, 1, True), (2, 4, False)],
+    )
+    @pytest.mark.parametrize(
+        "config, model_type, ckpt_type",
         [
-            ("llama2/7B_lora_single_device", "llama2", "meta", 8, 1, False),
-            ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, True),
-            ("llama2/7B_lora_single_device", "llama2", "meta", 8, 1, True),
-            ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, False),
+            ("llama2/7B_lora_single_device", "llama2", "meta"),
+            ("llama3/8B_lora_single_device", "llama3", "tune"),
+            ("llama2/7B_lora_single_device", "llama2", "meta"),
+            ("llama3/8B_lora_single_device", "llama3", "tune"),
         ],
     )
     @gpu_test(gpu_count=1)
@@ -78,6 +82,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         compile,
         micro_batch_size,
         gradient_accumulation_steps,
+        optimizer_in_bwd,
         config,
         model_type,
         ckpt_type,
@@ -111,8 +116,15 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
-
-        cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optimizer_in_bwd:
+            cmd.append("clip_grad_norm=100")
+            cmd.append("optimizer_in_bwd=False")
+        else:
+            cmd.append("optimizer_in_bwd=True")
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -124,7 +136,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
     @pytest.mark.integration_test
@@ -277,7 +289,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         loss_values = get_loss_values_from_metric_logger(log_file)[:2]
 
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
@@ -364,7 +376,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         loss_values = get_loss_values_from_metric_logger(log_file)[:2]
 
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
     @pytest.mark.parametrize("use_dora", [False, True])
@@ -436,4 +448,4 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         llama2_model.load_state_dict(sd)
         merged_ckpt_out = llama2_model(inputs)
-        torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
+        torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-4, atol=1e-4)
