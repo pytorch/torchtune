@@ -74,6 +74,10 @@ class TestHuggingFaceModelTokenizer:
         assert mask[:-4] == [False] * 23
 
     def test_with_mask(self, model_tokenizer, messages):
+        """
+        In this test we mask the first message and verify that it does not affect tokens,
+        and message mask is changed in the correct way.
+        """
         messages[0].masked = True
         tokens, mask = model_tokenizer.tokenize_messages(messages)
 
