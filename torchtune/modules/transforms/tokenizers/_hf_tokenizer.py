@@ -111,7 +111,6 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
 
         self.hf_adds_bos, self.hf_adds_eos = False, False
         encoded_empty_str = self.tokenizer.encode("").ids
-
         if self.bos_id in encoded_empty_str:
             self.hf_adds_bos = True
         if self.eos_id in encoded_empty_str:
@@ -279,6 +278,9 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
             )
 
             current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
+
+            if "<bos>" in rendered and self.base_tokenizer.hf_adds_bos:
+                del current_tokens[0]
 
             delta = current_tokens[len(previous_tokens) :]
             previous_tokens = current_tokens
