@@ -153,6 +153,7 @@ class TestHuggingFaceModelTokenizer:
     """
     Tokenizer asset for this test was generated using https://gist.github.com/krammnic/a80602f5bff03921096876c995351da8
     """
+
     @pytest.fixture
     def model_tokenizer(self):
         return HuggingFaceModelTokenizer(
