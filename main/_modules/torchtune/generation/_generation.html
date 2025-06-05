@@ -655,7 +655,7 @@
     <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">stop_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">custom_generate_next_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">compiled_generate_next_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.</span>
@@ -672,23 +672,48 @@
 <span class="sd">        stop_tokens (Optional[list[int]]): If specified, generation is stopped when any of these tokens are generated,</span>
 <span class="sd">            default None.</span>
 <span class="sd">        rng (Optional[torch.Generator]): random number generator, default None.</span>
-<span class="sd">        custom_generate_next_token (Optional[Callable]): If specified, we&#39;ll use the</span>
-<span class="sd">            ``custom_generate_next_token function``. This is generally only useful if</span>
-<span class="sd">            you want to specify a ``torch.compile`` version of the generate next token for</span>
-<span class="sd">            performance reasons. If None, we use the default :func:`generate_next_token`.</span>
+<span class="sd">        compiled_generate_next_token (Optional[Callable]): This argument is typically a reference to a compiled version of</span>
+<span class="sd">            the :func:`generate_next_token` function. During autoregressive decoding, this function is called instead of the default</span>
+<span class="sd">            :func:`generate_next_token` in order to accelerate generation. :func:`generate_next_token` will still be used for the</span>
+<span class="sd">            first token generation - or &quot;pre-fill&quot; pass.</span>
 <span class="sd">            Default is None.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        This function has only been tested with decoder-only models.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; model = torchtune.models.llama3.llama3_8b()</span>
-<span class="sd">        &gt;&gt;&gt; tokenizer = torchtune.models.llama3.llama3_tokenizer()</span>
-<span class="sd">        &gt;&gt;&gt; prompt = tokenizer.encode(&quot;Hi my name is&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; rng.manual_seed(42)</span>
-<span class="sd">        &gt;&gt;&gt; output, logits = generate(model, torch.tensor(prompt), max_generated_tokens=100, pad_id=0)</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.models.llama3 import llama3_tokenizer</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.models.llama3 import llama3_8b</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.generation import generate</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.training.checkpointing import FullModelHFCheckpointer</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.data import Message</span>
+
+<span class="sd">        &gt;&gt;&gt; model = llama3_8b().cuda()</span>
+
+<span class="sd">        &gt;&gt;&gt; checkpointer = FullModelHFCheckpointer(</span>
+<span class="sd">        ...     checkpoint_dir=&quot;/tmp/Meta-Llama-3-8B-Instruct&quot;,</span>
+<span class="sd">        ...     checkpoint_files=[</span>
+<span class="sd">        ...         &quot;model-00001-of-00004.safetensors&quot;,</span>
+<span class="sd">        ...         &quot;model-00002-of-00004.safetensors&quot;,</span>
+<span class="sd">        ...         &quot;model-00003-of-00004.safetensors&quot;,</span>
+<span class="sd">        ...         &quot;model-00004-of-00004.safetensors&quot;,</span>
+<span class="sd">        ...     ],</span>
+<span class="sd">        ...     model_type=&quot;LLAMA3&quot;,</span>
+<span class="sd">        ...     output_dir=&quot;/tmp/torchtune/llama3_8b&quot;,</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; checkpoint = checkpointer.load_checkpoint()</span>
+<span class="sd">        &gt;&gt;&gt; model.load_state_dict(checkpoint[&quot;model&quot;])</span>
+
+<span class="sd">        &gt;&gt;&gt; tokenizer = llama3_tokenizer(&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; messages = [</span>
+<span class="sd">        ...     Message(role=&quot;assistant&quot;, content=&quot;Hi my name is&quot;),</span>
+<span class="sd">        ... ]</span>
+<span class="sd">        &gt;&gt;&gt; prompt = tokenizer({&quot;messages&quot;: messages}, inference=True)</span>
+<span class="sd">        &gt;&gt;&gt; output, logits = generate(model, torch.tensor(prompt[&quot;tokens&quot;], device=&#39;cuda&#39;), max_generated_tokens=100, pad_id=0)</span>
 <span class="sd">        &gt;&gt;&gt; print(tokenizer.decode(output[0].tolist()))</span>
-<span class="sd">        Hi my name is Jeremy and I&#39;m a friendly language model assistant!</span>
+
+<span class="sd">        &gt;&gt;&gt; Hi my name is Marley. Nice to meet you, Marley! How are you doing today?... [truncated]</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:</span>
@@ -699,9 +724,6 @@
 <span class="sd">                with shape ``[bsz x num_generated_tokens x vocab_size]``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">prompt</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">prompt</span>
-
-    <span class="k">if</span> <span class="n">custom_generate_next_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">custom_generate_next_token</span> <span class="o">=</span> <span class="n">generate_next_token</span>
 
     <span class="n">bsz</span><span class="p">,</span> <span class="n">prompt_length</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
     <span class="n">total_response_length</span> <span class="o">=</span> <span class="n">prompt_length</span> <span class="o">+</span> <span class="n">max_generated_tokens</span>
@@ -805,6 +827,12 @@
         <span class="k">if</span> <span class="n">stop_token_reached</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">generated_tokens</span><span class="p">,</span> <span class="n">generated_logits</span>
 
+    <span class="n">next_token_fn</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">compiled_generate_next_token</span>
+        <span class="k">if</span> <span class="n">compiled_generate_next_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">generate_next_token</span>
+    <span class="p">)</span>
+
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_generated_tokens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
         <span class="c1"># update stop_token_mask if we reached a stop token in a previous step</span>
         <span class="c1"># by appending the logical not of stop_token_reached to the end of the mask</span>
@@ -836,7 +864,7 @@
             <span class="n">condition</span> <span class="o">=</span> <span class="n">uniform_val</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">epsilon</span>
             <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="o">-</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">uniform_val</span><span class="p">))</span>
 
-        <span class="n">tokens</span><span class="p">,</span> <span class="n">logits</span> <span class="o">=</span> <span class="n">custom_generate_next_token</span><span class="p">(</span>
+        <span class="n">tokens</span><span class="p">,</span> <span class="n">logits</span> <span class="o">=</span> <span class="n">next_token_fn</span><span class="p">(</span>
             <span class="n">model</span><span class="p">,</span>
             <span class="n">input_pos</span><span class="o">=</span><span class="n">curr_input_pos</span><span class="p">,</span>
             <span class="n">x</span><span class="o">=</span><span class="n">tokens</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
@@ -858,7 +886,7 @@
 
     <span class="c1"># mask out generated tokens in seqs that already hit a stop token</span>
     <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">generated_tokens</span> <span class="o">*=</span> <span class="n">stop_token_mask</span>
+        <span class="n">generated_tokens</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="o">~</span><span class="n">stop_token_mask</span><span class="o">.</span><span class="n">bool</span><span class="p">(),</span> <span class="n">pad_id</span><span class="p">)</span>
         <span class="n">generated_logits</span> <span class="o">*=</span> <span class="n">stop_token_mask</span><span class="p">[:,</span> <span class="o">-</span><span class="n">generated_logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">generated_tokens</span><span class="p">,</span> <span class="n">generated_logits</span></div>
