@@ -537,6 +537,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
+        # run model
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
 
