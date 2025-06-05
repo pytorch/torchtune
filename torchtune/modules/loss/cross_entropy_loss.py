@@ -7,7 +7,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributed.tensor import DTensor, Replicate
+from torch.distributed.tensor import DTensor
 
 from torchtune.modules.loss.loss_types import SFTLoss
 from torchtune.utils import get_logger
@@ -149,7 +149,8 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
     """Memory efficient Cross-entropy loss that uses fused CUDA kernels to compute the loss.
     Combines the linear projection with the cross-entropy calculation for better performance
     and memory efficiency. This is an approximation of CrossEntropyLoss and may have small
-    numerical differences compared to the standard implementation.
+    numerical differences compared to the standard implementation. This is a wrapper around
+    `LigerFusedLinearCrossEntropyFunction` from the `liger_kernel` package.
 
     Args:
         ignore_index (int): Index to ignore in the target tensor. Default is -100.
@@ -198,8 +199,6 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
         """
         model.skip_output_layer = True
         self.linear_projection = model.output
-        if self._is_sharded(self.linear_projection.weight):
-            self._replicate_projection()
 
         # Validate the projection layer has required parameters
         if not hasattr(self.linear_projection, "weight"):
@@ -210,27 +209,6 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
     def apply_compile_strategy(self, *args, **kwargs):
         """Triton kernels are already JIT-compiled so no additional compilation needed."""
         return self
-
-    def _is_sharded(self, param: nn.Parameter) -> bool:
-        """Check if the projection layer is sharded."""
-        if isinstance(param, DTensor):
-            return any([not p.is_replicate() for p in param.placements])
-        else:
-            return False
-
-    def _replicate_projection(self):
-        """Replicate the projection layer across all ranks."""
-        mesh = self.linear_projection.weight.device_mesh
-        placments = [Replicate()] * mesh.ndim
-        with torch.no_grad():
-            w = self.linear_projection.weight.redistribute(mesh, placments)
-            torch.utils.swap_tensors(self.linear_projection.weight, w)
-            if hasattr(self.linear_projection, "bias"):
-                b = self.linear_projection.bias.redistribute(mesh, placments)
-                torch.utils.swap_tensors(self.linear_projection.bias, b)
-        self.linear_projection.weight.requires_grad = True
-        if hasattr(self.linear_projection, "bias"):
-            self.linear_projection.bias.requires_grad = True
 
     def forward(
         self,
@@ -251,32 +229,27 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
         """
         if self.linear_projection is None:
             raise RuntimeError("Must call set_model_output() before forward()")
-        if self._is_sharded(self.linear_projection.weight):
-            raise RuntimeError(
-                "Projection layer must not be sharded. Call set_model_output() after parallelizing model"
-            )
+
         if isinstance(hidden_states, DTensor):
             hidden_states = hidden_states.full_tensor()
 
         hidden_states = hidden_states.flatten(0, 1)  # [batch_size*seq_len, emb_dim]
         targets = targets.flatten()  # [batch_size*seq_len]
 
-        if isinstance(hidden_states, DTensor):
-            hidden_states = hidden_states.full_tensor()
         w = self.linear_projection.weight
         if isinstance(w, DTensor):
-            w = w.to_local()
+            w = w.full_tensor()
 
         b = getattr(self.linear_projection, "bias", None)
         if b is not None and isinstance(b, DTensor):
-            b = b.to_local()
+            b = b.full_tensor()
 
         loss, _ = self.fused_linear_ce.apply(
             hidden_states,
             w,
             targets,
             b,
-            None,
+            None,  # ce_weight
             self.ignore_index,
         )
         return loss

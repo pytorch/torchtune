@@ -35,9 +35,11 @@ WORLD_SIZE = 4  # minimum to test FSDP + TP
 class Model(nn.Module):
     def __init__(self, vocab_size, embed_dim):
         super().__init__()
+        self.layer = nn.Linear(embed_dim, embed_dim)
         self.output = nn.Linear(embed_dim, vocab_size)
 
     def forward(self, x):
+        x = F.relu(self.layer(x))
         return self.output(x)
 
 
@@ -59,24 +61,24 @@ def get_open_port():
 
 
 class TestLigerFusedCrossEntropyLoss:
-    def loss_step(self, model, loss_fn, hidden, targets):
-        opt = SGD(model.parameters(), lr=0.1)
+    def loss_step(self, model, loss_fn, embedding, targets):
+        opt = SGD(model.parameters(), lr=0.2)
         opt.zero_grad()
 
         # Forward pass
+        hidden = model.layer(embedding)
         loss = loss_fn(hidden, targets)
 
         # Backward pass and optimizer step
         loss.backward()
         opt.step()
-
         return loss
 
-    def compute_loss(self, model, fused_model, device, compile, rank=0):
+    def compute_loss(self, fused_model, model, device, compile, rank=0):
         # Create dummy data
         gen = torch.Generator(device)
         gen.manual_seed(rank)
-        hidden = torch.randn(
+        embed = torch.randn(
             BATCH_SIZE,
             SEQ_LEN,
             EMBED_DIM,
@@ -86,11 +88,16 @@ class TestLigerFusedCrossEntropyLoss:
         )
 
         targets = torch.randint(
-            0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN), dtype=torch.long, device=device
+            0,
+            VOCAB_SIZE,
+            (BATCH_SIZE, SEQ_LEN),
+            dtype=torch.long,
+            generator=gen,
+            device=device,
         )
 
         # Add ignored indices
-        mask = torch.rand(BATCH_SIZE, SEQ_LEN) < 0.2
+        mask = torch.rand((BATCH_SIZE, SEQ_LEN), generator=gen, device=device) < 0.2
         targets[mask] = IGNORE_INDEX
 
         # Test liger loss
@@ -98,21 +105,21 @@ class TestLigerFusedCrossEntropyLoss:
         loss_fn.set_model_output(fused_model)
         if compile:
             loss_fn.apply_compile_strategy()
-        fused_loss = self.loss_step(fused_model, loss_fn, hidden, targets)
+        fused_loss = self.loss_step(fused_model, loss_fn, embed, targets)
 
         # Test standard loss
         def standard_loss_fn(hidden, targets):
-            logits = model(hidden)
+            logits = model.output(hidden)
             logits = logits.reshape(-1, VOCAB_SIZE)
             targets = targets.reshape(-1)
             loss = F.cross_entropy(
-                logits, targets, reduction="sum", ignore_index=IGNORE_INDEX
+                logits, targets, reduction="mean", ignore_index=IGNORE_INDEX
             )
             return loss
 
         if compile:
             torch.compile(standard_loss_fn)
-        standard_loss = self.loss_step(model, standard_loss_fn, hidden, targets)
+        standard_loss = self.loss_step(model, standard_loss_fn, embed, targets)
 
         return fused_loss, standard_loss
 
@@ -137,12 +144,8 @@ class TestLigerFusedCrossEntropyLoss:
         assert_expected(fused_loss, standard_loss, rtol=1e-2, atol=1e-2)
 
         # 2. Validate the weight updates are close enough
-        assert_expected(
-            fused_model.output.weight, model.output.weight, rtol=1e-2, atol=1e-2
-        )
-        assert_expected(
-            fused_model.output.bias, model.output.bias, rtol=1e-2, atol=1e-2
-        )
+        for p1, p2 in zip(fused_model.parameters(), model.parameters()):
+            assert_expected(p1, p2, rtol=1e-2, atol=1e-2)
 
     def loss_worker(self, rank, compile, port):
         os.environ["MASTER_ADDR"] = "localhost"
@@ -165,32 +168,29 @@ class TestLigerFusedCrossEntropyLoss:
         fused_model = Model(VOCAB_SIZE, EMBED_DIM).cuda()
         fixed_init_model(fused_model, min_val=-0.1, max_val=0.1)
         parallelize_module(fused_model, mesh["tp"], parallelize_plan=plan)
-        fully_shard(fused_model, mesh=mesh["dp_shard"])
+        for m in [fused_model.layer, fused_model.output, fused_model]:
+            fully_shard(m, mesh=mesh["dp_shard"])
 
         # Create model for standard loss
         model = Model(VOCAB_SIZE, EMBED_DIM).cuda()
         fixed_init_model(model, min_val=-0.1, max_val=0.1)
         parallelize_module(model, mesh["tp"], parallelize_plan=plan)
-        fully_shard(model, mesh=mesh["dp_shard"])
+        for m in [model.layer, model.output, model]:
+            fully_shard(m, mesh=mesh["dp_shard"])
 
         fused_loss, standard_loss = self.compute_loss(
-            fused_model, model, device, compile, 0  # mesh["dp_shard"].get_local_rank()
+            fused_model, model, device, compile, mesh["dp_shard"].get_local_rank()
         )
-
-        fused_model_weight = fused_model.output.weight.full_tensor()
-        fused_model_bias = fused_model.output.bias.full_tensor()
-        standard_model_weight = model.output.weight.full_tensor()
-        standard_model_bias = model.output.bias.full_tensor()
-        # torch.distributed.breakpoint(0)
-        dist.destroy_process_group()
 
         # Verify:
         # 1. Validate the results are close enough
         assert_expected(fused_loss, standard_loss, rtol=1e-2, atol=1e-2)
 
         # 2. Validate the weight updates are close enough
-        assert_expected(fused_model_weight, standard_model_weight, rtol=1e-2, atol=1e-2)
-        assert_expected(fused_model_bias, standard_model_bias, rtol=1e-2, atol=1e-2)
+        for p1, p2 in zip(fused_model.parameters(), model.parameters()):
+            assert_expected(p1, p2, rtol=1e-2, atol=1e-2)
+
+        dist.destroy_process_group()
 
     @gpu_test(gpu_count=WORLD_SIZE)
     @pytest.mark.parametrize("compile", [False, True])
