@@ -86,19 +86,23 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self.bos_id = None
         self.eos_id = None
 
+        self.bos_token = "<bos>"
+        self.eos_token = "<eos>"
+
         if self.config:
-            bos_token = self._get_token_from_config(self.config, "bos_token")
-            eos_token = self._get_token_from_config(self.config, "eos_token")
-            if bos_token is not None:
-                self.bos_id = self.tokenizer.token_to_id(bos_token)
-            if eos_token is not None:
-                self.eos_id = self.tokenizer.token_to_id(eos_token)
+            self.bos_token = self._get_token_from_config(self.config, "bos_token")
+            self.eos_token = self._get_token_from_config(self.config, "eos_token")
+            if self.bos_token is not None:
+                self.bos_id = self.tokenizer.token_to_id(self.bos_token)
+            if self.eos_token is not None:
+                self.eos_id = self.tokenizer.token_to_id(self.eos_token)
 
         if self.generation_config:
             if self.bos_id is None:
                 self.bos_id = self.generation_config.get("bos_token_id")
             if self.eos_id is None:
                 self.eos_id = self.generation_config.get("eos_token_id")
+
 
         if self.bos_id is None or self.eos_id is None:
             raise ValueError("Could not infer BOS and EOS token IDs from config")
@@ -133,7 +137,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             list[int]: The list of token ids.
         """
         token_ids = self.tokenizer.encode(text).ids
-        if add_bos and not self.hf_adds_bos and "<bos>" not in text:
+        if add_bos and not self.hf_adds_bos and self.bos_token not in text:
             token_ids.insert(0, self.bos_id)
         if add_eos and not self.hf_adds_eos:
             token_ids.append(self.eos_id)
@@ -279,7 +283,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
             current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
 
-            if "<bos>" in rendered and self.base_tokenizer.hf_adds_bos:
+            if self.base_tokenizer.bos_token in rendered and self.base_tokenizer.hf_adds_bos:
                 del current_tokens[0]
 
             delta = current_tokens[len(previous_tokens) :]
