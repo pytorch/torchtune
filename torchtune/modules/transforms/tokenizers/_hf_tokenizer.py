@@ -103,7 +103,6 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             if self.eos_id is None:
                 self.eos_id = self.generation_config.get("eos_token_id")
 
-
         if self.bos_id is None or self.eos_id is None:
             raise ValueError("Could not infer BOS and EOS token IDs from config")
 
@@ -283,7 +282,10 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
             current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
 
-            if self.base_tokenizer.bos_token in rendered and self.base_tokenizer.hf_adds_bos:
+            if (
+                self.base_tokenizer.bos_token in rendered
+                and self.base_tokenizer.hf_adds_bos
+            ):
                 del current_tokens[0]
 
             delta = current_tokens[len(previous_tokens) :]
