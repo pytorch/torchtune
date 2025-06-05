@@ -48,7 +48,6 @@ class TestHuggingFaceModelTokenizer:
 
         assert tokens[:-4] == [
             2,
-            2,
             106,
             1645,
             108,
@@ -82,7 +81,6 @@ class TestHuggingFaceModelTokenizer:
         tokens, mask = model_tokenizer.tokenize_messages(messages)
 
         assert tokens[:-4] == [
-            2,
             2,
             106,
             1645,
