@@ -56,8 +56,6 @@ class TestFullDPODistributedRecipe:
             - Train a model for 2 epochs
             - Resume training after epoch 1
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
-        Unlike `tests.recipes.test_lora_finetune_single_device`, this test does not use pre-computed loss
-        values to benchmark against. This test just ensures the loss values are identical when resuming.
         """
 
         ckpt = "llama3_tune"
@@ -141,16 +139,7 @@ class TestFullDPODistributedRecipe:
     def test_training_state_on_resume_with_async_checkpointing(
         self, tmpdir, monkeypatch
     ):
-        """Test whether the recipe state is correctly updated on resume. Since this
-        is model agnostic, we should run this on the small model only. The test
-        consists of three stages:
-            - Train a model for 2 epochs
-            - Resume training after epoch 1
-            - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
-        Unlike `tests.recipes.test_lora_finetune_single_device`, this test does not use pre-computed loss
-        values to benchmark against. This test just ensures the loss values are identical when resuming.
-        """
-
+        """Same as above test but with async checkpointing."""
         ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
