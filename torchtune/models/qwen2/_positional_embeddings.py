@@ -49,7 +49,7 @@ class Qwen2RotaryPositionalEmbeddings(nn.Module):
         self.build_rope_cache(self.max_seq_len)
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
-        # Create position indexes `[0, 1, ..., max_seq_len - 1]`
+        # Create position indexes `[0, 1, ..., max_seq_len - 1]
         seq_idx = torch.arange(
             max_seq_len, dtype=self.theta.dtype, device=self.theta.device
         )
