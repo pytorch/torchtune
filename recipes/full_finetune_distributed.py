@@ -357,6 +357,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
+            cfg_loss=cfg.loss,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             activation_offloading_use_streams=self._activation_offloading_use_streams,
@@ -415,14 +416,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-
-        # initialize loss
-        self._loss_fn = config.instantiate(cfg.loss)
-        if isinstance(self._loss_fn, SFTLoss):
-            self._loss_fn.set_model_output(self._model)
-
-        if self._compile_loss:
-            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         utils.log_rank_zero(self._logger, "Loss is initialized.")
 
@@ -567,6 +560,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
+        cfg_loss: DictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         activation_offloading_use_streams: bool,
@@ -594,8 +588,27 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
+        # compile model before loss, loss is compiled separately
         if self._compile_model:
             training.compile_model(model, verbose=self._is_rank_zero)
+
+        self._loss_fn = config.instantiate(cfg_loss)
+        # may not be necessary to do this prior to parallelizing
+        if isinstance(self._loss_fn, SFTLoss):
+            model.loss_fn = self._loss_fn
+            orig_fwd_bound = model.forward
+
+            def make_forward_with_loss(orig_bound):
+                def forward_with_loss(self, *args, targets, **kwargs):
+                    outputs = orig_bound(*args, **kwargs)
+                    return self.loss_fn(outputs, targets)
+
+                return forward_with_loss
+
+            forward_with_loss = make_forward_with_loss(orig_fwd_bound)
+            import types
+
+            model.forward = types.MethodType(forward_with_loss, model)
 
         if self._enable_fp8_training:
             # Requires https://github.com/pytorch/pytorch/pull/148922
@@ -696,6 +709,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
+        # do this after loading the state dict loading, since the state dict shouldn't include these
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.set_model_output(model)
+
+        if self._compile_loss:
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
@@ -829,7 +848,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
-            outputs = self._model(**batch)
+            if hasattr(self._model, "loss_fn"):
+                loss = self._model(**batch, targets=labels)
+            else:
+                outputs = self._model(**batch)
 
         # post process for third party loss functions
         if not isinstance(self._loss_fn, SFTLoss):
@@ -838,11 +860,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             if isinstance(outputs, DTensor):
                 outputs = outputs.full_tensor()
 
-        # Compute loss
-        loss = self._loss_fn(outputs, labels)
+            # Compute loss
+            loss = self._loss_fn(outputs, targets=labels)
 
-        # free logits otherwise it peaks backward memory
-        del outputs
+            # free logits otherwise it peaks backward memory
+            del outputs
 
         return loss
 

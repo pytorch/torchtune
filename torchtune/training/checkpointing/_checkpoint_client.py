@@ -153,7 +153,12 @@ class CheckpointClient:
         ckpt_dict = {}
         ckpt_dict.update(training_progress.state_dict())
 
-        ckpt_dict[training.MODEL_KEY] = model.state_dict()
+        model_state_dict = model.state_dict()
+        loss_fn_keys = [k for k in model_state_dict.keys() if k.startswith("loss_fn")]
+        for k in loss_fn_keys:
+            model_state_dict.pop(k)
+
+        ckpt_dict[training.MODEL_KEY] = model_state_dict
         ckpt_dict[training.OPT_KEY] = optimizer.state_dict()
 
         if adapter_config is not None:
@@ -259,6 +264,10 @@ class CheckpointClient:
             model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
         else:
             model_state_dict = model.state_dict()
+
+        loss_fn_keys = [k for k in model_state_dict.keys() if k.startswith("loss_fn")]
+        for k in loss_fn_keys:
+            model_state_dict.pop(k)
 
         if intermediate_checkpoint:
             if self._is_rank_zero:
