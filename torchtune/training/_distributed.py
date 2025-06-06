@@ -8,6 +8,7 @@
 import contextlib
 import logging
 import os
+from copy import deepcopy
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
@@ -487,7 +488,7 @@ def gather_cpu_state_dict(
     """
     Converting sharded state dict into a full state dict on CPU
     Returning non-empty result only on rank0 to avoid peaking CPU memory
-    Currenltly we can used distributed state dict API to process model without NF4Tensor. Otherwise, we need to
+    Currently we can used distributed state dict API to process model without NF4Tensor. Otherwise, we need to
     manually gather any NF4 tensors until all-gather is supported in the NF4Tensor subclass
     TODO: add support for NF4Tensor at distributed state dict API
 
@@ -612,7 +613,7 @@ def get_shard_conditions(
     **kwargs,
 ) -> bool:
     """
-    Returs True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,
+    Returns True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,
     returns False. This is a helper function for sharding a model with FSDP.
     In :func:`~torchtune.training.shard_model`, we iterate over the model's named modules
     and apply fully_shard using this condition.
@@ -702,7 +703,9 @@ def shard_model(
         )
 
     # Finally shard the entire model to account for any stragglers
-    fully_shard(model, **fsdp_kwargs)
+    root_kwargs = deepcopy(fsdp_kwargs)
+    root_kwargs["reshard_after_forward"] = False
+    fully_shard(model, root_kwargs)
 
 
 def prepare_mha_for_tp(
