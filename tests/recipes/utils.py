@@ -289,6 +289,24 @@ def write_hf_vision_ckpt_config(ckpt_dir: str):
         json.dump(config, f)
 
 
+def write_hf_ckpt_config_llama3_137m(ckpt_dir: str):
+    config = {
+        "hidden_size": 512,
+        "num_attention_heads": 4,
+        "num_key_value_heads": 2,
+    }
+    config_file = Path.joinpath(Path(ckpt_dir), "config.json")
+    with config_file.open("w") as f:
+        json.dump(config, f)
+
+
+MODEL_TO_HF_CONFIG_FN = {
+    "llama2": write_hf_ckpt_config,
+    "llama3_2_vision_hf": write_hf_vision_ckpt_config,
+    "llama3_137M": write_hf_ckpt_config_llama3_137m,
+}
+
+
 MODEL_TEST_CONFIGS = {
     "llama2": llama2_test_config(),
     "llama3": llama3_test_config(),
