@@ -705,7 +705,9 @@ def shard_model(
     # Finally shard the entire model to account for any stragglers
     root_kwargs = deepcopy(fsdp_kwargs)
     root_kwargs["reshard_after_forward"] = False
-    fully_shard(model, root_kwargs)
+    # TODO: we should actually use reshard_after_forward=None
+    # on latest nightlies: https://github.com/pytorch/pytorch/pull/155319
+    fully_shard(model, **root_kwargs)
 
 
 def prepare_mha_for_tp(
