@@ -1,0 +1,489 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "<pad>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "<eos>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 2,
+      "content": "<bos>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 3,
+      "content": "<unk>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 4,
+      "content": "<start_of_turn>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 5,
+      "content": "<end_of_turn>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": {
+    "type": "Replace",
+    "pattern": {
+      "String": " "
+    },
+    "content": "▁"
+  },
+  "pre_tokenizer": {
+    "type": "Split",
+    "pattern": {
+      "String": " "
+    },
+    "behavior": "MergedWithPrevious",
+    "invert": false
+  },
+  "post_processor": {
+    "type": "TemplateProcessing",
+    "single": [
+      {
+        "SpecialToken": {
+          "id": "<bos>",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      }
+    ],
+    "pair": [
+      {
+        "SpecialToken": {
+          "id": "<bos>",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "SpecialToken": {
+          "id": "<bos>",
+          "type_id": 1
+        }
+      },
+      {
+        "Sequence": {
+          "id": "B",
+          "type_id": 1
+        }
+      }
+    ],
+    "special_tokens": {
+      "<bos>": {
+        "id": "<bos>",
+        "ids": [
+          2
+        ],
+        "tokens": [
+          "<bos>"
+        ]
+      }
+    }
+  },
+  "decoder": {
+    "type": "Sequence",
+    "decoders": [
+      {
+        "type": "Replace",
+        "pattern": {
+          "String": "▁"
+        },
+        "content": " "
+      },
+      {
+        "type": "ByteFallback"
+      },
+      {
+        "type": "Fuse"
+      }
+    ]
+  },
+  "model": {
+    "type": "BPE",
+    "dropout": null,
+    "unk_token": "<unk>",
+    "continuing_subword_prefix": null,
+    "end_of_word_suffix": null,
+    "fuse_unk": true,
+    "byte_fallback": true,
+    "ignore_merges": false,
+    "vocab": {
+      "<pad>": 0,
+      "<eos>": 1,
+      "<bos>": 2,
+      "<unk>": 3,
+      "<start_of_turn>": 4,
+      "<end_of_turn>": 5,
+      "\n": 6,
+      "<": 7,
+      ">": 8,
+      "?": 9,
+      "_": 10,
+      "a": 11,
+      "b": 12,
+      "d": 13,
+      "e": 14,
+      "f": 15,
+      "h": 16,
+      "i": 17,
+      "l": 18,
+      "m": 19,
+      "n": 20,
+      "o": 21,
+      "p": 22,
+      "r": 23,
+      "s": 24,
+      "t": 25,
+      "u": 26,
+      "w": 27,
+      "▁": 28,
+      "_o": 29,
+      "_t": 30,
+      "f_t": 31,
+      "n>": 32,
+      "rn>": 33,
+      "urn>": 34,
+      "_of_t": 35,
+      "_of_turn>": 36,
+      "<s": 37,
+      "ar": 38,
+      "t_of_turn>": 39,
+      "tar": 40,
+      "<star": 41,
+      "\n<start_of_turn>": 42,
+      "<e": 43,
+      "d_of_turn>": 44,
+      "el": 45,
+      "er": 46,
+      "nd_of_turn>": 47,
+      "<end_of_turn>\n<start_of_turn>": 48,
+      "\nh": 49,
+      "del": 50,
+      "mo": 51,
+      "ser": 52,
+      "user": 53,
+      "<end_of_turn>\n<start_of_turn>mo": 54,
+      "<end_of_turn>\n<start_of_turn>model": 55,
+      "<start_of_turn>user": 56,
+      "\nw": 57,
+      "<b": 58,
+      "><start_of_turn>user": 59,
+      "?<end_of_turn>\n<start_of_turn>model": 60,
+      "at": 61,
+      "e<end_of_turn>\n<start_of_turn>model": 62,
+      "her": 63,
+      "hat": 64,
+      "i<end_of_turn>\n<start_of_turn>": 65,
+      "lo": 66,
+      "os": 67,
+      "p?<end_of_turn>\n<start_of_turn>model": 68,
+      "su": 69,
+      "ther": 70,
+      "▁ther": 71,
+      "ello": 72,
+      "\nhi<end_of_turn>\n<start_of_turn>": 73,
+      "\nhello": 74,
+      "user\nw": 75,
+      "<bos": 76,
+      "><start_of_turn>user\nhello": 77,
+      "e<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>": 78,
+      "hatsu": 79,
+      "p?<end_of_turn>\n<start_of_turn>model\n": 80,
+      "▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>": 81,
+      "user\nwhatsu": 82,
+      "<bos><start_of_turn>user\nhello": 83,
+      "▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>user\nwhatsu": 84,
+      "<bos><start_of_turn>user\nhello▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>user\nwhatsu": 85,
+      "<bos><start_of_turn>user\nhello▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>user\nwhatsup?<end_of_turn>\n<start_of_turn>model\n": 86
+    },
+    "merges": [
+      [
+        "_",
+        "o"
+      ],
+      [
+        "_",
+        "t"
+      ],
+      [
+        "f",
+        "_t"
+      ],
+      [
+        "n",
+        ">"
+      ],
+      [
+        "r",
+        "n>"
+      ],
+      [
+        "u",
+        "rn>"
+      ],
+      [
+        "_o",
+        "f_t"
+      ],
+      [
+        "_of_t",
+        "urn>"
+      ],
+      [
+        "<",
+        "s"
+      ],
+      [
+        "a",
+        "r"
+      ],
+      [
+        "t",
+        "_of_turn>"
+      ],
+      [
+        "t",
+        "ar"
+      ],
+      [
+        "<s",
+        "tar"
+      ],
+      [
+        "<star",
+        "t_of_turn>"
+      ],
+      [
+        "\n",
+        "<start_of_turn>"
+      ],
+      [
+        "<",
+        "e"
+      ],
+      [
+        "d",
+        "_of_turn>"
+      ],
+      [
+        "e",
+        "l"
+      ],
+      [
+        "e",
+        "r"
+      ],
+      [
+        "n",
+        "d_of_turn>"
+      ],
+      [
+        "<e",
+        "nd_of_turn>"
+      ],
+      [
+        "<end_of_turn>",
+        "\n<start_of_turn>"
+      ],
+      [
+        "\n",
+        "h"
+      ],
+      [
+        "d",
+        "el"
+      ],
+      [
+        "m",
+        "o"
+      ],
+      [
+        "s",
+        "er"
+      ],
+      [
+        "u",
+        "ser"
+      ],
+      [
+        "<end_of_turn>\n<start_of_turn>",
+        "mo"
+      ],
+      [
+        "<end_of_turn>\n<start_of_turn>mo",
+        "del"
+      ],
+      [
+        "<start_of_turn>",
+        "user"
+      ],
+      [
+        "\n",
+        "w"
+      ],
+      [
+        "<",
+        "b"
+      ],
+      [
+        ">",
+        "<start_of_turn>user"
+      ],
+      [
+        "?",
+        "<end_of_turn>\n<start_of_turn>model"
+      ],
+      [
+        "a",
+        "t"
+      ],
+      [
+        "e",
+        "<end_of_turn>\n<start_of_turn>model"
+      ],
+      [
+        "h",
+        "er"
+      ],
+      [
+        "h",
+        "at"
+      ],
+      [
+        "i",
+        "<end_of_turn>\n<start_of_turn>"
+      ],
+      [
+        "l",
+        "o"
+      ],
+      [
+        "o",
+        "s"
+      ],
+      [
+        "p",
+        "?<end_of_turn>\n<start_of_turn>model"
+      ],
+      [
+        "s",
+        "u"
+      ],
+      [
+        "t",
+        "her"
+      ],
+      [
+        "▁",
+        "ther"
+      ],
+      [
+        "el",
+        "lo"
+      ],
+      [
+        "\nh",
+        "i<end_of_turn>\n<start_of_turn>"
+      ],
+      [
+        "\nh",
+        "ello"
+      ],
+      [
+        "user",
+        "\nw"
+      ],
+      [
+        "<b",
+        "os"
+      ],
+      [
+        "><start_of_turn>user",
+        "\nhello"
+      ],
+      [
+        "e<end_of_turn>\n<start_of_turn>model",
+        "\nhi<end_of_turn>\n<start_of_turn>"
+      ],
+      [
+        "hat",
+        "su"
+      ],
+      [
+        "p?<end_of_turn>\n<start_of_turn>model",
+        "\n"
+      ],
+      [
+        "▁ther",
+        "e<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>"
+      ],
+      [
+        "user\nw",
+        "hatsu"
+      ],
+      [
+        "<bos",
+        "><start_of_turn>user\nhello"
+      ],
+      [
+        "▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>",
+        "user\nwhatsu"
+      ],
+      [
+        "<bos><start_of_turn>user\nhello",
+        "▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>user\nwhatsu"
+      ],
+      [
+        "<bos><start_of_turn>user\nhello▁there<end_of_turn>\n<start_of_turn>model\nhi<end_of_turn>\n<start_of_turn>user\nwhatsu",
+        "p?<end_of_turn>\n<start_of_turn>model\n"
+      ]
+    ]
+  }
+}
