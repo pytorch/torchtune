@@ -138,7 +138,12 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         token_ids = self.tokenizer.encode(text).ids
 
         # Both bos_id and eos_id might be None (null). Therefore, we need an additional check.
-        if add_bos and not self.hf_adds_bos and self.bos_token not in text and self.bos_id:
+        if (
+            add_bos
+            and not self.hf_adds_bos
+            and self.bos_token not in text
+            and self.bos_id
+        ):
             token_ids.insert(0, self.bos_id)
         if add_eos and not self.hf_adds_eos and self.eos_id:
             token_ids.append(self.eos_id)
@@ -271,7 +276,11 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
         for i, message in enumerate(messages):
             current_messages = [
-                {"role": m.role, "content": m.content[0]["content"], "tool_calls": m.tool_calls}
+                {
+                    "role": m.role,
+                    "content": m.content[0]["content"],
+                    "tool_calls": m.tool_calls,
+                }
                 for m in messages[: i + 1]
             ]
 
