@@ -156,7 +156,7 @@ class TestLigerFusedCrossEntropyLoss:
         )
         torch.cuda.set_device(device)
         mesh = ParallelDims(
-            dp_replicate=1, dp_shard=WORLD_SIZE // 2, tp=2, world_size=WORLD_SIZE
+            dp_replicate=1, dp_shard=WORLD_SIZE // 2, tp=2, cp=1, world_size=WORLD_SIZE
         ).build_mesh("cuda")
         plan = {
             "output": ColwiseParallel(
