@@ -457,6 +457,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
@@ -936,7 +937,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting sharded state dict into a full state dict on CPU</span>
 <span class="sd">    Returning non-empty result only on rank0 to avoid peaking CPU memory</span>
-<span class="sd">    Currenltly we can used distributed state dict API to process model without NF4Tensor. Otherwise, we need to</span>
+<span class="sd">    Currently we can used distributed state dict API to process model without NF4Tensor. Otherwise, we need to</span>
 <span class="sd">    manually gather any NF4 tensors until all-gather is supported in the NF4Tensor subclass</span>
 <span class="sd">    TODO: add support for NF4Tensor at distributed state dict API</span>
 
@@ -1061,7 +1062,7 @@
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returs True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,</span>
+<span class="sd">    Returns True for layers named {}.layers.i or layers that exactly match names_to_match, otherwise,</span>
 <span class="sd">    returns False. This is a helper function for sharding a model with FSDP.</span>
 <span class="sd">    In :func:`~torchtune.training.shard_model`, we iterate over the model&#39;s named modules</span>
 <span class="sd">    and apply fully_shard using this condition.</span>
@@ -1151,7 +1152,11 @@
         <span class="p">)</span>
 
     <span class="c1"># Finally shard the entire model to account for any stragglers</span>
-    <span class="n">fully_shard</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
+    <span class="n">root_kwargs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
+    <span class="n">root_kwargs</span><span class="p">[</span><span class="s2">&quot;reshard_after_forward&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># TODO: we should actually use reshard_after_forward=None</span>
+    <span class="c1"># on latest nightlies: https://github.com/pytorch/pytorch/pull/155319</span>
+    <span class="n">fully_shard</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">root_kwargs</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_mha_for_tp</span><span class="p">(</span>

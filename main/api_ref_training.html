@@ -512,7 +512,7 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 <td><p>Check if all environment variables required to initialize torch.distributed are set and distributed is properly installed.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.training.gather_cpu_state_dict.html#torchtune.training.gather_cpu_state_dict" title="torchtune.training.gather_cpu_state_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gather_cpu_state_dict</span></code></a></p></td>
-<td><p>Converting sharded state dict into a full state dict on CPU Returning non-empty result only on rank0 to avoid peaking CPU memory Currenltly we can used distributed state dict API to process model without NF4Tensor.</p></td>
+<td><p>Converting sharded state dict into a full state dict on CPU Returning non-empty result only on rank0 to avoid peaking CPU memory Currently we can used distributed state dict API to process model without NF4Tensor.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.training.get_distributed_backend.html#torchtune.training.get_distributed_backend" title="torchtune.training.get_distributed_backend"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_distributed_backend</span></code></a></p></td>
 <td><p>Gets the PyTorch Distributed backend based on device type.</p></td>
