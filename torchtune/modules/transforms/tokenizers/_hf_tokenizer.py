@@ -90,8 +90,11 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self.eos_token = "<eos>"
 
         if self.config:
-            self.bos_token = self._get_token_from_config(self.config, "bos_token")
-            self.eos_token = self._get_token_from_config(self.config, "eos_token")
+            try:
+                self.bos_token = self._get_token_from_config(self.config, "bos_token")
+                self.eos_token = self._get_token_from_config(self.config, "eos_token")
+            except ValueError:
+                pass
             if self.bos_token is not None:
                 self.bos_id = self.tokenizer.token_to_id(self.bos_token)
             if self.eos_token is not None:
@@ -102,9 +105,6 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
                 self.bos_id = self.generation_config.get("bos_token_id")
             if self.eos_id is None:
                 self.eos_id = self.generation_config.get("eos_token_id")
-
-        if self.bos_id is None or self.eos_id is None:
-            raise ValueError("Could not infer BOS and EOS token IDs from config")
 
     def _infer_should_add_bos_eos(self):
         """
@@ -136,9 +136,11 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             list[int]: The list of token ids.
         """
         token_ids = self.tokenizer.encode(text).ids
-        if add_bos and not self.hf_adds_bos and self.bos_token not in text:
+
+        # Both bos_id and eos_id might be None (null). Therefore, we need an additional check.
+        if add_bos and not self.hf_adds_bos and self.bos_token not in text and self.bos_id:
             token_ids.insert(0, self.bos_id)
-        if add_eos and not self.hf_adds_eos:
+        if add_eos and not self.hf_adds_eos and self.eos_id:
             token_ids.append(self.eos_id)
         return token_ids
 
@@ -269,7 +271,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
         for i, message in enumerate(messages):
             current_messages = [
-                {"role": m.role, "content": m.content[0]["content"]}
+                {"role": m.role, "content": m.content[0]["content"], "tool_calls": m.tool_calls}
                 for m in messages[: i + 1]
             ]
 
