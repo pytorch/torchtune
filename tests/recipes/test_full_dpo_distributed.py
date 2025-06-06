@@ -14,7 +14,7 @@ from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     dummy_stack_exchange_dataset_config,
     MODEL_TEST_CONFIGS,
-    write_hf_ckpt_config,
+    MODEL_TO_HF_CONFIG_FN,
 )
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
@@ -27,7 +27,7 @@ from tests.test_utils import (
 
 class TestFullDPODistributedRecipe:
     def expected_loss_values(self):
-        return [0.69315, 0.69315, 0.69301, 0.69241]
+        return [0.69315, 0.69315, 0.65938, 0.38102]
 
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
@@ -57,38 +57,31 @@ class TestFullDPODistributedRecipe:
             - Resume training after epoch 1
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
+        model = "llama3_137M"
+        ckpt_path = Path(CKPT_MODEL_PATHS[model])
+        tokenizer_path = TOKENIZER_PATHS[model]
+        model_config = MODEL_TEST_CONFIGS[model]
+        fn = MODEL_TO_HF_CONFIG_FN[model]
 
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        # Setup
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
-        tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
-
-        # Config file needed for model conversion.
-        # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
+        fn(ckpt_dir)
 
         # Train for two epochs
         cmd_1 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[{ckpt_path}] \
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            ref_checkpointer.checkpoint_files=[{ckpt_path}]\
-            ref_checkpointer.output_dir={tmpdir} \
-            ref_checkpointer.model_type=LLAMA3 \
+            ref_checkpointer.checkpoint_files=[{ckpt_path}] \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
-        model_config = MODEL_TEST_CONFIGS["llama3"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -100,7 +93,7 @@ class TestFullDPODistributedRecipe:
         )
 
         # We rename the model and we want to resume from epoch 0 (which trained for 1 epoch)
-        ckpt_to_resume_from = "epoch_0/model-00001-of-00001.bin"
+        ckpt_to_resume_from = "epoch_0/model-00001-of-00001.safetensors"
 
         # Now we resume training from epoch 1
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
@@ -109,17 +102,12 @@ class TestFullDPODistributedRecipe:
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_to_resume_from}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            ref_checkpointer.checkpoint_files=[{ckpt_path}]\
-            ref_checkpointer.output_dir={tmpdir} \
-            ref_checkpointer.model_type=LLAMA3 \
             resume_from_checkpoint=True \
+            ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            ref_checkpointer.checkpoint_files=[{ckpt_path}] \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             metric_logger.filename={resumed_log_file} \
@@ -140,40 +128,32 @@ class TestFullDPODistributedRecipe:
         self, tmpdir, monkeypatch
     ):
         """Same as above test but with async checkpointing."""
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        model = "llama3_137M"
+        ckpt_path = Path(CKPT_MODEL_PATHS[model])
+        tokenizer_path = TOKENIZER_PATHS[model]
+        model_config = MODEL_TEST_CONFIGS[model]
+        fn = MODEL_TO_HF_CONFIG_FN[model]
+
+        # Setup
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
-        tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
-
-        # Config file needed for model conversion.
-        # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
+        fn(ckpt_dir)
 
         # Train for two epochs
         cmd_1 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_checkpointer.checkpoint_files=[{ckpt_path}]\
-            ref_checkpointer.output_dir={tmpdir} \
-            ref_checkpointer.model_type=LLAMA3 \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             enable_async_checkpointing=True \
         """.split()
-
-        model_config = MODEL_TEST_CONFIGS["llama3"]
-
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -191,16 +171,11 @@ class TestFullDPODistributedRecipe:
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_checkpointer.checkpoint_files=[{ckpt_path}]\
-            ref_checkpointer.output_dir={tmpdir} \
-            ref_checkpointer.model_type=LLAMA3 \
             resume_from_checkpoint=True \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \

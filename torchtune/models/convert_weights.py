@@ -145,6 +145,8 @@ def hf_to_tune(
     Returns:
         dict[str, torch.Tensor]: State dict in torchtune's format.
     """
+    print(f"NUM HEADS: {num_heads}")
+
     converted_state_dict = {}
     if head_dim is None:
         head_dim = dim // num_heads
@@ -160,8 +162,10 @@ def hf_to_tune(
         if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
             new_key = get_mapped_key(key, _FROM_HF)
             if "q_proj" in key:
+                print(key, value.shape)
                 value = _permute(value, num_heads)
             elif "k_proj" in key:
+                print(key, value.shape)
                 value = _permute(value, num_kv_heads)
 
             converted_state_dict[new_key] = value
