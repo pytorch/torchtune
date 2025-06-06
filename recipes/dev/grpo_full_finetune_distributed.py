@@ -128,6 +128,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
+            config.log_config(recipe_name="GRPOFullFinetuneRecipeDistributed", cfg=cfg)
             self._metric_logger.log_config(cfg)
 
         # Setup model to train
@@ -938,7 +939,6 @@ def recipe_main(cfg: DictConfig) -> None:
     """
 
     recipe = GRPOFullFinetuneRecipeDistributed(cfg=cfg)
-    config.log_config(recipe_name="GRPOFullFinetuneRecipeDistributed", cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
