@@ -19,7 +19,7 @@ from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
 from lm_eval.utils import make_table
 
-from main import HuggingFaceModelTokenizer
+from torchtune.modules.transforms.tokenizers import HuggingFaceModelTokenizer
 from omegaconf import DictConfig
 from torchtune import config, training, utils
 from torchtune.data import (
