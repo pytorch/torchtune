@@ -257,7 +257,9 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
                 top_level[key] = value
         return top_level
 
-    def render_template(self, messages: list[dict[str, str]], add_eos: bool = True) -> str:
+    def render_template(
+        self, messages: list[dict[str, str]], add_eos: bool = True
+    ) -> str:
         rendered = self.template.render(
             messages=messages,
             add_generation_prompt=add_eos if i == len(messages) - 1 else False,
