@@ -20,6 +20,7 @@ from lm_eval.tasks import get_task_dict, TaskManager
 from lm_eval.utils import make_table
 from omegaconf import DictConfig
 
+from main import HuggingFaceModelTokenizer
 from torchtune import config, training, utils
 from torchtune.data import (
     format_content_with_images,
@@ -380,12 +381,13 @@ class _LLMEvalWrapper(HFLM):
         return self._model(inps)
 
     def apply_chat_template(
-        self, chat_history: List[Dict[str, str]], add_generation_prompt: bool = True
+        self, chat_history: list[dict[str, str]], add_generation_prompt: bool = True
     ) -> str:
-        # We assume that this method exists
-        # TODO (@krammnic): We do not really support "add_generation_prompt = False"
-        chat_templated = self._tokenizer.prompt_template(chat_history)
-        return chat_templated
+        if hasattr(self._tokenizer, "prompt_template"):
+            return self._tokenizer.prompt_template(chat_history)
+        if isinstance(self.tokenizer, HuggingFaceModelTokenizer):
+            return self.tokenizer.render_template(chat_history)
+        raise ValueError("You can't use a tokenizer without a prompt template. Use HuggingFaceModelTokenizer if you do not require a custom one.")
 
     @torch.inference_mode()
     def _model_generate(
