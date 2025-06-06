@@ -18,8 +18,6 @@ from lm_eval.models.hf_vlms import HFMultimodalLM
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict, TaskManager
 from lm_eval.utils import make_table
-
-from torchtune.modules.transforms.tokenizers import HuggingFaceModelTokenizer
 from omegaconf import DictConfig
 from torchtune import config, training, utils
 from torchtune.data import (
@@ -33,7 +31,11 @@ from torchtune.modules import TransformerDecoder
 from torchtune.modules.common_utils import local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.transforms import Transform
-from torchtune.modules.transforms.tokenizers import ModelTokenizer
+
+from torchtune.modules.transforms.tokenizers import (
+    HuggingFaceModelTokenizer,
+    ModelTokenizer,
+)
 from torchtune.recipe_interfaces import EvalRecipeInterface
 from torchtune.training import FullModelTorchTuneCheckpointer
 
@@ -352,7 +354,9 @@ class _LLMEvalWrapper(HFLM):
         # though notably fast-gpt does the opposite
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
         if isinstance(self._tokenizer, HuggingFaceModelTokenizer):
-            return self._tokenizer.base_tokenizer.encode(text=text, add_bos=False, add_eos=False)
+            return self._tokenizer.base_tokenizer.encode(
+                text=text, add_bos=False, add_eos=False
+            )
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
     def tok_batch_encode(
