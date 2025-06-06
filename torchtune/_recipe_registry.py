@@ -152,6 +152,10 @@ _ALL_RECIPES = [
             Config(name="gemma2/2B_full", file_path="gemma2/2B_full.yaml"),
             Config(name="gemma2/9B_full", file_path="gemma2/9B_full.yaml"),
             Config(name="gemma2/27B_full", file_path="gemma2/27B_full.yaml"),
+            Config(name="gemma3/1B_full", file_path="gemma3/1B_full.yaml"),
+            Config(name="gemma3/4B_full", file_path="gemma3/4B_full.yaml"),
+            Config(name="gemma3/12B_full", file_path="gemma3/12B_full.yaml"),
+            Config(name="gemma3/27B_full", file_path="gemma3/27B_full.yaml"),
             Config(name="phi3/mini_full", file_path="phi3/mini_full.yaml"),
             Config(name="phi4/14B_full", file_path="phi4/14B_full.yaml"),
             Config(name="qwen2/7B_full", file_path="qwen2/7B_full.yaml"),
@@ -287,6 +291,38 @@ _ALL_RECIPES = [
             Config(
                 name="gemma2/27B_qlora_single_device",
                 file_path="gemma2/27B_qlora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/1B_lora_single_device",
+                file_path="gemma3/1B_lora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/1B_qlora_single_device",
+                file_path="gemma3/1B_qlora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/4B_lora_single_device",
+                file_path="gemma3/4B_lora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/4B_qlora_single_device",
+                file_path="gemma3/4B_qlora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/12B_lora_single_device",
+                file_path="gemma3/12B_lora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/12B_qlora_single_device",
+                file_path="gemma3/12B_qlora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/27B_lora_single_device",
+                file_path="gemma3/27B_lora_single_device.yaml",
+            ),
+            Config(
+                name="gemma3/27B_qlora_single_device",
+                file_path="gemma3/27B_qlora_single_device.yaml",
             ),
             Config(
                 name="phi3/mini_lora_single_device",
@@ -457,6 +493,10 @@ _ALL_RECIPES = [
             Config(name="gemma2/2B_lora", file_path="gemma2/2B_lora.yaml"),
             Config(name="gemma2/9B_lora", file_path="gemma2/9B_lora.yaml"),
             Config(name="gemma2/27B_lora", file_path="gemma2/27B_lora.yaml"),
+            Config(name="gemma3/1B_lora", file_path="gemma3/1B_lora.yaml"),
+            Config(name="gemma3/4B_lora", file_path="gemma3/4B_lora.yaml"),
+            Config(name="gemma3/12B_lora", file_path="gemma3/12B_lora.yaml"),
+            Config(name="gemma3/27B_lora", file_path="gemma3/27B_lora.yaml"),
             Config(name="phi3/mini_lora", file_path="phi3/mini_lora.yaml"),
             Config(name="phi4/14B_lora", file_path="phi4/14B_lora.yaml"),
             Config(name="qwen2/7B_lora", file_path="qwen2/7B_lora.yaml"),
