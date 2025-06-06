@@ -351,6 +351,8 @@ class _LLMEvalWrapper(HFLM):
         # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
         # though notably fast-gpt does the opposite
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
+        if isinstance(self._tokenizer, HuggingFaceModelTokenizer):
+            return self._tokenizer.base_tokenizer.encode(text=text, add_bos=False, add_eos=False)
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
     def tok_batch_encode(
@@ -565,7 +567,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Log metrics
         self.logger.info(f"Eval completed in {t1:.02f} seconds.")
-        if self.device.type != "cpu":
+        if self.device.type != "cpu" and self.device.type != "mps":
             torch_device = utils.get_torch_device_namespace()
             self.logger.info(
                 f"Max memory allocated: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
