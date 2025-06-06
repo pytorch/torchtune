@@ -454,10 +454,15 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">jinja2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jinja2</span><span class="w"> </span><span class="kn">import</span> <span class="n">StrictUndefined</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tokenizer</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">truncate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTokenizer</span><span class="p">,</span> <span class="n">ModelTokenizer</span>
 
 
 <div class="viewcode-block" id="HuggingFaceBaseTokenizer"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">HuggingFaceBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
@@ -530,13 +535,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="kc">None</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">bos_token</span> <span class="o">=</span> <span class="s2">&quot;&lt;bos&gt;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos_token</span> <span class="o">=</span> <span class="s2">&quot;&lt;eos&gt;&quot;</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
-            <span class="n">bos_token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_token_from_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;bos_token&quot;</span><span class="p">)</span>
-            <span class="n">eos_token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_token_from_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;eos_token&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">bos_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_to_id</span><span class="p">(</span><span class="n">bos_token</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">eos_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_to_id</span><span class="p">(</span><span class="n">eos_token</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bos_token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_token_from_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;bos_token&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eos_token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_token_from_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;eos_token&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_to_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_token</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_to_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_token</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_config</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -555,7 +563,6 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_bos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_eos</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
         <span class="n">encoded_empty_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ids</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="ow">in</span> <span class="n">encoded_empty_str</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_bos</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="ow">in</span> <span class="n">encoded_empty_str</span><span class="p">:</span>
@@ -578,7 +585,7 @@
 <span class="sd">            list[int]: The list of token ids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">token_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">ids</span>
-        <span class="k">if</span> <span class="n">add_bos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_bos</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">add_bos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_bos</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_token</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">text</span><span class="p">:</span>
             <span class="n">token_ids</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">add_eos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_eos</span><span class="p">:</span>
             <span class="n">token_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
@@ -595,6 +602,167 @@
 <span class="sd">            str: The decoded string.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_special_tokens_from_hf_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="n">special_tokens</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="n">standard_keys</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;bos_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;eos_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pad_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;unk_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sep_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cls_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mask_token&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">standard_keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">token</span> <span class="o">:=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">token</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">content</span><span class="p">:</span>
+                <span class="n">special_tokens</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;additional_special_tokens&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">content</span><span class="p">:</span>
+            <span class="n">special_tokens</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">token_info</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;added_tokens_decoder&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">token_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;special&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">content</span> <span class="o">:=</span> <span class="n">token_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">):</span>
+                <span class="n">special_tokens</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">special_tokens</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">HuggingFaceModelTokenizer</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A wrapper around Hugging Face model specific tokenizers.</span>
+<span class="sd">    This can be used to build a tokenizer with specified model chat template.</span>
+
+<span class="sd">    This class will create HuggingFaceBaseTokenizer and load all required tokenizer files.</span>
+<span class="sd">    Then, it will load all special tokens and chat template from tokenizer config file.</span>
+
+<span class="sd">    It can be used to tokenize messages with correct chat template, and it eliminates the requirement of</span>
+<span class="sd">    the specific ModelTokenizer and custom PromptTemplate.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tokenizer_json_path (str): Path to tokenizer.json file</span>
+<span class="sd">        tokenizer_config_json_path (Optional[str]): Path to tokenizer_config.json file. Default: None</span>
+<span class="sd">        generation_config_path (Optional[str]): Path to generation_config.json file.</span>
+<span class="sd">            Default: None</span>
+<span class="sd">        truncation_type (str): type of truncation to apply, either &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">            Default is &quot;right&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tokenizer_json_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">tokenizer_config_json_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">generation_config_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">truncation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span> <span class="o">=</span> <span class="n">HuggingFaceBaseTokenizer</span><span class="p">(</span>
+            <span class="n">tokenizer_json_path</span><span class="o">=</span><span class="n">tokenizer_json_path</span><span class="p">,</span>
+            <span class="n">tokenizer_config_json_path</span><span class="o">=</span><span class="n">tokenizer_config_json_path</span><span class="p">,</span>
+            <span class="n">generation_config_path</span><span class="o">=</span><span class="n">generation_config_path</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Contents of the tokenizer_config.json</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">config</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span> <span class="o">=</span> <span class="n">_infer_special_tokens_from_hf_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top_level_variables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_top_level_variables</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">_env</span> <span class="o">=</span> <span class="n">jinja2</span><span class="o">.</span><span class="n">Environment</span><span class="p">(</span><span class="n">undefined</span><span class="o">=</span><span class="n">StrictUndefined</span><span class="p">)</span>
+
+        <span class="c1"># It is used sometimes in HF chat_templates</span>
+        <span class="n">_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s2">&quot;raise_exception&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raise_helper</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">_env</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;chat_template&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truncation_type</span> <span class="o">=</span> <span class="n">truncation_type</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens_mapping</span><span class="p">[</span><span class="n">token</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_raise_helper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">jinja2</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">TemplateError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_top_level_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="n">top_level</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="n">top_level</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">top_level</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
+        <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">previous_tokens</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
+            <span class="n">current_messages</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">role</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;content&quot;</span><span class="p">]}</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="p">]</span>
+
+            <span class="n">rendered</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+                <span class="n">messages</span><span class="o">=</span><span class="n">current_messages</span><span class="p">,</span>
+                <span class="n">add_generation_prompt</span><span class="o">=</span><span class="n">add_eos</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">special_tokens_mapping</span><span class="p">,</span>  <span class="c1"># We assume that the naming is consistent</span>
+                <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">top_level_variables</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">current_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">rendered</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">bos_token</span> <span class="ow">in</span> <span class="n">rendered</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">hf_adds_bos</span>
+            <span class="p">):</span>
+                <span class="k">del</span> <span class="n">current_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">current_tokens</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">previous_tokens</span><span class="p">)</span> <span class="p">:]</span>
+            <span class="n">previous_tokens</span> <span class="o">=</span> <span class="n">current_tokens</span>
+            <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
+
+            <span class="n">mask</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">delta</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">add_eos</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
+            <span class="n">mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Finally, truncate if necessary</span>
+        <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
+            <span class="n">tokens</span><span class="o">=</span><span class="n">tokenized_messages</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">eos_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">base_tokenizer</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span>
+            <span class="n">truncation_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation_type</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
+            <span class="n">tokens</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">eos_id</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">add_eos</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">truncation_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation_type</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span>
 </pre></div>
 
              </article>
