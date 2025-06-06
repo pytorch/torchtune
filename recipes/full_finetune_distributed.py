@@ -32,9 +32,28 @@ from omegaconf import OmegaConf
 import pprint
 import os
 import re
-
+import os
+import debugpy
 import random
 from tqdm import tqdm
+# Add debugpy support for remote debugging
+
+# Check if debugging should be enabled via environment variable
+debug_enabled = os.environ.get("ENABLE_DEBUGPY", "0").lower() in ("1", "true", "yes")
+
+debug_port = 5678
+
+
+if debug_enabled:
+    # Allow remote connections
+    debugpy.listen(("0.0.0.0", debug_port))
+    print(f"🐞 Debugpy listening on port {debug_port}")
+    
+
+    print(f"⏳ Waiting for debugger to attach on port {debug_port}...")
+    debugpy.wait_for_client()
+    print("🔗 Debugger attached!")
+
 
 log = utils.get_logger("DEBUG")
 
@@ -145,6 +164,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.method = cfg.method
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self.divide_logits_with_temp = cfg.get("divide_logits_with_temp",True)
+        self.sampling_temperature = cfg["sampling_temperature"]
 
         # Look for the date_run pattern in all path segments
         date_run_pattern = None
@@ -1240,6 +1261,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
+                    if self.divide_logits_with_temp:
+
+                        if isinstance(logits, list):
+                            logits = [logit / self.sampling_temperature for logit in logits]
                 # calculate the entropy of the models responses
 
                 # Shift labels to compute loss
