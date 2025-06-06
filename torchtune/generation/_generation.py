@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Optional
 
 import torch
 
@@ -78,7 +78,7 @@ def generate_next_token(
     mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Generates the next tokens given a prompt, and also returns the corresponding logits.
 
@@ -96,7 +96,7 @@ def generate_next_token(
         top_k (Optional[int]): Top-k value to use for sampling, default None.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
+        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
             - tokens (torch.Tensor): tensor with the generated tokens,
                 with shape [bsz x 1].
             - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
@@ -204,10 +204,10 @@ def generate(
     pad_id: int = 0,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    stop_tokens: Optional[List[int]] = None,
+    stop_tokens: Optional[list[int]] = None,
     rng: Optional[torch.Generator] = None,
-    custom_generate_next_token: Optional[Callable] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    compiled_generate_next_token: Optional[Callable] = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
@@ -220,29 +220,54 @@ def generate(
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,
             default None.
-        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these tokens are generated,
+        stop_tokens (Optional[list[int]]): If specified, generation is stopped when any of these tokens are generated,
             default None.
         rng (Optional[torch.Generator]): random number generator, default None.
-        custom_generate_next_token (Optional[Callable]): If specified, we'll use the
-            ``custom_generate_next_token function``. This is generally only useful if
-            you want to specify a ``torch.compile`` version of the generate next token for
-            performance reasons. If None, we use the default :func:`generate_next_token`.
+        compiled_generate_next_token (Optional[Callable]): This argument is typically a reference to a compiled version of
+            the :func:`generate_next_token` function. During autoregressive decoding, this function is called instead of the default
+            :func:`generate_next_token` in order to accelerate generation. :func:`generate_next_token` will still be used for the
+            first token generation - or "pre-fill" pass.
             Default is None.
 
     Note:
         This function has only been tested with decoder-only models.
 
     Examples:
-        >>> model = torchtune.models.llama3.llama3_8b()
-        >>> tokenizer = torchtune.models.llama3.llama3_tokenizer()
-        >>> prompt = tokenizer.encode("Hi my name is")
-        >>> rng.manual_seed(42)
-        >>> output, logits = generate(model, torch.tensor(prompt), max_generated_tokens=100, pad_id=0)
+        >>> import torch
+        >>> from torchtune.models.llama3 import llama3_tokenizer
+        >>> from torchtune.models.llama3 import llama3_8b
+        >>> from torchtune.generation import generate
+        >>> from torchtune.training.checkpointing import FullModelHFCheckpointer
+        >>> from torchtune.data import Message
+
+        >>> model = llama3_8b().cuda()
+
+        >>> checkpointer = FullModelHFCheckpointer(
+        ...     checkpoint_dir="/tmp/Meta-Llama-3-8B-Instruct",
+        ...     checkpoint_files=[
+        ...         "model-00001-of-00004.safetensors",
+        ...         "model-00002-of-00004.safetensors",
+        ...         "model-00003-of-00004.safetensors",
+        ...         "model-00004-of-00004.safetensors",
+        ...     ],
+        ...     model_type="LLAMA3",
+        ...     output_dir="/tmp/torchtune/llama3_8b",
+        ... )
+        >>> checkpoint = checkpointer.load_checkpoint()
+        >>> model.load_state_dict(checkpoint["model"])
+
+        >>> tokenizer = llama3_tokenizer("/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
+        >>> messages = [
+        ...     Message(role="assistant", content="Hi my name is"),
+        ... ]
+        >>> prompt = tokenizer({"messages": messages}, inference=True)
+        >>> output, logits = generate(model, torch.tensor(prompt["tokens"], device='cuda'), max_generated_tokens=100, pad_id=0)
         >>> print(tokenizer.decode(output[0].tolist()))
-        Hi my name is Jeremy and I'm a friendly language model assistant!
+
+        >>> Hi my name is Marley. Nice to meet you, Marley! How are you doing today?... [truncated]
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
+        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
             - tokens (torch.Tensor): tensor with the generated tokens,
                 with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``
                 may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.
@@ -250,9 +275,6 @@ def generate(
                 with shape ``[bsz x num_generated_tokens x vocab_size]``.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
-
-    if custom_generate_next_token is None:
-        custom_generate_next_token = generate_next_token
 
     bsz, prompt_length = prompt.size()
     total_response_length = prompt_length + max_generated_tokens
@@ -310,9 +332,16 @@ def generate(
 
     q = None
     if rng is not None:
-        q = torch.empty(
-            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-        ).exponential_(1, generator=rng)
+        uniform_val = torch.rand(
+            bsz,
+            model.tok_embeddings.num_embeddings,
+            generator=rng,
+            device=prompt.device,
+        )
+        epsilon = torch.finfo(uniform_val.dtype).eps / 2
+        condition = uniform_val >= 1.0 - epsilon
+        q = -torch.where(condition, -epsilon, torch.log(uniform_val))
+
     tokens, generated_logits = generate_next_token(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
@@ -349,6 +378,12 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
+    next_token_fn = (
+        compiled_generate_next_token
+        if compiled_generate_next_token is not None
+        else generate_next_token
+    )
+
     for _ in range(max_generated_tokens - 1):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
@@ -370,10 +405,17 @@ def generate(
 
         q = None
         if rng is not None:
-            q = torch.empty(
-                (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-            ).exponential_(1, generator=rng)
-        tokens, logits = custom_generate_next_token(
+            uniform_val = torch.rand(
+                bsz,
+                model.tok_embeddings.num_embeddings,
+                generator=rng,
+                device=prompt.device,
+            )
+            epsilon = torch.finfo(uniform_val.dtype).eps / 2
+            condition = uniform_val >= 1.0 - epsilon
+            q = -torch.where(condition, -epsilon, torch.log(uniform_val))
+
+        tokens, logits = next_token_fn(
             model,
             input_pos=curr_input_pos,
             x=tokens.clone(),
@@ -395,7 +437,7 @@ def generate(
 
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
-        generated_tokens *= stop_token_mask
+        generated_tokens.masked_fill_(~stop_token_mask.bool(), pad_id)
         generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits

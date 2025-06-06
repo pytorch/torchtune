@@ -9,9 +9,11 @@ import pytest
 from tests.common import ASSETS
 from tokenizers import Tokenizer
 from tokenizers.processors import TemplateProcessing
+from torchtune.data import Message
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
 from torchtune.modules.transforms.tokenizers import (
     HuggingFaceBaseTokenizer,
+    HuggingFaceModelTokenizer,
     TikTokenBaseTokenizer,
 )
 
@@ -97,7 +99,6 @@ class TestHuggingFaceBaseTokenizer:
         hf_tokenizer_adds_bos,
         mocker,
     ):
-
         # Patch tokenizer's token_to_id method for BOS and EOS
         # since they are not present in the original tokenizer model
         def patch_token_to_id_for_dummy_tokenizer(*args, **kwargs):
@@ -141,3 +142,107 @@ class TestHuggingFaceBaseTokenizer:
         hf_text = hf_tokenizer.decode(token_ids)
         assert tt_text == hf_text
         assert hf_text == texts[0]
+
+
+GEMMA_TOKENIZER_CONFIG_PATH = ASSETS / "tokenizer_config_gemma.json"
+GEMMA_GENERATION_CONFIG_PATH = ASSETS / "generation_config_gemma.json"
+GEMMA_TOKENIZER_PATH = ASSETS / "tokenizer_gemma_cropped.json"
+
+
+class TestHuggingFaceModelTokenizer:
+    """
+    Tokenizer asset for this test was generated using https://gist.github.com/krammnic/a80602f5bff03921096876c995351da8
+    """
+
+    @pytest.fixture
+    def model_tokenizer(self):
+        return HuggingFaceModelTokenizer(
+            tokenizer_json_path=str(GEMMA_TOKENIZER_PATH),
+            tokenizer_config_json_path=str(GEMMA_TOKENIZER_CONFIG_PATH),
+            generation_config_path=str(GEMMA_GENERATION_CONFIG_PATH),
+        )
+
+    @pytest.fixture
+    def messages(self):
+        return [
+            Message(
+                role="user",
+                content="hello there",
+                masked=False,
+            ),
+            Message(
+                role="assistant",
+                content="hi",
+                masked=False,
+            ),
+            Message(
+                role="user",
+                content="whatsup?",
+                masked=False,
+            ),
+        ]
+
+    def test_no_mask(self, model_tokenizer, messages):
+        tokens, mask = model_tokenizer.tokenize_messages(messages)
+
+        assert tokens[:-4] == [
+            2,
+            4,
+            53,
+            74,
+            71,
+            14,
+            5,
+            6,
+            4,
+            51,
+            50,
+            49,
+            17,
+            5,
+            6,
+            4,
+            82,
+            22,
+            9,
+            5,
+            6,
+            4,
+        ]
+
+        assert mask[:-4] == [False] * 22
+
+    def test_with_mask(self, model_tokenizer, messages):
+        """
+        In this test we mask the first message and verify that it does not affect tokens,
+        and message mask is changed in the correct way.
+        """
+        messages[0].masked = True
+        tokens, mask = model_tokenizer.tokenize_messages(messages)
+
+        assert tokens[:-4] == [
+            2,
+            4,
+            53,
+            74,
+            71,
+            14,
+            5,
+            6,
+            4,
+            51,
+            50,
+            49,
+            17,
+            5,
+            6,
+            4,
+            82,
+            22,
+            9,
+            5,
+            6,
+            4,
+        ]
+
+        assert mask[:-4] == [True] * 8 + [False] * 14

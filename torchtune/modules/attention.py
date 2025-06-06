@@ -108,8 +108,7 @@ class MultiHeadAttention(nn.Module):
 
         if embed_dim % num_heads != 0:
             raise ValueError(
-                f"embed_dim ({embed_dim}) must be divisible by "
-                f"num_heads ({num_heads})"
+                f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})"
             )
 
         if attn_dropout < 0 or attn_dropout > 1:

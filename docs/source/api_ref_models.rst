@@ -6,6 +6,39 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
+llama4
+------
+
+Multimodal models from the Llama4 family that support text and image input.
+
+Important: You need to request access on Hugging Face before downloading it.
+
+To download the Llama-4-Maverick-17B-16E-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-4-Scout-17B-16E-Instruct --hf-token <HF_TOKEN>
+
+To download the Llama-4-Maverick-17B-128E-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-4-Maverick-17B-128E-Instruct --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama4.llama4_scout_17b_16e
+    llama4.llama4_maverick_17b_128e
+    llama4.llama4_vision_encoder
+    llama4.llama4_vision_projection_head
+    llama4.llama4_decoder
+    llama4.Llama4VisionEncoder
+    llama4.Llama4VisionProjectionHead
+    llama4.Llama4Tokenizer
+    llama4.Llama4Transform
+
 llama3.3
 --------
 
@@ -204,34 +237,6 @@ To download the Llama2-70B model:
     llama2.lora_llama2_reward_7b
     llama2.qlora_llama2_reward_7b
     llama2.Llama2ChatTemplate
-
-
-code llama
-----------
-
-Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
-
-Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/CodeLlama-7b-hf>`__ before downloading it.
-
-To download the CodeLlama-7B model:
-
-.. code-block:: bash
-
-    tune download meta-llama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf --hf-token <HF_TOKEN>
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    code_llama2.code_llama2_7b
-    code_llama2.lora_code_llama2_7b
-    code_llama2.qlora_code_llama2_7b
-    code_llama2.code_llama2_13b
-    code_llama2.lora_code_llama2_13b
-    code_llama2.qlora_code_llama2_13b
-    code_llama2.code_llama2_70b
-    code_llama2.lora_code_llama2_70b
-    code_llama2.qlora_code_llama2_70b
 
 qwen-2.5
 --------

@@ -52,12 +52,17 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.9835, 11.9694, 11.9615, 11.9383],
+            "llama3": [
+                11.977421760559082,
+                11.979637145996094,
+                11.948746681213379,
+                11.912514686584473,
+            ],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     @pytest.mark.parametrize(
         "micro_batch_size, gradient_accumulation_steps, should_compile",
         [(4, 1, True), (1, 4, False)],
@@ -76,7 +81,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed
             --config llama3/8B_qat_lora \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
@@ -101,13 +106,14 @@ class TestQATLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
+
         expected_loss_values = self._fetch_expected_loss_values("llama3")
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, save_adapter_weights_only",
         [
@@ -146,7 +152,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
@@ -174,7 +180,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
@@ -207,13 +213,115 @@ class TestQATLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=2)
+    @pytest.mark.parametrize(
+        "config, model_type, ckpt_type, save_adapter_weights_only",
+        [
+            ("llama3/8B_qat_lora", "llama3", "tune", False),
+        ],
+    )
+    def test_training_state_on_resume_with_async_checkpointing(
+        self,
+        config,
+        model_type,
+        ckpt_type,
+        tmpdir,
+        monkeypatch,
+        save_adapter_weights_only,
+    ):
+        """Test whether the recipe state is correctly updated on resume. Since this
+        is model agnostic, we should run this on the small model only. The test
+        consists of three stages:
+            - Train a model for 2 epochs
+            - Resume training after epoch 1
+            - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
+        """
+        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
+        ckpt = model_type + "_" + ckpt_type
+        expected_loss_values = self._fetch_expected_loss_values(model_type)
+
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+
+        # Config file needed for model conversion.
+        # Create a second copy for training resume
+        write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
+
+        # Train for two epochs
+        cmd_1 = f"""
+        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+            --config {config} \
+            batch_size=8 \
+            gradient_accumulation_steps=1 \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
+            enable_async_checkpointing=True \
+            quantizer.groupsize=32 \
+        """.split()
+
+        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
+
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_1)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        cmd_2 = f"""
+        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+            --config {config} \
+            batch_size=8 \
+            gradient_accumulation_steps=1 \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            resume_from_checkpoint=True \
+            metric_logger.filename={log_file} \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
+            enable_async_checkpointing=True \
+            quantizer.groupsize=32 \
+        """.split()
+
+        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_2)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
+
+        loss_values = get_loss_values_from_metric_logger(log_file)
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+        )
+
+    @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "recipe_config, model_type, ckpt_type",
         [
             ("llama3/8B_qat_lora", "llama3", "tune"),
         ],
     )
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     def test_save_and_load_merged_weights(
         self, recipe_config, model_type, ckpt_type, tmpdir, monkeypatch
     ):
@@ -223,7 +331,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {recipe_config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \

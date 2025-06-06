@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
-
 
 class InstantiationError(Exception):
     """
@@ -21,11 +19,11 @@ class ConfigError(Exception):
     errors at once.
 
     Args:
-        errors (List[Exception]): exceptions found when validating `_component_`
+        errors (list[Exception]): exceptions found when validating `_component_`
             fields in the config
     """
 
-    def __init__(self, errors: List[Exception]):
+    def __init__(self, errors: list[Exception]):
         self.errors = errors
 
     def __str__(self):

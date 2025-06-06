@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
 
 import pytest
 
@@ -46,19 +45,19 @@ class TestTransformerSelfAttentionLayer:
     """
 
     @pytest.fixture
-    def input_params(self) -> Tuple[int, int, int]:
+    def input_params(self) -> tuple[int, int, int]:
         batch_size = 4
         seq_len = 2048
         embed_dim = 4096
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+    def input(self, input_params: tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         return torch.randn(batch_size, seq_len, embed_dim)
 
     @pytest.fixture
-    def layer_params(self) -> Tuple[int, int, int, int]:
+    def layer_params(self) -> tuple[int, int, int, int]:
         num_heads = 32
         num_kv_heads = 8
         embed_dim = 4096
@@ -67,7 +66,7 @@ class TestTransformerSelfAttentionLayer:
 
     @pytest.fixture
     def transformer_layer(
-        self, layer_params: Tuple[int, int, int, int]
+        self, layer_params: tuple[int, int, int, int]
     ) -> TransformerSelfAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
@@ -117,7 +116,7 @@ class TestTransformerCrossAttentionLayer:
     """
 
     @pytest.fixture
-    def input_params(self) -> Tuple[int, int, int, int]:
+    def input_params(self) -> tuple[int, int, int, int]:
         batch_size = 2
         seq_len = 8
         encoder_seq_len = 128
@@ -125,7 +124,7 @@ class TestTransformerCrossAttentionLayer:
         return batch_size, seq_len, encoder_seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int, int]) -> torch.Tensor:
+    def input(self, input_params: tuple[int, int, int, int]) -> torch.Tensor:
         batch_size, seq_len, encoder_seq_len, embed_dim = input_params
         rand_x = torch.randn(batch_size, seq_len, embed_dim)
         rand_y = torch.randn(batch_size, 128, embed_dim)
@@ -134,7 +133,7 @@ class TestTransformerCrossAttentionLayer:
         return rand_x, rand_y, mask
 
     @pytest.fixture
-    def layer_params(self) -> Tuple[int, int, int, int]:
+    def layer_params(self) -> tuple[int, int, int, int]:
         num_heads = 32
         num_kv_heads = 8
         embed_dim = 4096
@@ -143,7 +142,7 @@ class TestTransformerCrossAttentionLayer:
 
     @pytest.fixture
     def transformer_layer(
-        self, layer_params: Tuple[int, int, int, int]
+        self, layer_params: tuple[int, int, int, int]
     ) -> TransformerCrossAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
@@ -186,11 +185,10 @@ class TestTransformerCrossAttentionLayer:
     @mps_ignored_test()
     def test_forward_kv_cache(
         self,
-        input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        input: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
         transformer_layer: TransformerCrossAttentionLayer,
-        input_params: Tuple[int, int, int, int],
+        input_params: tuple[int, int, int, int],
     ):
-
         b, _, encoder_seq_len, _ = input_params
         transformer_layer.setup_caches(
             batch_size=b,
@@ -223,7 +221,7 @@ class TestTransformerCrossAttentionLayer:
     @mps_ignored_test()
     def test_forward(
         self,
-        input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        input: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
         transformer_layer: TransformerCrossAttentionLayer,
     ) -> None:
         input_x, input_y, mask = input
@@ -246,19 +244,44 @@ class TestTransformerDecoder:
     """
 
     @pytest.fixture
-    def input_params(self) -> Tuple[int, int, int]:
+    def input_params(self) -> tuple[int, int, int]:
         batch_size = 4
         seq_len = 512
         vocab_size = 256
         return batch_size, seq_len, vocab_size
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+    def input(self, input_params: tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
-    def causal_mask(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+    def input_chunked_to_test_tensor_split(
+        self, input_params: tuple[int, int, int]
+    ) -> torch.Tensor:
+        """Emulates 49 len sequence which should be split into 8 tensors list (not 7).
+
+        seq_len 7, 14, 21, 28, 35, 42, 49 previously caused timeout crash
+        because torch.chunk/torch.split funcs previously used in chunked_output
+        don't guarantee requested number of chunks.
+
+        Related issue: https://github.com/pytorch/torchtune/issues/2554
+        """
+        batch_size, _, vocab_size = input_params
+        seq_len = 49
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
+    def input_chunked_less_data_than_num_output_chunks(
+        self, input_params: tuple[int, int, int]
+    ) -> torch.Tensor:
+        """Emulates 7 seq_len which should be split into 8 chunks."""
+        batch_size, _, vocab_size = input_params
+        seq_len = 7
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
+    def causal_mask(self, input_params: tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, _ = input_params
         return (
             torch.tril(torch.ones((seq_len, seq_len)))
@@ -267,12 +290,12 @@ class TestTransformerDecoder:
         )
 
     @pytest.fixture
-    def input_pos(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+    def input_pos(self, input_params: tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, _ = input_params
         return torch.arange(0, seq_len).unsqueeze(0).repeat(batch_size, 1)
 
     @pytest.fixture
-    def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
+    def decoder_params(self) -> tuple[int, int, int, int, int, int]:
         vocab_size = 256
         embed_dim = 512
         num_layers = 2
@@ -284,8 +307,8 @@ class TestTransformerDecoder:
     @pytest.fixture
     def input_max_len_exceeded(
         self,
-        input_params: Tuple[int, int, int],
-        decoder_params: Tuple[int, int, int, int, int, int],
+        input_params: tuple[int, int, int],
+        decoder_params: tuple[int, int, int, int, int, int],
     ) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         _, _, _, _, max_seq_len, _ = decoder_params
@@ -295,8 +318,8 @@ class TestTransformerDecoder:
     @pytest.fixture
     def input_max_bs_exceeded(
         self,
-        input_params: Tuple[int, int, int],
-        decoder_params: Tuple[int, int, int, int, int, int],
+        input_params: tuple[int, int, int],
+        decoder_params: tuple[int, int, int, int, int, int],
     ) -> torch.Tensor:
         batch_size, seq_len, vocab_size = input_params
         _, _, _, _, max_seq_len, _ = decoder_params
@@ -305,7 +328,7 @@ class TestTransformerDecoder:
 
     @pytest.fixture
     def decoder(
-        self, decoder_params: Tuple[int, int, int, int, int, int]
+        self, decoder_params: tuple[int, int, int, int, int, int]
     ) -> TransformerDecoder:
         (
             vocab_size,
@@ -331,7 +354,7 @@ class TestTransformerDecoder:
 
     @pytest.fixture
     def decoder_with_kv_cache_enabled(
-        self, decoder_params: Tuple[int, int, int, int, int, int]
+        self, decoder_params: tuple[int, int, int, int, int, int]
     ) -> TransformerDecoder:
         (
             vocab_size,
@@ -360,7 +383,7 @@ class TestTransformerDecoder:
     def test_forward(
         self,
         input: torch.Tensor,
-        input_params: Tuple[int, int, int],
+        input_params: tuple[int, int, int],
         decoder: TransformerDecoder,
     ) -> None:
         batch_size, seq_len, vocab_size = input_params
@@ -368,6 +391,66 @@ class TestTransformerDecoder:
             output = decoder(input)
         assert_expected(output.mean(), torch.tensor(20.4800), atol=1e-8, rtol=1e-6)
         assert_expected(output.shape, torch.Size([batch_size, seq_len, vocab_size]))
+
+    @mps_ignored_test()
+    def test_forward_output_chunks(
+        self,
+        input: torch.Tensor,
+        input_params: tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks chunked output simple case."""
+        batch_size, seq_len, vocab_size = input_params
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+
+    @mps_ignored_test()
+    def test_forward_output_chunks_exact_amount_of_chunks(
+        self,
+        input_chunked_to_test_tensor_split: torch.Tensor,
+        input_params: tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks output of chunked_output to be exactly num_output_chunks.
+
+        seq_len 7, 14, 21, 28, 35, 42, 49 previously caused timeout crash
+        because torch.chunk/torch.split funcs previously used in chunked_output
+        don't guarantee requested number of chunks.
+
+        Related issue: https://github.com/pytorch/torchtune/issues/2554
+        """
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input_chunked_to_test_tensor_split)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        outputs_seq_len = [x.size(1) for x in output]
+        assert outputs_seq_len == [7, 6, 6, 6, 6, 6, 6, 6]
+
+    @mps_ignored_test()
+    def test_forward_output_chunks_less_data_than_num_output_chunks(
+        self,
+        input_chunked_less_data_than_num_output_chunks: torch.Tensor,
+        input_params: tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks that seq_len=7 data is still split into 8 chunks."""
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input_chunked_less_data_than_num_output_chunks)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        outputs_seq_len = [x.size(1) for x in output]
+        assert outputs_seq_len == [1, 1, 1, 1, 1, 1, 1, 0]
 
     def test_max_seq_len_exceeded(
         self,
@@ -400,7 +483,6 @@ class TestTransformerDecoder:
         input_pos: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-
         with torch.no_grad():
             _ = decoder_with_kv_cache_enabled(
                 input, mask=causal_mask, input_pos=input_pos
@@ -437,7 +519,6 @@ class TestTransformerDecoder:
         input_pos: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-
         with pytest.raises(RuntimeError, match="The size of tensor a"):
             decoder_with_kv_cache_enabled(
                 input_max_bs_exceeded, mask=causal_mask, input_pos=input_pos
@@ -449,7 +530,6 @@ class TestTransformerDecoder:
         input_pos: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-
         with pytest.raises(ValueError, match="masks must be provided"):
             decoder_with_kv_cache_enabled(input, input_pos=input_pos)
 
@@ -459,7 +539,6 @@ class TestTransformerDecoder:
         causal_mask: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-
         with pytest.raises(ValueError, match="input positions must be provided!"):
             decoder_with_kv_cache_enabled(input, mask=causal_mask)
 
@@ -470,7 +549,6 @@ class TestTransformerDecoder:
         input_pos: torch.Tensor,
         decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
-
         with pytest.raises(
             ValueError, match="Use the `encoder_mask` arg to provide a causal mask"
         ):
@@ -479,7 +557,7 @@ class TestTransformerDecoder:
             )
 
     def test_rms_norm_propagation(
-        self, decoder_params: Tuple[int, int, int, int, int, int]
+        self, decoder_params: tuple[int, int, int, int, int, int]
     ):
         (
             vocab_size,

@@ -135,7 +135,6 @@ class TestRotaryPositionEmbedding:
 
 
 class TestVisionRotaryPositionEmbedding:
-
     EXPECTED_X_OUT_MEAN = tensor(-0.00903320)
     EXPECTED_X_OUT_SUM = tensor(-29.48437119)
     EXPECTED_X_OUT_MAX = tensor(4.07074356)
@@ -163,8 +162,7 @@ class TestVisionRotaryPositionEmbedding:
         return VisionRotaryPositionalEmbeddings(
             patch_size=patch_size,
             tile_size=tile_size,
-            max_num_tiles=max_num_tiles,
-            dim=head_dim // 2,
+            dim=head_dim,
         )
 
     @mps_ignored_test()
@@ -184,7 +182,6 @@ class TestVisionRotaryPositionEmbedding:
         rope_on_device = VisionRotaryPositionalEmbeddings(
             dim=head_dim,
             patch_size=patch_size,
-            max_num_tiles=max_num_tiles,
             tile_size=tile_size,
         )
         with torch.device("meta"):
@@ -192,7 +189,6 @@ class TestVisionRotaryPositionEmbedding:
                 dim=head_dim,
                 patch_size=patch_size,
                 tile_size=tile_size,
-                max_num_tiles=max_num_tiles,
             )
 
         meta_rope.rope_init()

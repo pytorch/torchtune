@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 
@@ -52,7 +52,7 @@ def get_rewards_ppo(
     ref_logprobs: torch.Tensor,
     kl_coeff: float,
     valid_score_idxs: Optional[torch.Tensor] = None,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates PPO rewards for the given scores, logprobs, and reference logprobs.
 
@@ -66,7 +66,7 @@ def get_rewards_ppo(
             for the last valid predicted token. Shape: ``(b,)``. Default None.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of tensors with shape ``(b, response_len)`` each:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of tensors with shape ``(b, response_len)`` each:
             - total_reward: total reward combining per-token kl rewards and reward model score.
             - kl: kl divergence between policy and reference policy logprobs.
             - kl_reward: kl divergence scaled by ``kl_coeff``.
@@ -185,7 +185,7 @@ def estimate_advantages(
     gamma: float,
     lmbda: float,
     masks: Optional[torch.Tensor] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Estimates the advantages and returns for the PPO algorithm using Generalized Advantage Estimation
     https://arxiv.org/pdf/1506.02438.pdf
@@ -198,7 +198,7 @@ def estimate_advantages(
         masks (Optional[torch.Tensor]): A bool mask tensor, where True indicates the corresponding value in ``values``
             should participate in the mean calculation. Default None.
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
+        tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
             - advantages (torch.Tensor): The estimated advantages. Shape: ``(b, response_len)``
             - returns (torch.Tensor): The estimated returns. Shape: ``(b, response_len)``
     Notation:

@@ -8,14 +8,14 @@ import logging
 
 import math
 
-from typing import Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 def get_inscribed_size(
-    image_size: Tuple[int], target_size: Tuple[int], max_size: Optional[int]
-) -> Tuple[int]:
+    image_size: tuple[int], target_size: tuple[int], max_size: Optional[int]
+) -> tuple[int]:
     """
     Calculates the size of an image, if it was resized to be inscribed within the target_size.
     It is upscaled or downscaled such that one size is equal to the target_size, and the second
@@ -25,13 +25,13 @@ def get_inscribed_size(
     the image_size.
 
     Args:
-        image_size (Tuple[int]): The size of the image, in the form [height, width].
-        target_size (Tuple[int]): The desired resolution to fit the image into, in the format [height, width].
+        image_size (tuple[int]): The size of the image, in the form [height, width].
+        target_size (tuple[int]): The desired resolution to fit the image into, in the format [height, width].
         max_size (Optional[int]): The maximum size to upscale the image to.
             If None, will upscale to target size.
 
     Returns:
-        Tuple[int]: The resize dimensions for the image, in the format [height, width].
+        tuple[int]: The resize dimensions for the image, in the format [height, width].
 
     Examples:
 

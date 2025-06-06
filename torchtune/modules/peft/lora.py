@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import math
-from typing import List, Optional, Union
+from enum import Enum
+from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -14,6 +15,12 @@ from torch import nn
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
 from torchtune.modules.peft import AdapterModule
+
+
+class TrainableParams(Enum):
+    FULL = "full"
+    LORA = "lora"
+    FROZEN = "frozen"
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -105,7 +112,7 @@ class LoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
-    def adapter_params(self) -> List[str]:
+    def adapter_params(self) -> list[str]:
         """
         Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
         the model coming from the adapter.

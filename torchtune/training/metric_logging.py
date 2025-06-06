@@ -3,12 +3,13 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+import json
 import os
 import sys
 import time
 from pathlib import Path
 
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import torch
 
@@ -48,11 +49,11 @@ def save_config(config: DictConfig) -> Path:
         log.warning(f"Error saving config.\nError: \n{e}.")
 
 
-def flatten_dict(d: Dict[str, Any], *, sep: str = ".", parent_key: str = ""):
+def flatten_dict(d: dict[str, Any], *, sep: str = ".", parent_key: str = ""):
     """Recursively flattens a nested dictionary into one level of key-value pairs.
 
     Args:
-        d (Dict[str, Any]): Any dictionary to flatten.
+        d (dict[str, Any]): Any dictionary to flatten.
         sep (str, optional): Desired separator for flattening nested keys. Defaults to ".".
         parent_key (str, optional): Key prefix for children (nested keys), containing parent key names. Defaults to "".
 
@@ -61,7 +62,7 @@ def flatten_dict(d: Dict[str, Any], *, sep: str = ".", parent_key: str = ""):
         {"foo--bar": "baz", "qux": "quux"}
 
     Returns:
-        Dict[str, Any]: Flattened dictionary.
+        dict[str, Any]: Flattened dictionary.
 
     Note:
         Does not unnest dictionaries within list values (i.e., {"foo": [{"bar": "baz"}]}).
@@ -124,6 +125,8 @@ class DiskLogger(MetricLoggerInterface):
 
     Args:
         log_dir (str): directory to store logs
+        output_fmt (str): format of the output file. Default: 'txt'.
+            Supported formats: 'txt', 'jsonl'.
         filename (Optional[str]): optional filename to write logs to.
             Default: None, in which case log_{unixtimestamp}.txt will be used.
         **kwargs: additional arguments
@@ -135,12 +138,23 @@ class DiskLogger(MetricLoggerInterface):
         This logger creates a new file based on the current time.
     """
 
-    def __init__(self, log_dir: str, filename: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        log_dir: str,
+        output_fmt: str = "txt",
+        filename: Optional[str] = None,
+        **kwargs,
+    ):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.output_fmt = output_fmt
+        assert self.output_fmt in [
+            "txt",
+            "jsonl",
+        ], f"Unsupported output format: {self.output_fmt}. Supported formats: 'txt', 'jsonl'."
         if not filename:
             unix_timestamp = int(time.time())
-            filename = f"log_{unix_timestamp}.txt"
+            filename = f"log_{unix_timestamp}.{self.output_fmt}"
         self._file_name = self.log_dir / filename
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
@@ -149,16 +163,39 @@ class DiskLogger(MetricLoggerInterface):
         return self._file_name
 
     def log(self, name: str, data: Scalar, step: int) -> None:
-        self._file.write(f"Step {step} | {name}:{data}\n")
+        if self.output_fmt == "txt":
+            self._file.write(f"Step {step} | {name}:{data}\n")
+        elif self.output_fmt == "jsonl":
+            json.dump(
+                {"step": step, name: data},
+                self._file,
+                default=lambda x: x.tolist() if isinstance(x, torch.Tensor) else str(x),
+            )
+            self._file.write("\n")
+        else:
+            raise ValueError(
+                f"Unsupported output format: {self.output_fmt}. Supported formats: 'txt', 'jsonl'."
+            )
         self._file.flush()
 
     def log_config(self, config: DictConfig) -> None:
         _ = save_config(config)
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
-        self._file.write(f"Step {step} | ")
-        for name, data in payload.items():
-            self._file.write(f"{name}:{data} ")
+        if self.output_fmt == "txt":
+            self._file.write(f"Step {step} | ")
+            for name, data in payload.items():
+                self._file.write(f"{name}:{data} ")
+        elif self.output_fmt == "jsonl":
+            json.dump(
+                {"step": step} | {name: data for name, data in payload.items()},
+                self._file,
+                default=lambda x: x.tolist() if isinstance(x, torch.Tensor) else str(x),
+            )
+        else:
+            raise ValueError(
+                f"Unsupported output format: {self.output_fmt}. Supported formats: 'txt', 'jsonl'."
+            )
         self._file.write("\n")
         self._file.flush()
 
@@ -402,9 +439,9 @@ class CometLogger(MetricLoggerInterface):
         online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
             in an offline experiment. Default is ``True``.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
-        tags (Optional[List[str]]): Tags to associate with the experiment.
+        tags (Optional[list[str]]): Tags to associate with the experiment.
         log_code (bool): Whether to log the source code. Defaults to True.
-        **kwargs (Dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See
+        **kwargs (dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See
             https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig
 
     Example:
@@ -434,9 +471,9 @@ class CometLogger(MetricLoggerInterface):
         mode: Optional[str] = None,
         online: Optional[bool] = None,
         experiment_name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         log_code: bool = True,
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ):
         try:
             import comet_ml

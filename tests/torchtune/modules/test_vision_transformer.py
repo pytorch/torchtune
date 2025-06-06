@@ -89,20 +89,6 @@ class TestVisionTransformer:
 
         assert_expected(output.mean(), torch.tensor(1.0172), atol=1e-3, rtol=1e-3)
 
-    def test_fails_if_ar_none_and_multiple_tiles(self, vision_transformer):
-        """
-        If aspect_ratio is none, then num_tiles shouldnt be greater than 1.
-        Here the test passes if something actually fails under these conditions.
-        """
-        assert self.image.shape[2] > 1, "This test is not valid for num_tiles=1"
-        try:
-            vision_transformer(self.image, aspect_ratio=None)
-            pytest.fail(
-                "Expected ValueError: If num_tiles>1, aspect_ratio should not be None"
-            )
-        except ValueError:
-            pass  # If ValueError is raised, the test passes
-
     @torch.no_grad()
     def test_vision_transformer_with_cls_projection(self, transformer_config):
         transformer_config = transformer_config.copy()

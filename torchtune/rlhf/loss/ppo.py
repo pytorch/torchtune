@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -50,7 +50,7 @@ class PPOLoss(nn.Module):
         returns: torch.Tensor,
         padding_masks: Optional[torch.Tensor] = None,
         value_padding_masks: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
 
         Forward pass of the PPO loss module.
@@ -68,7 +68,7 @@ class PPOLoss(nn.Module):
                 where True indicates the corresponding loss values should participage in value loss calculation.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of five tensors:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of five tensors:
                 - loss: The total PPO loss.
                 - policy_loss: The policy function loss.
                 - value_loss: The value function loss.

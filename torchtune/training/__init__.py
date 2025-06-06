@@ -11,6 +11,7 @@ from torchtune.training._activation_offloading import (
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     gather_cpu_state_dict,
+    get_context_parallel_manager,
     get_distributed_backend,
     get_full_optimizer_state_dict,
     get_shard_conditions,
@@ -23,9 +24,10 @@ from torchtune.training._distributed import (
     prepare_mha_for_tp,
     set_torch_num_threads,
     shard_model,
+    VALID_BACKENDS_FOR_MEMORY_STATS,
     validate_no_params_on_meta_device,
 )
-from torchtune.training._grad_scaler import scale_grads
+from torchtune.training._grad_scaler import scale_grads, scale_grads_
 from torchtune.training._model_util import disable_dropout
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
@@ -120,6 +122,7 @@ __all__ = [
     "shard_model",
     "get_shard_conditions",
     "validate_no_params_on_meta_device",
+    "VALID_BACKENDS_FOR_MEMORY_STATS",
     "gather_cpu_state_dict",
     "get_full_optimizer_state_dict",
     "load_from_full_model_state_dict",
@@ -139,7 +142,9 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "scale_grads_",
     "get_distributed_backend",
     "disable_dropout",
     "DATALOADER_KEY",
+    "get_context_parallel_manager",
 ]

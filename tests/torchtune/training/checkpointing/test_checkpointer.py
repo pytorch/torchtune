@@ -7,7 +7,6 @@
 import json
 
 from pathlib import Path
-from typing import Tuple
 
 import pytest
 
@@ -218,7 +217,7 @@ class TestHFLlama2FullModelCheckpointer:
     def test_load_save_checkpoint_single_file(
         self,
         single_file_checkpointer: FullModelHFCheckpointer,
-        llama2_hf_checkpoints: Tuple[Path, Path],
+        llama2_hf_checkpoints: tuple[Path, Path],
     ):
         """
         Test ``load_checkpoint`` and ``save_checkpoint`` method within the
@@ -276,7 +275,7 @@ class TestHFLlama2FullModelCheckpointer:
     def test_save_load_checkpoint_multiple_file(
         self,
         multi_file_checkpointer: FullModelHFCheckpointer,
-        llama2_hf_checkpoints: Tuple[Path, Path],
+        llama2_hf_checkpoints: tuple[Path, Path],
     ):
         """
         Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple
@@ -380,7 +379,7 @@ class TestHFLlama2FullModelCheckpointer:
     def test_save_checkpoint_in_peft_format(
         self,
         single_file_checkpointer: FullModelHFCheckpointer,
-        llama2_hf_checkpoints: Tuple[Path, Path],
+        llama2_hf_checkpoints: tuple[Path, Path],
     ):
         """
         Test save_checkpoint method within the FullModelCheckpointer for
@@ -523,7 +522,7 @@ class TestHFLlama2FullModelCheckpointer:
     def test_save_load_checkpoint_multiple_file_with_dcp(
         self,
         multi_file_checkpointer: FullModelHFCheckpointer,
-        llama2_hf_checkpoints: Tuple[Path, Path],
+        llama2_hf_checkpoints: tuple[Path, Path],
     ):
         """
         Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple

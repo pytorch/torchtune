@@ -45,8 +45,18 @@ class TestQATDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5211, 10.5217, 10.4944, 10.5134],
-            "llama3": [11.9836, 11.9683, 11.9594, 11.9366],
+            "llama2": [
+                10.52530574798584,
+                10.510214805603027,
+                10.505669593811035,
+                10.521836280822754,
+            ],
+            "llama3": [
+                11.977460861206055,
+                11.978384017944336,
+                11.946539878845215,
+                11.909686088562012,
+            ],
         }
         return loss_values_map[model_type]
 
@@ -59,7 +69,7 @@ class TestQATDistributedRecipe:
             ("llama3/8B_qat_full", "llama3", "tune", 1, 4),
         ],
     )
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     def test_loss(
         self,
         config,
@@ -81,7 +91,7 @@ class TestQATDistributedRecipe:
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_distributed \
             --config {config} \
             output_dir={tmpdir} \
             batch_size={micro_batch_size} \
@@ -102,6 +112,7 @@ class TestQATDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
