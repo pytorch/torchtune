@@ -34,6 +34,7 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         self,
         num_output_chunks: int = 8,
         ignore_index: int = -100,
+        loss_parallel: bool = False,
     ):
         super().__init__()
         """
@@ -44,6 +45,7 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         self.linear_projection = None
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
+        self.loss_parallel = loss_parallel
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
@@ -92,6 +94,7 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
             hidden_chunk = DTensor.from_local(
                 local_hidden_chunk, mesh, placements
             )  # [num_valid, embed_dim]
+
         else:
             hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
 
@@ -99,15 +102,19 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         if self.linear_projection is None:
             raise AttributeError("forward called before update_model")
         logits = self.linear_projection(hidden_chunk)  # [num_valid, vocab_size]
-        if isinstance(logits, DTensor):
+        if isinstance(logits, DTensor) and not self.loss_parallel:
             logits = logits.full_tensor()
 
-        return F.cross_entropy(
+        loss = F.cross_entropy(
             logits.float(),
             target_chunk,
             reduction="sum",
             ignore_index=self.ignore_index,
         )
+        # the all-reduce later complains if a DTensor is returned
+        if isinstance(loss, DTensor):
+            loss = loss.full_tensor()
+        return loss
 
     def forward(
         self,
