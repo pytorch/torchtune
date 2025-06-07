@@ -603,11 +603,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 raise RuntimeError(
                     "Float8 fine-tuning requires PyTorch 2.8.0.dev20250318 or later."
                 )
-            if self.tp_plan is not None:
-                raise ValueError(
-                    "FP8 training does not support tensor parallelism yet. "
-                    "This will be enabled in the near future."
-                )
             if self.cp_degree > 1:
                 raise ValueError(
                     "Context Parallel for fp8 training is not currently supported"
