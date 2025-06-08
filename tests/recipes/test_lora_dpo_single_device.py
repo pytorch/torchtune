@@ -67,7 +67,7 @@ class TestLoRADPOSingleDeviceRecipe:
         values to benchmark against. This test just ensures the loss values are identical when resuming.
         """
 
-        ckpt = "llama2_hf"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -80,16 +80,16 @@ class TestLoRADPOSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run lora_dpo_single_device \
-            --config llama2/7B_lora_dpo_single_device \
+            --config llama3_1/8B_lora_dpo_single_device \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
-            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             metric_logger.filename={log_file} \
@@ -97,7 +97,7 @@ class TestLoRADPOSingleDeviceRecipe:
             enable_activation_offloading=False \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama3_lora"]
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -114,20 +114,20 @@ class TestLoRADPOSingleDeviceRecipe:
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run lora_dpo_single_device \
-            --config llama2/7B_lora_dpo_single_device \
+            --config llama3_1/8B_lora_dpo_single_device \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
-            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
             resume_from_checkpoint=True \
             metric_logger.filename={resumed_log_file} \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
             enable_activation_offloading=False \
@@ -159,7 +159,7 @@ class TestLoRADPOSingleDeviceRecipe:
         values to benchmark against. This test just ensures the loss values are identical when resuming.
         """
 
-        ckpt = "llama2_hf"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -172,16 +172,16 @@ class TestLoRADPOSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run lora_dpo_single_device \
-            --config llama2/7B_lora_dpo_single_device \
+            --config llama3_1/8B_lora_dpo_single_device \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
-            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             metric_logger.filename={log_file} \
@@ -190,7 +190,7 @@ class TestLoRADPOSingleDeviceRecipe:
             enable_async_checkpointing=True \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama3_lora"]
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -207,20 +207,20 @@ class TestLoRADPOSingleDeviceRecipe:
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run lora_dpo_single_device \
-            --config llama2/7B_lora_dpo_single_device \
+            --config llama3_1/8B_lora_dpo_single_device \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
-            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
             resume_from_checkpoint=True \
             metric_logger.filename={resumed_log_file} \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
             enable_activation_offloading=False \
@@ -241,13 +241,13 @@ class TestLoRADPOSingleDeviceRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
-        ckpt = "llama2_tune"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
         tune run lora_dpo_single_device \
-            --config llama2/7B_lora_dpo_single_device \
+            --config llama3_1/8B_lora_dpo_single_device \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
@@ -255,21 +255,21 @@ class TestLoRADPOSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=False \
             enable_activation_offloading=False \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama3_lora"]
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # Next load both the merged weights in a Llama2 base model
+        # Next load both the merged weights in a Llama3 base model
         # and the base model weights + trained adapter weights in the LoRA Llama 2 model
         # The results of calling forward on dummy inputs should be the same.
         inputs = torch.randint(low=0, high=32_000, size=(2, 100))
@@ -277,10 +277,10 @@ class TestLoRADPOSingleDeviceRecipe:
         # Build LoRA model for loading base + adapter weights separately
         lora_model = config.instantiate(OmegaConf.from_dotlist(model_config).model)
 
-        # Build base llama2 model for loading merged weights
-        base_llama2_config = MODEL_TEST_CONFIGS["llama2"]
-        llama2_model = config.instantiate(
-            OmegaConf.from_dotlist(base_llama2_config).model
+        # Build base llama3 model for loading merged weights
+        base_llama3_config = MODEL_TEST_CONFIGS["llama3"]
+        llama3_model = config.instantiate(
+            OmegaConf.from_dotlist(base_llama3_config).model
         )
 
         # Load base model and trained adapter weights into LoRA model and call fwd
@@ -294,7 +294,7 @@ class TestLoRADPOSingleDeviceRecipe:
         lora_model.load_state_dict(base_model_sd, strict=False)
         baseline_out = lora_model(inputs)
 
-        # Load merged final ckpt directly into llama2 and call fwd
+        # Load merged final ckpt directly into llama3 and call fwd
         suffix = ".bin"
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
@@ -302,6 +302,6 @@ class TestLoRADPOSingleDeviceRecipe:
         model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
         sd = safe_torch_load(model_path, weights_only=True)
 
-        llama2_model.load_state_dict(sd)
-        merged_ckpt_out = llama2_model(inputs)
+        llama3_model.load_state_dict(sd)
+        merged_ckpt_out = llama3_model(inputs)
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
