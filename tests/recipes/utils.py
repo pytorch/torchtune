@@ -4,10 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import ast
+import difflib
+import inspect
 import json
 import os
+import textwrap
 from pathlib import Path
-from typing import Union
+from typing import Any, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -324,3 +328,148 @@ MODEL_TEST_CONFIGS = {
         lora_alpha=16,
     ),
 }
+
+# --- Compare content of methods in recipes ---
+
+
+class StripIgnoredNodes(ast.NodeTransformer):
+    """
+    AST transformer to remove specified keyword arguments from function calls,
+    and assignments to specified attributes or names. Optionally removes docstrings from expressions.
+    """
+
+    def __init__(
+        self,
+        ignored_kwargs: Optional[list[str]] = None,
+        ignored_attrs: Optional[list[str]] = None,
+        ignore_docstrings: bool = False,
+    ) -> None:
+        self.ignored_kwargs = set(ignored_kwargs or [])
+        self.ignored_attrs = set(ignored_attrs or [])
+        self.ignore_docstrings = ignore_docstrings
+
+    def visit_Call(self, node: ast.Call) -> ast.Call:  # noqa: N802
+        """Remove specified keyword arguments from function calls
+        For example, we might have a call like:
+        >>> self._checkpoint_client.save_checkpoint(
+        >>>     model=self._model,
+        >>>     optimizer=self.optimizer,
+        >>>     training_progress=TrainingProgress(
+        >>>         ...
+        >>>     ),
+        >>>     epoch=epoch,
+        >>>     adapter_config=self._adapter_config.copy(),
+        >>>     adapter_only=self._save_adapter_weights_only,
+        >>> )
+        and we want to skip the `adapter_config` and `adapter_only` kwargs, but check for equality of everything else.
+        """
+
+        node.keywords = [
+            kw for kw in node.keywords if kw.arg not in self.ignored_kwargs
+        ]
+        return self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> Optional[ast.Assign]:  # noqa: N802
+        """Remove assignments to specified attribute or variable names
+        For example, we might have a method like:
+        >>> def __init__(self, cfg: DictConfig) -> None:
+        >>>     ...
+        >>>     self._output_dir = cfg.output_dir
+        >>>     self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        >>>     self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        >>>     self._logger = utils.get_logger(cfg.log_level)
+        >>>     ...
+        and we want to ignore the `_save_adapter_weights_only` attribute, but check for equality of everything else.
+        """
+
+        for target in node.targets:
+            if isinstance(target, ast.Attribute) and target.attr in self.ignored_attrs:
+                return None
+            if isinstance(target, ast.Name) and target.id in self.ignored_attrs:
+                return None
+        return self.generic_visit(node)
+
+    def visit_Expr(self, node: ast.Expr) -> Optional[ast.Expr]:  # noqa: N802
+        """Remove docstrings from expressions"""
+
+        if (
+            self.ignore_docstrings
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            return None
+        return self.generic_visit(node)
+
+
+def get_method_ast(cls: type[Any], method_name: str) -> ast.FunctionDef:
+    """
+    Returns the AST (Abstract Syntax Tree) node for the specified method in the given class: a tree-like structure that
+    represents the code in a way that Python can analyze.
+
+    Note: Comments are not included in Python's AST.
+    """
+
+    method = getattr(cls, method_name)
+    source = inspect.getsource(method)
+    source = textwrap.dedent(source).strip()  # Fix indentation for class methods
+    tree = ast.parse(source)
+
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == method_name:
+            return node
+    raise ValueError(f"No method definition for {method_name} found in {cls.__name__}")
+
+
+def filter_ast(
+    node: ast.FunctionDef,
+    ignored_kwargs: Optional[list[str]] = None,
+    ignored_attrs: Optional[list[str]] = None,
+    ignore_docstrings: bool = False,
+) -> str:
+    """Process a function's AST by filtering out specified keyword arguments and attributes,
+    then convert the modified AST back to source code."""
+
+    stripper = StripIgnoredNodes(ignored_kwargs, ignored_attrs, ignore_docstrings)
+    stripped = stripper.visit(ast.fix_missing_locations(node))
+    return ast.unparse(stripped).strip()
+
+
+def diff_strings(a: str, b: str, from_file: str = "", to_file: str = "") -> str:
+    """Generate a unified diff string between two input strings.
+
+    This function compares two strings line by line and returns a unified diff,
+    which highlights the differences between them in a format similar to the output
+    of the Unix `diff -u` command. This is useful for displaying changes between
+    two code snippets, text files, or any multi-line strings.
+
+    Args:
+        a (str): The original string to compare.
+        b (str): The modified string to compare against.
+        from_file (str, optional): The label for the original string, typically a filename.
+            Defaults to an empty string.
+        to_file (str, optional): The label for the modified string, typically a filename.
+            Defaults to an empty string.
+
+    Returns:
+        str: A unified diff string showing the differences between `a` and `b`.
+             If there are no differences, returns an empty string.
+
+    Example:
+        >>> diff_strings("foo\\nbar", "foo\\nbaz", from_file="old.py", to_file="new.py")
+        --- old.py
+        +++ new.py
+        @@ -1,2 +1,2 @@
+         foo
+        -bar
+        +baz
+    """
+
+    return "\n".join(
+        difflib.unified_diff(
+            a.strip().splitlines(),
+            b.strip().splitlines(),
+            fromfile=from_file,
+            tofile=to_file,
+            lineterm="",
+        )
+    )
