@@ -15,7 +15,7 @@ from ._model_builders import (
     qwen2_7b,
     qwen2_tokenizer,
 )
-from ._positional_embeddings import Qwen2RotaryPositionalEmbeddings
+from ._position_embeddings import Qwen2RotaryPositionalEmbeddings
 from ._tokenizer import Qwen2Tokenizer
 
 __all__ = [

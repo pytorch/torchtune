@@ -18,9 +18,8 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-from torchtune.modules.moe.experts import GroupedExperts
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
-
+from torchtune.models.deepseek_v3._position_embeddings import DeepSeekV3YarnRotaryEmbeddings
 
 def deepseek_v3(
     *,
@@ -48,11 +47,21 @@ def deepseek_v3(
     moe_hidden_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
 ):
-    if use_yarn:
-        raise NotImplementedError("Yarn is not supported yet")
-    rope = RotaryPositionalEmbeddings(dim=qk_rope_head_dim, max_seq_len=max_seq_len, base=rope_base)
-    def rope(x, input_pos=None):
-        return x
+    # if use_yarn:
+    #     raise NotImplementedError("Yarn is not supported yet")
+    rope = DeepSeekV3YarnRotaryEmbeddings(
+        dim=qk_rope_head_dim,
+        max_seq_len=max_seq_len,
+        base=rope_base,
+        scaling_factor=rope_scaling_factor,
+        original_max_seq_len=original_max_seq_len,
+        beta_fast=beta_fast,
+        beta_slow=beta_slow,
+        mscale=mscale,
+        mscale_all_dim=mscale_all_dim,
+    )
+    # def rope(x, input_pos=None):
+    #     return x
     layers = [] 
     for i in range(num_layers):
         q_head_dim = qk_rope_head_dim + qk_nope_head_dim

@@ -10,7 +10,7 @@ from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_pos
 
 from torch import nn
 from torchtune.modules.transformer import TransformerDecoder
-from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalEmbeddings
+from torchtune.models.qwen2._position_embeddings import Qwen2RotaryPositionalEmbeddings
 
 from torchtune.modules import (
     MultiHeadAttention,

@@ -109,7 +109,6 @@ class MoE(nn.Module):
         """
         Args:
             x (torch.Tensor): Input tensor with shape ``(bs, slen, dim)``.
-
         Returns:
             out (torch.Tensor): Output tensor with shape ``(bs, slen, dim)``.
         """

@@ -21,7 +21,7 @@ class Llama4ScaledRoPE(nn.Module):
     In this implementation we cache the embeddings for each position upto
     ``max_seq_len`` by computing this during init.
 
-    Note that this class is identical to :class:`~torchtune.models.llama4.Llama3ScaledRoPE`, but with different default values
+    Note that this class is identical to :class:`~torchtune.models.llama3_1.Llama3ScaledRoPE`, but with different default values
     for scaling factors, as set for Llama4 Scout. See the meta-llama reference code here:
 
     https://github.com/meta-llama/llama-models/blob/28fa4e3b287e84f6a6a92aab3c931f7479c827c1/models/llama4/args.py#L100-L107

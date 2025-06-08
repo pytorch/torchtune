@@ -116,7 +116,7 @@ def instruct_dataset(
         dataset:
           _component_: torchtune.datasets.instruct_dataset
           source: json
-          data_files: my_dataset.json 
+          data_files: my_dataset.json
           column_map:
             input: question
             output: answer

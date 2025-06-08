@@ -234,7 +234,7 @@ def llama4_tune_to_hf(
             # Combine gate projection with up projection
             new_key = get_mapped_key(key, inverted_mapping_dict)
             up_proj = state_dict[key.replace("gate", "up")]
-            converted_state_dict[new_key] = torch.cat([value, up_proj], dim=-1 )
+            converted_state_dict[new_key] = torch.cat([value, up_proj], dim=-1)
             continue
         elif key.endswith("experts.up_proj"):
             # Skip as already handled with gate projection
