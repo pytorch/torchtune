@@ -8,6 +8,7 @@ from typing import List, Optional
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
 from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
+from torchtune.models.qwen3._component_builders import qwen3_moe
 from torchtune.models.qwen3._tokenizer import QWEN3_SPECIAL_TOKENS, Qwen3Tokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
@@ -321,6 +322,130 @@ def qwen3_32b() -> TransformerDecoder:
         num_kv_heads=8,
         embed_dim=5120,
         intermediate_dim=25600,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3moe_15b_a2b_base() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 15B A2B model (base, no instruct variant) initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-15B-A2B-Base
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 15B A2B base model (there's no instruct variant for the 15B A2B)
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=24,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=8192,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=4096,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3moe_30b_a3b_instruct() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 30B A3B instruct model initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-30B-A3B
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 30B A3B instruct model
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=48,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=6144,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3moe_30b_a3b_base() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 30B A3B base model initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-30B-A3B-Base
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 30B A3B base model
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=48,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=6144,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3moe_235b_a22b() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 235B A22B (instruct, no base variant) model initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-235B-A22B
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 235B A22B base model (there's no base variant for the 235B)
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=94,
+        num_heads=64,
+        num_kv_heads=4,
+        embed_dim=4096,
+        intermediate_dim=12288,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
         max_seq_len=40960,
         head_dim=128,
         attn_dropout=0.0,
