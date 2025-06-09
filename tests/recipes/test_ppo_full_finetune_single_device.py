@@ -19,6 +19,7 @@ from tests.recipes.utils import (
     # llama2_classifier_test_config,
     # llama2_test_config,
     write_hf_ckpt_config,
+    write_llama3_hf_ckpt_config,
     MODEL_TEST_CONFIGS
 )
 from tests.test_utils import (
@@ -131,7 +132,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         policy_tmpdir = (tmpdir / "policy").mkdir()
         value_tmpdir = (tmpdir / "value").mkdir()
 
-        write_hf_ckpt_config(ckpt_dir)
+        write_llama3_hf_ckpt_config(ckpt_dir)
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
@@ -140,11 +141,12 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
@@ -200,9 +202,9 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(policy_tmpdir)
-        write_hf_ckpt_config(value_tmpdir)
+        write_llama3_hf_ckpt_config(ckpt_dir)
+        write_llama3_hf_ckpt_config(policy_tmpdir)
+        write_llama3_hf_ckpt_config(value_tmpdir)
 
         # There are 4 steps in total (num_steps / batch size)
         # and the dataset has 8 samples, so each epoch will be 2 batches
@@ -222,6 +224,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
@@ -274,11 +277,12 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
@@ -330,9 +334,9 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(policy_tmpdir)
-        write_hf_ckpt_config(value_tmpdir)
+        write_llama3_hf_ckpt_config(ckpt_dir)
+        write_llama3_hf_ckpt_config(policy_tmpdir)
+        write_llama3_hf_ckpt_config(value_tmpdir)
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
@@ -341,11 +345,12 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-
+            
+            checkpointer.model_type=LLAMA3 \
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
@@ -401,11 +406,12 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
