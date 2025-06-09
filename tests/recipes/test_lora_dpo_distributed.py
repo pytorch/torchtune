@@ -129,6 +129,7 @@ class TestLoRADPODistributedRecipe:
             metric_logger.filename={resumed_log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
             enable_activation_checkpointing=True \
             enable_activation_offloading=False \
         """.split()
