@@ -38,7 +38,7 @@ from torchtune.training.checkpointing._utils import (
 class TestLoRADPOSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
-            "batch_size=8",
+            "batch_size=1",
             f"dtype={dtype_str}",
             "dataset.train_on_input=False",
             "seed=9",
@@ -46,7 +46,7 @@ class TestLoRADPOSingleDeviceRecipe:
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-            "gradient_accumulation_steps=1",
+            "gradient_accumulation_steps=8",
             "clip_grad_norm=100",
             "tokenizer.max_seq_len=512",
         ] + dummy_stack_exchange_dataset_config()
