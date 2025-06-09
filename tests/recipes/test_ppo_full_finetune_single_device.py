@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-
+import logging
 import runpy
 import sys
 from pathlib import Path
@@ -27,7 +27,6 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
     gpu_test,
-    mps_ignored_test,
     TOKENIZER_PATHS,
 )
 
@@ -37,6 +36,8 @@ from torchtune.training.checkpointing._utils import (
     SHARD_FNAME,
 )
 
+
+logger = logging.getLogger(__name__)
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self):
@@ -121,7 +122,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         or torch.cuda.get_device_capability() not in ((7, 5), (8, 6), (9, 0)),
         reason="Unexpected device type",
     )
-    @mps_ignored_test()
     @gpu_test(gpu_count=1)
     def test_loss(self, tmpdir, monkeypatch):
         reward_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_reward_hf"])
@@ -179,6 +179,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
+
+        logger.error(f"Loss values: {loss_values}")
 
         expected_loss_values = self._get_expected_loss_values(
             torch.cuda.get_device_capability()
