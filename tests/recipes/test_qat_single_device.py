@@ -13,7 +13,6 @@ import torch
 from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
-    CKPT_COMPONENT_MAP,
     dummy_alpaca_dataset_config,
     MODEL_TEST_CONFIGS,
     write_hf_ckpt_config,
@@ -43,25 +42,18 @@ class TestQATSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type, ckpt_type):
         # logic here may need to be adjusted in the future
-        if model_type == "llama2" and ckpt_type == "hf":
-            return [
-                10.596881866455078,
-                10.715113639831543,
-                10.57275104522705,
-                10.497347831726074,
-            ]
+        return [12.0118, 11.9262, 11.8976, 11.9700]
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
+        "model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
         [
-            ("llama2/1B_qat_single_device", "llama2", "hf", 1, 1),
+            ("llama3", "tune", 1, 1),
         ],
     )
     def test_loss(
         self,
-        config,
         model_type,
         ckpt_type,
         micro_batch_size,
@@ -69,12 +61,9 @@ class TestQATSingleDeviceRecipe:
         tmpdir,
         monkeypatch,
     ):
-        ckpt_component = CKPT_COMPONENT_MAP.get(
-            ckpt_type, "torchtune.training.FullModelHFCheckpointer"
-        )
         ckpt = model_type + "_" + ckpt_type
-        ckpt_path = Path(CKPT_MODEL_PATHS.get(ckpt))
-        tokenizer_path = Path(TOKENIZER_PATHS.get(model_type))
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
@@ -83,25 +72,22 @@ class TestQATSingleDeviceRecipe:
 
         cmd = f"""
         tune run qat_single_device \
-            --config {config} \
+            --config llama2/1B_qat_single_device \
             output_dir={tmpdir} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            checkpointer._component_={ckpt_component} \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}] \
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
         """.split()
-        model_config = MODEL_TEST_CONFIGS.get(model_type)
+        model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
-
-        # specify intermediate_dim for test small llama2
-        if model_type == "llama2":
-            cmd.append("model.intermediate_dim=768")
 
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
