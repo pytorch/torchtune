@@ -66,6 +66,7 @@ class TestLoRADPOSingleDeviceRecipe:
         Unlike `tests.recipes.test_lora_finetune_single_device`, this test does not use pre-computed loss
         values to benchmark against. This test just ensures the loss values are identical when resuming.
         """
+        torch.cuda.empty_cache()
 
         ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -158,6 +159,7 @@ class TestLoRADPOSingleDeviceRecipe:
         Unlike `tests.recipes.test_lora_finetune_single_device`, this test does not use pre-computed loss
         values to benchmark against. This test just ensures the loss values are identical when resuming.
         """
+        torch.cuda.empty_cache()
 
         ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -241,6 +243,8 @@ class TestLoRADPOSingleDeviceRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
+        torch.cuda.empty_cache()
+
         ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
