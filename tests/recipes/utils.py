@@ -235,8 +235,9 @@ def lora_llama3_test_config(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> list[str]:
-    return [
+    config_overrides = [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
         "model._component_=torchtune.models.llama3.lora_llama3",
@@ -254,7 +255,13 @@ def lora_llama3_test_config(
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",
         f"model.quantize_base={quantize_base}",
+        f"model.use_dora={use_dora}",
     ]
+
+    if quantize_base:
+        config_overrides.append("model.scaler_block_size=32")
+
+    return config_overrides
 
 
 def write_hf_ckpt_config(ckpt_dir: Union[str, Path]):
@@ -340,5 +347,21 @@ MODEL_TEST_CONFIGS = {
         apply_lora_to_output=False,
         lora_rank=8,
         lora_alpha=16,
+    ),
+    "llama3_qlora": lora_llama3_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=True,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        quantize_base=True,
+    ),
+    "llama3_dora": lora_llama3_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=False,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        use_dora=True,
     ),
 }
