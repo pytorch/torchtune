@@ -56,7 +56,6 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5201, 10.5217, 10.4945, 10.5136],
             "llama3": [11.9839, 11.9684, 11.9596, 11.9366],
         }
 
@@ -71,7 +70,6 @@ class TestFullFinetuneSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("llama2/7B_full_low_memory", "llama2", "meta"),
             ("llama3/8B_full_single_device", "llama3", "tune"),
         ],
     )
@@ -152,7 +150,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "llama2_hf"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         first_log_file = gen_log_file_name(tmpdir, suffix="first")
@@ -165,21 +163,21 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             metric_logger.filename={first_log_file} \
             optimizer_in_bwd={optimizer_in_bwd} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2"]
+        model_config = MODEL_TEST_CONFIGS["llama3"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -187,7 +185,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Sanity check that the loss values are expected for the initial run
-        expected_loss_values = self._fetch_expected_loss_values("llama2")
+        expected_loss_values = self._fetch_expected_loss_values("llama3")
         loss_values = get_loss_values_from_metric_logger(first_log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
@@ -197,22 +195,22 @@ class TestFullFinetuneSingleDeviceRecipe:
         log_file = gen_log_file_name(tmpdir, suffix="resume")
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
+        suffix = ".bin"
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
@@ -225,7 +223,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
+        expected_loss_values = self._fetch_expected_loss_values("llama3")[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
@@ -245,7 +243,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "llama2_hf"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         first_log_file = gen_log_file_name(tmpdir, suffix="first")
@@ -258,22 +256,22 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
             enable_async_checkpointing=True\
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             metric_logger.filename={first_log_file} \
             optimizer_in_bwd=False \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2"]
+        model_config = MODEL_TEST_CONFIGS["llama3"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -281,7 +279,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Sanity check that the loss values are expected for the initial run
-        expected_loss_values = self._fetch_expected_loss_values("llama2")
+        expected_loss_values = self._fetch_expected_loss_values("llama3")
         loss_values = get_loss_values_from_metric_logger(first_log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
@@ -291,17 +289,17 @@ class TestFullFinetuneSingleDeviceRecipe:
         log_file = gen_log_file_name(tmpdir, suffix="resume")
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
             enable_async_checkpointing=True\
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
@@ -314,7 +312,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
+        expected_loss_values = self._fetch_expected_loss_values("llama3")[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
