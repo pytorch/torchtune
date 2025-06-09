@@ -154,7 +154,6 @@ class MoE(nn.Module):
                     num_tokens_per_expert,
                     self.experts.num_experts,
                     1,
-                    token_indices.shape[0] + self.experts.num_experts * ALIGN_SIZE_M,
                     ALIGN_SIZE_M,
                 )
             token_indices = torch.vstack(
@@ -180,12 +179,7 @@ class MoE(nn.Module):
                 torch._check_is_size(num_tokens)
                 torch._check(num_tokens <= token_indices.size(0))
                 torch._check(num_tokens <= routed_output.size(0))
-            # grouped_mm path requires alignment by 16 and adds padding
-            # this padding will not be initialized.
-            # Doing slice avoids padding to participate in compute.
-            out = out.scatter_add(
-                dim=0, index=token_indices[:num_tokens], src=routed_output[:num_tokens]
-            )
+            out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         else:
             out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
