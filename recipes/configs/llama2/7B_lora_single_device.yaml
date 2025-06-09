@@ -64,6 +64,7 @@ optimizer:
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
@@ -71,7 +72,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase effective batch size
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 clip_grad_norm: null
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
