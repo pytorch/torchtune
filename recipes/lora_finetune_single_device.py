@@ -414,6 +414,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_model_state_dict: dict[str, Any],
         lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
+        """
+        Set up the model including enabling activation checkpointing.
+        """
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 

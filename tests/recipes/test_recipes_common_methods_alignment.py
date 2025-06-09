@@ -50,7 +50,7 @@ LoRAFinetuneRecipeSingleDevice = import_class(
         "train",
     ],
 )
-def test_shared_method_ast_equal(
+def test_shared_method_are_identical(
     recipe_class_a: str, recipe_class_b: str, method_name: str
 ) -> None:
     ast_a = get_method_ast(recipe_class_a, method_name)
@@ -78,8 +78,8 @@ def test_shared_method_ast_equal(
 @pytest.mark.parametrize(
     "method_name,ignored_kwargs,ignored_attrs",
     [
-        ("save_checkpoint", ["adapter_config", "adapter_only"], []),
         ("__init__", [], ["_save_adapter_weights_only"]),
+        ("save_checkpoint", ["adapter_config", "adapter_only"], []),
     ],
 )
 def test_methods_are_close(
