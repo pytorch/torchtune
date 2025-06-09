@@ -101,18 +101,18 @@ def llama2_test_config() -> list[str]:
     ]
 
 
-def llama2_classifier_test_config() -> list[str]:
-    return [
+def llama3_classifier_test_config() -> list[str]:
+    return [ 
         "model._component_=torchtune.modules.classifier_model",
-        "model.base_model_path=torchtune.models.llama2.llama2",
         "model.num_classes=1",
-        "model.vocab_size=32_000",
-        "model.num_layers=4",
-        "model.num_heads=16",
-        "model.embed_dim=256",
-        "model.max_seq_len=2048",
+        "model.base_model_path=torchtune.models.llama3.llama3",
+        "model.vocab_size=128_256",
+        "model.num_layers=2",
+        "model.num_heads=8",
+        "model.embed_dim=64",
+        "model.max_seq_len=1024",
         "model.norm_eps=1e-5",
-        "model.num_kv_heads=8",
+        "model.num_kv_heads=4",
     ]
 
 
@@ -292,6 +292,7 @@ def write_hf_vision_ckpt_config(ckpt_dir: str):
 MODEL_TEST_CONFIGS = {
     "llama2": llama2_test_config(),
     "llama3": llama3_test_config(),
+    "llama3_classifier": llama3_classifier_test_config(),
     "llama3_137M": llama3_test_config_137m(),
     "llama2_lora": lora_llama2_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],

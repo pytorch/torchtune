@@ -17,7 +17,7 @@ SMALL_MODEL_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-03082024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-03082024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-llama3-05052024.pt"
-    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-reward-07122024.pt"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-reward-06092025.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-vision-10172024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-vision-10172024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/config.json"

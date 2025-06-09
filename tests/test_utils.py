@@ -27,7 +27,7 @@ CKPT_MODEL_PATHS = {
     "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
     "llama2_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
     "llama2_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
-    "llama2_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-07122024.pt",
+    "llama3_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-06092025.pt",
     "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
     "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
