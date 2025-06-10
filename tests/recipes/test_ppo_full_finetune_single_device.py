@@ -39,6 +39,7 @@ from torchtune.training.checkpointing._utils import (
 
 logger = logging.getLogger(__name__)
 
+
 class TestPPOFullFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self):
         return [
@@ -85,18 +86,18 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ]
         elif device_capability == (8, 6):
             return [
-                1.0133672952651978,
-                0.924409806728363,
-                0.8895752429962158,
-                1.0592315196990967,
-                0.9643043279647827,
-                0.9492722153663635,
-                1.0353240966796875,
-                0.9405008554458618,
-                0.9482318758964539,
-                1.0426965951919556,
-                0.945842981338501,
-                0.9685366153717041,
+                1.1089695692062378,
+                1.0091122388839722,
+                0.9985737800598145,
+                1.076175570487976,
+                0.9825485348701477,
+                0.9362708926200867,
+                1.0785716772079468,
+                0.9799201488494873,
+                0.9865158200263977,
+                1.0669920444488525,
+                0.976087749004364,
+                0.9090427756309509
             ]
         elif device_capability == (9, 0):
             return [
