@@ -153,11 +153,11 @@ def generate_permute_indices(
     Modified version that returns a tensor of size sum(m_sizes) instead of max_len.
 
     Args:
-        tokens_per_expert_group: number of tokens for each expert from all ranks.
-        experts_per_rank: number of experts per rank.
-        num_ranks: number of ranks.
-        alignment: alignment for each returned element in `m_sizes` and padding min for zero token experts.
-        use_cpu: whether to use CPU implementation.
+        tokens_per_expert_group (torch.Tensor): number of tokens for each expert from all ranks.
+        experts_per_rank (int): number of experts per rank.
+        num_ranks (int): number of ranks.
+        alignment (int): alignment for each returned element in `m_sizes` and padding min for zero token experts.
+        use_cpu (bool): whether to use CPU implementation.
 
     Returns:
         permuted_indices: Tensor of indices with size sum(m_sizes), that map original token order to the expert-grouped order.

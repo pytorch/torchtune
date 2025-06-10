@@ -11,6 +11,7 @@ from torchtune.utils._logging import get_logger, log_once
 
 _log: logging.Logger = get_logger()
 
+# Configuration of MoE
 # use grouped_mm in MoE or for loop for experts computation.
 use_grouped_mm = True
 

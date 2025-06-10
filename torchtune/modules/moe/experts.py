@@ -12,7 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 from torchtune.modules.peft import AdapterModule
 
-from .config import should_use_grouped_mm
+from .utils import should_use_grouped_mm
 
 
 class GroupedExperts(nn.Module):

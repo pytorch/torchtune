@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 from torch import nn
 
-from .config import should_use_grouped_mm
+from .utils import should_use_grouped_mm
 
 
 class TokenChoiceTopKRouter(nn.Module):
