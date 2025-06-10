@@ -714,6 +714,13 @@
             <span class="sa">f</span><span class="s2">&quot;Device namespace &#39;</span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s2">&#39; not found in torch, try to load torch.cuda.&quot;</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">has_cuda_capability</span><span class="p">(</span><span class="n">major</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">minor</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_capability</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="p">(</span>
+        <span class="n">major</span><span class="p">,</span>
+        <span class="n">minor</span><span class="p">,</span>
+    <span class="p">)</span>
 </pre></div>
 
              </article>
