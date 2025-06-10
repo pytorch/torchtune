@@ -406,6 +406,7 @@ class TestGenerate:
         model = request.getfixturevalue(model)
         temperature = 0.6
         top_k = 100
+        pad_id = -100
 
         stop_tokens = [3991, 3987, 3969]
 
@@ -418,13 +419,14 @@ class TestGenerate:
             temperature=temperature,
             top_k=top_k,
             stop_tokens=stop_tokens,
+            pad_id=pad_id,
         )
 
         expected_output = torch.tensor(
             [
                 [2, 3, 4, 5, 6, 7, 8, 9, 3954, 3920, 3991],
-                [2, 3, 4, 5, 6, 7, 8, 9, 3983, 3987, 0],
-                [2, 3, 4, 5, 6, 7, 8, 9, 3969, 0, 0],
+                [2, 3, 4, 5, 6, 7, 8, 9, 3983, 3987, pad_id],
+                [2, 3, 4, 5, 6, 7, 8, 9, 3969, pad_id, pad_id],
             ]
         )
 
@@ -445,7 +447,7 @@ class TestGenerate:
         model = request.getfixturevalue(model)
         temperature = 0.6
         top_k = 100
-
+        pad_id = -100
         # Updated stop tokens to match the new generated tokens
         stop_tokens = [3991, 3987, 3969]
 
@@ -458,13 +460,14 @@ class TestGenerate:
             temperature=temperature,
             top_k=top_k,
             stop_tokens=stop_tokens,
+            pad_id=pad_id,
         )
 
         expected_output = torch.tensor(
             [
                 [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 3954, 3920, 3991],
-                [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 3983, 3987, 0],
-                [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 3969, 0, 0],
+                [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 3983, 3987, pad_id],
+                [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 3969, pad_id, pad_id],
             ]
         )
         assert torch.equal(outputs, expected_output)

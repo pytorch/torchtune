@@ -192,78 +192,62 @@ def _sdpa_or_flex_attention() -> Callable:
     - torch.cuda.get_device_capability() >= (7, 5)
     """
 
-    if _SUPPORTS_FLEX_ATTENTION:
+    # Create SDPA Call
+    def _sdpa_call(
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: Optional[_MaskType],
+        dropout_p: float,
+        is_causal: bool,
+    ) -> torch.Tensor:
+        # shape: [b, 1, s, s]
+        if mask is not None:
+            mask = mask[:, None, :, :]
 
-        def _attention_call(
-            q: torch.Tensor,
-            k: torch.Tensor,
-            v: torch.Tensor,
-            mask: Optional[_MaskType],
-            dropout_p: float,
-            is_causal: bool,
-        ) -> torch.Tensor:
-            # Flex attention uses the BlockMask
-            # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
-            # instead of a traditional boolean tensor mask. If this is passed in,
-            # we assume the user wants to use flex attention instead of traditional SDPA.
-            # This will use flash attention under the hood with support for custom masks.
-            # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
-            if isinstance(mask, BlockMask):
-                if not torch.compiler.is_compiling():
-                    log_once(
-                        _log,
-                        "Using flex attention for attention computation since a BlockMask was passed in.",
-                        level=logging.DEBUG,
-                    )
-                if dropout_p > 0.0:
-                    raise ValueError(
-                        "Flex attention does not support dropout. Please set dropout to 0.0."
-                    )
-                return compile_friendly_flex_attention(
-                    q,
-                    k,
-                    v,
-                    block_mask=mask,
+        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
+        return nn.functional.scaled_dot_product_attention(
+            q, k, v, attn_mask=mask, dropout_p=dropout_p, is_causal=is_causal
+        )
+
+    if not _SUPPORTS_FLEX_ATTENTION:
+        return _sdpa_call
+
+    # Create Flex Attention Call
+    def _attention_call(
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: Optional[_MaskType],
+        dropout_p: float,
+        is_causal: bool,
+    ) -> torch.Tensor:
+        # Flex attention uses the BlockMask
+        # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
+        # instead of a traditional boolean tensor mask. If this is passed in,
+        # we assume the user wants to use flex attention instead of traditional SDPA.
+        # This will use flash attention under the hood with support for custom masks.
+        # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
+        if isinstance(mask, BlockMask):
+            if not torch.compiler.is_compiling():
+                log_once(
+                    _log,
+                    "Using flex attention for attention computation since a BlockMask was passed in.",
+                    level=logging.DEBUG,
                 )
-            # If mask is a standard boolean tensor or None, then use SDPA
-            else:
-                # shape: [b, 1, s, s]
-                if mask is not None:
-                    mask = mask[:, None, :, :]
-
-                # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-                return nn.functional.scaled_dot_product_attention(
-                    q,
-                    k,
-                    v,
-                    attn_mask=mask,
-                    dropout_p=dropout_p,
-                    is_causal=is_causal,
+            if dropout_p > 0.0:
+                raise ValueError(
+                    "Flex attention does not support dropout. Please set dropout to 0.0."
                 )
-
-    else:
-
-        def _attention_call(
-            q: torch.Tensor,
-            k: torch.Tensor,
-            v: torch.Tensor,
-            mask: Optional[_MaskType],
-            dropout_p: float,
-            is_causal: bool,
-        ) -> torch.Tensor:
-            # shape: [b, 1, s, s]
-            if mask is not None:
-                mask = mask[:, None, :, :]
-
-            # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-            return nn.functional.scaled_dot_product_attention(
+            return compile_friendly_flex_attention(
                 q,
                 k,
                 v,
-                attn_mask=mask,
-                dropout_p=dropout_p,
-                is_causal=is_causal,
+                block_mask=mask,
             )
+        else:
+            # If mask is a standard boolean tensor or None, then use SDPA
+            return _sdpa_call(q, k, v, mask, dropout_p, is_causal)
 
     return _attention_call
 
