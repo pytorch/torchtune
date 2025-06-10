@@ -19,8 +19,164 @@ from torchtune.tokenizers.utils import parse_hf_tokenizer_json
 
 logger = logging.getLogger(__name__)
 
+class Qwen2_5_VLImageTransform:
+    """
+    This class accepts images of any size and dynamically resizes, normalizes and patches it
+    based on the image size constraints and patch size.
 
-class Qwen25VisionTransform:
+    The algorithm will NOT distort the image to fit a certain aspect ratio, because
+    that leads to a significant degradation in image quality.
+
+    For example, if an input image is of size 300x800, and we have:
+    - patch_size = 14
+    - merge_size = 2
+    - min_pixels = 3136 (56 * 56)
+    - max_pixels = 1003520 (28 * 28 * 1280)
+
+    The image will be:
+    1. Resized to fit within min_pixels and max_pixels constraints
+    2. Divided into 14x14 patches
+    3. Patches will be merged in 2x2 groups
+    4. Final output will be a sequence of merged patches
+
+    Args:
+        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+            Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
+        image_std (Optional[List[float]]): Standard deviation values of each channel, used for normalization.
+            Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
+        patch_size (int): Size of the patches to divide the image into. Default 14.
+        merge_size (int): Size of the patch merging factor. Default 2.
+        min_pixels (int): Minimum number of pixels for the shorter edge. Default 3136 (56 * 56).
+        max_pixels (int): Maximum number of pixels for the longer edge. Default 1003520 (28 * 28 * 1280).
+        dtype (torch.dtype): Data type of the output image. Default torch.bfloat16.
+        resample (str): Resampling method used when resizing images. Supports any enum of
+            ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
+            Default 'bilinear'.
+
+    Examples:
+        >>> image_transform = Qwen2_5_VLImageTransform(
+        ...    image_mean=None,
+        ...    image_std=None,
+        ...    patch_size=14,
+        ...    merge_size=2,
+        ...    min_pixels=3136,
+        ...    max_pixels=1003520,
+        ...    resample="bilinear",
+        ...)
+        >>> # create random image
+        >>> image = (np.random.rand(100,200,3) * 255).astype(np.uint8)
+        >>> image = PIL.Image.fromarray(image)
+        >>> output = image_transform({"image": image})
+        >>> print(output["pixel_values"].shape)  # [num_patches, channels * patch_size * patch_size]
+        >>> print(output["image_grid_thw"])  # [grid_t, grid_h, grid_w]
+    """
+
+    def __init__(
+        self,
+        *,
+        image_mean: Optional[List[float]] = None,
+        image_std: Optional[List[float]] = None,
+        patch_size: int = 14,
+        merge_size: int = 2,
+        min_pixels: int = 56 * 56,
+        max_pixels: int = 28 * 28 * 1280,
+        dtype: torch.dtype = torch.bfloat16,
+        resample: str = "bilinear",
+    ) -> None:
+        self.patch_size = patch_size
+        self.merge_size = merge_size
+        self.min_pixels = min_pixels
+        self.max_pixels = max_pixels
+        self.dtype = dtype
+        self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
+        
+        # normalize
+        assert (image_mean is None) == (
+            image_std is None
+        ), f"Need to provide both or none of image_mean and image_std. Got {image_mean=} and {image_std=}"
+        self.mean = image_mean
+        self.std = image_std
+
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
+        """
+        Apply image decoding and transformations to the "image" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with an "image" field containing
+                a PIL Image or torch.Tensor
+            inference (bool): Whether the template is being used for inference or not.
+
+        Returns:
+            Mapping[str, Any]: The sample with updated fields:
+                - "pixel_values": Flattened patches tensor
+                - "image_grid_thw": Grid dimensions (temporal, height, width)
+        """
+        image = sample["image"]
+        assert isinstance(
+            image, (Image.Image, torch.Tensor)
+        ), "Input image must be a PIL image or a torch.Tensor."
+
+        # Convert to RGB and tensor
+        if isinstance(image, Image.Image) and image.mode != "RGB":
+            image = image.convert("RGB")
+        image = F.to_image(image)
+        image = F.to_dtype(image, dtype=self.dtype, scale=True)
+
+        # Get image dimensions
+        height, width = image.shape[-2:]
+
+        # Calculate resize dimensions
+        resized_height, resized_width = smart_resize(
+            height, width,
+            factor=self.patch_size * self.merge_size,
+            min_pixels=self.min_pixels,
+            max_pixels=self.max_pixels
+        )
+
+        # Resize image
+        image = F.resize(
+            image, 
+            size=(resized_height, resized_width), 
+            interpolation=self.resample
+        )
+
+        # Normalize
+        if self.mean:
+            image = F.normalize(image, mean=self.mean, std=self.std)
+
+        # Calculate grid dimensions
+        grid_h, grid_w = resized_height // self.patch_size, resized_width // self.patch_size
+
+        # Reshape into patches
+        patches = image.view(
+            1,  # temporal dimension (1 for images)
+            1,  # temporal patch size (1 for images)
+            image.shape[0],  # channels
+            grid_h // self.merge_size,
+            self.merge_size,
+            self.patch_size,
+            grid_w // self.merge_size,
+            self.merge_size,
+            self.patch_size
+        )
+
+        # Permute and reshape to final format
+        patches = patches.permute(0, 3, 6, 4, 7, 2, 1, 5, 8)
+        flatten_patches = patches.reshape(
+            grid_h * grid_w,
+            image.shape[0] * self.patch_size * self.patch_size
+        )
+
+        sample.update({
+            "pixel_values": flatten_patches,
+            "image_grid_thw": torch.tensor([1, grid_h, grid_w])  # [temporal, height, width]
+        })
+
+        return sample
+
+class Qwen2_5_VLTransform:
     """
     Transform for Qwen 2.5 Vision model that handles both text tokenization and image processing.
 
