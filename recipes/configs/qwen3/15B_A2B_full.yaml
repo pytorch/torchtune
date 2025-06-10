@@ -34,7 +34,7 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.qwen3.qwen3moe_15b_a2b_base
+  _component_: torchtune.models.qwen3.qwen3_moe_15b_a2b_base
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -51,7 +51,7 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: QWEN3
+  model_type: QWEN3_MOE
 resume_from_checkpoint: False
 
 # Fine-tuning arguments

@@ -335,7 +335,7 @@ def qwen3_32b() -> TransformerDecoder:
     )
 
 
-def qwen3moe_15b_a2b_base() -> TransformerDecoder:
+def qwen3_moe_15b_a2b_base() -> TransformerDecoder:
     """
     Builder for creating a Qwen3 15B A2B model (base, no instruct variant) initialized w/ the default parameter values
     from https://huggingface.co/Qwen/Qwen3-15B-A2B-Base
@@ -366,7 +366,7 @@ def qwen3moe_15b_a2b_base() -> TransformerDecoder:
     )
 
 
-def qwen3moe_30b_a3b_instruct() -> TransformerDecoder:
+def qwen3_moe_30b_a3b_instruct() -> TransformerDecoder:
     """
     Builder for creating a Qwen3 30B A3B instruct model initialized w/ the default parameter values
     from https://huggingface.co/Qwen/Qwen3-30B-A3B
@@ -397,7 +397,7 @@ def qwen3moe_30b_a3b_instruct() -> TransformerDecoder:
     )
 
 
-def qwen3moe_30b_a3b_base() -> TransformerDecoder:
+def qwen3_moe_30b_a3b_base() -> TransformerDecoder:
     """
     Builder for creating a Qwen3 30B A3B base model initialized w/ the default parameter values
     from https://huggingface.co/Qwen/Qwen3-30B-A3B-Base
@@ -428,7 +428,7 @@ def qwen3moe_30b_a3b_base() -> TransformerDecoder:
     )
 
 
-def qwen3moe_235b_a22b() -> TransformerDecoder:
+def qwen3_moe_235b_a22b() -> TransformerDecoder:
     """
     Builder for creating a Qwen3 235B A22B (instruct, no base variant) model initialized w/ the default parameter values
     from https://huggingface.co/Qwen/Qwen3-235B-A22B

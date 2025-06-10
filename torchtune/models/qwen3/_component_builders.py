@@ -125,7 +125,8 @@ def qwen3_moe(
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
         )
-        mlp = qwen3_moe_mlp(dim=embed_dim,
+        mlp = qwen3_moe_mlp(
+            dim=embed_dim,
             hidden_dim=moe_intermediate_size,
             num_experts=num_experts,
             experts_per_token=num_experts_per_tok

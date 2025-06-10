@@ -27,6 +27,10 @@ from ._model_builders import (
     qwen3_4b_instruct,
     qwen3_8b_base,
     qwen3_8b_instruct,
+    qwen3_moe_15b_a2b_base,
+    qwen3_moe_235b_a22b,
+    qwen3_moe_30b_a3b_base,
+    qwen3_moe_30b_a3b_instruct,
     qwen3_tokenizer,
 )
 
@@ -53,5 +57,9 @@ __all__ = [
     "qwen3_14b_base",
     "qwen3_14b_instruct",
     "qwen3_32b",
+    "qwen3_moe_15b_a2b_base",
+    "qwen3_moe_30b_a3b_base",
+    "qwen3_moe_30b_a3b_instruct",
+    "qwen3_moe_235b_a22b",
     "qwen3_tokenizer",
 ]
