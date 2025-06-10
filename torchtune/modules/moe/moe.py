@@ -9,6 +9,8 @@ from typing import Optional
 import torch
 from torch import nn
 
+from .utils import should_use_grouped_mm
+
 
 class TokenChoiceTopKRouter(nn.Module):
     """This class implements Token Choice routing. In Token Choice top K routing, each token is
@@ -104,6 +106,7 @@ class MoE(nn.Module):
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
+        self.use_grouped_mm = should_use_grouped_mm()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -133,6 +136,33 @@ class MoE(nn.Module):
         )
         routed_input = routed_input * top_scores.reshape(-1, 1)
 
+        if self.use_grouped_mm:
+            # NOTE: In order to use torch._grouped_mm, we need to make sure
+            # the number of tokens each expert gets is a multiple of 16.
+            # The following kernel helps achieve this via padding, without
+            # incurring synchronization between device and host.
+            from torchtune.modules.moe.indices import generate_permute_indices
+
+            ALIGN_SIZE_M = 16  # noqa
+
+            with torch.no_grad():
+                (
+                    permuted_indices,
+                    num_tokens_per_expert,
+                    _,
+                ) = generate_permute_indices(
+                    num_tokens_per_expert,
+                    self.experts.num_experts,
+                    1,
+                    ALIGN_SIZE_M,
+                )
+            token_indices = torch.vstack(
+                (token_indices, token_indices.new_zeros((dim)))
+            )
+            token_indices = token_indices[permuted_indices, :]
+            routed_input = torch.vstack((routed_input, routed_input.new_zeros((dim))))
+            routed_input = routed_input[permuted_indices, :]
+
         # shape (bs*slen*top_k, dim)
         routed_output = self.experts(routed_input, num_tokens_per_expert)
 
@@ -141,6 +171,16 @@ class MoE(nn.Module):
             out = self.shared_expert(x).reshape(bs * slen, dim)
         else:
             out = torch.zeros_like(x.reshape(bs * slen, dim))
-        out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
+
+        if self.use_grouped_mm:
+            num_tokens = num_tokens_per_expert.sum().item()
+            if torch.compiler.is_compiling():
+                # Hints to compile dynamic shapes to pass through slice shape checks.
+                torch._check_is_size(num_tokens)
+                torch._check(num_tokens <= token_indices.size(0))
+                torch._check(num_tokens <= routed_output.size(0))
+            out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
+        else:
+            out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
         return out
