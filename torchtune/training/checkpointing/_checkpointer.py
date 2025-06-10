@@ -25,6 +25,7 @@ from torch.distributed.checkpoint import (
     load,
     save,
 )
+from torch.distributed.checkpoint.state_dict_loader import _load_state_dict_from_keys
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -530,26 +531,15 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
 
         if self._enable_dcp:
-            from torch.distributed.checkpoint import (
-                _HuggingFaceLoadPlanner,
-                _HuggingFaceStorageReader,
-            )
+            from torch.distributed.checkpoint import HuggingFaceStorageReader
 
             # DCP load using the storage reader
-            hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
+            hf_storage_reader = HuggingFaceStorageReader(path=self._checkpoint_dir)
             metadata = hf_storage_reader.read_metadata()
-            state_dict = {}
-            for key in metadata.state_dict_metadata.keys():
-                # arbitrary value to ensure that the state_dict is not empty
-                state_dict[key] = torch.empty(1)
 
             self._weight_map = metadata.storage_data
 
-            load(
-                state_dict=state_dict,
-                storage_reader=hf_storage_reader,
-                planner=_HuggingFaceLoadPlanner(allow_tensor_resize=True),
-            )
+            state_dict = _load_state_dict_from_keys(storage_reader=hf_storage_reader)
 
             merged_state_dict = state_dict
         else:
