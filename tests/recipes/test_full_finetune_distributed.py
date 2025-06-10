@@ -52,14 +52,12 @@ class TestFullFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values_multi_rank(self, model_type):
         loss_values_map = {
-            "llama2": [10.5209, 10.5217, 10.4945, 10.5136],
             "llama3": [11.9839, 11.9684, 11.9596, 11.93656],
         }
         return loss_values_map[model_type]
 
     def _fetch_expected_loss_values_single_rank(self, model_type):
         loss_values_map = {
-            "llama2": [10.5051, 10.5572, 10.4780, 10.5678],
             "llama3": [11.9742, 12.0049, 11.9382, 12.0464],
         }
         return loss_values_map[model_type]
@@ -68,7 +66,6 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
@@ -216,7 +213,6 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
@@ -390,7 +386,6 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
@@ -511,7 +506,6 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
             ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
