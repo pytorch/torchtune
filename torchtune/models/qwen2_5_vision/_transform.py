@@ -13,11 +13,11 @@ import torchvision.transforms.functional as F
 from PIL import Image
 import math
 
-from torchtune.data.message import Message
-from torchtune.data.templates import _TemplateType, _get_prompt_template
+from torchtune.data import Message
+from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
 from torchtune.models.clip._transform import CLIPImageTransform
 from torchtune.models.qwen2_5._tokenizer import Qwen2_5Tokenizer
-from torchtune.tokenizers.utils import parse_hf_tokenizer_json
+from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 
 logger = logging.getLogger(__name__)
 
