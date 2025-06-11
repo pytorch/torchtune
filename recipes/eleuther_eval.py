@@ -394,7 +394,7 @@ class _LLMEvalWrapper(HFLM):
         if isinstance(self.tokenizer, HuggingFaceModelTokenizer):
             return self.tokenizer.render_template(chat_history)
         raise ValueError(
-            "You can't use a tokenizer without a prompt template. "
+            "You can't use a tokenizer without a prompt template and apply_chat_template: True. "
             "Use HuggingFaceModelTokenizer if you do not require a custom one."
         )
 
