@@ -102,8 +102,6 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         if self.linear_projection is None:
             raise AttributeError("forward called before update_model")
         logits = self.linear_projection(hidden_chunk)  # [num_valid, vocab_size]
-        if isinstance(logits, DTensor) and not self.loss_parallel:
-            logits = logits.full_tensor()
 
         loss = F.cross_entropy(
             logits.float(),
