@@ -279,6 +279,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         try:
             self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self.global_step = ckpt_dict[training.GLOBAL_STEP_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -462,7 +463,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -890,6 +896,33 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._model.train()
         return log_dict
 
+    def save_checkpoint(self, *, epoch: int, consolidate: bool):
+        if self.global_step % self._steps_per_epoch == 0:
+            epoch += 1
+            self.epochs_run += 1
+
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=(
+                self._optimizer
+                if not self._optimizer_in_bwd
+                else self._optim_ckpt_wrapper
+            ),
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+                dataloader_state_dict=self._dataloader.state_dict(),
+                steps_run=self.global_step,
+                total_training_steps=self.total_epochs * self._steps_per_epoch,
+            ),
+            epoch=epoch,
+            single_device=False,
+            consolidate=consolidate,
+            dir_prefix=self.checkpoint_dir_prefix,
+        )
+
     def train(self) -> None:
         """
         The core training loop.
@@ -912,9 +945,26 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
+            inner_step_count = self.global_step % self._steps_per_epoch
+            pbar = tqdm(
+                initial=inner_step_count,
+                total=self._steps_per_epoch,
+                desc=f"{self.epochs_run}|{self.global_step}",
+            )
+
+            # Get iterator for the dataloader
             self._dataloader.sampler.set_epoch(curr_epoch)
-            for idx, batch in enumerate(self._dataloader):
+            dataloader_iter = iter(self._dataloader)
+            batch_count = 0
+
+            # Continue looping until we reach max steps or exhaust the dataset
+            while inner_step_count < self.max_steps_per_epoch:
+                # Try to get the next batch, break if we've reached the end of the dataset
+                try:
+                    batch = next(dataloader_iter)
+                except StopIteration:
+                    break
+
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -948,7 +998,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     current_loss.backward()
 
                 # Optimizer step (if not fused in backward call)
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if (batch_count + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)
@@ -979,6 +1029,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
+
+                    self.global_step += 1
 
                     # If float8 training is enabled, perform a single all-reduce to compute the
                     # scale for all float8 parameters efficiently instead of doing many small
@@ -1027,6 +1079,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # Save checkpoint if specified by user
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(epoch=curr_epoch, consolidate=False)
+
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
@@ -1037,7 +1093,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         self._is_rank_zero
                         and curr_epoch == 0
                         and self.profiler_profile_memory
-                        and idx
+                        and batch_count
                         == self.profiler_wait_steps
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
@@ -1045,10 +1101,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 
-                    # Step profiler
-                    # Note that this is called within gradient accumulation block, hence
-                    # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
+                    batch_count += 1
 
                     # Run validation after gradient update
                     if (
@@ -1058,30 +1112,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         pbar.refresh()
                         self.validate()
 
-                if (
-                    (idx + 1) // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
-
             self.epochs_run += 1
-            self._checkpoint_client.save_checkpoint(
-                model=self._model,
-                optimizer=(
-                    self._optimizer
-                    if not self._optimizer_in_bwd
-                    else self._optim_ckpt_wrapper
-                ),
-                training_progress=TrainingProgress(
-                    seed=self.seed,
-                    epochs_run=self.epochs_run,
-                    total_epochs=self.total_epochs,
-                    max_steps_per_epoch=self.max_steps_per_epoch,
-                    dataloader_state_dict=self._dataloader.state_dict(),
-                ),
-                epoch=curr_epoch,
-            )
 
         self._profiler.stop()
+        self.save_checkpoint(epoch=curr_epoch, consolidate=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
