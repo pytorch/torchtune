@@ -201,6 +201,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self._enable_fp8_training = cfg.get("enable_fp8_training", False)
         self._fp8_recipe_name = cfg.get("fp8_recipe_name", None)
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
         if self._run_val_every_n_steps is not None:
