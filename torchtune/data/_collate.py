@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List, Dict
 
 import torch
 import torch.nn.functional as F
@@ -11,6 +11,32 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
 from torchtune.modules.attention_utils import packed_block_causal_mask
 
+
+def collate_packed(
+    batch: list[dict[str, torch.Tensor]], mask_fn: callable, device: str
+) -> dict[str, torch.Tensor]:
+    """
+    Generic collate function for packed samples from an IterablePackedDataset.
+
+    This function handles tensor stacking and delegates attention mask creation
+    to a provided `mask_fn`.
+    """
+    if not batch:
+        return {}
+
+    # Assumes all samples in the batch have the same keys, which are all tensors.
+    keys_to_stack = batch[0].keys()
+    collated = {
+        key: torch.stack([sample[key] for sample in batch], dim=0)
+        for key in keys_to_stack
+    }
+
+    # Delegate mask creation to the provided specialized function
+    # TODO: investigate the need for device here. Currently we hardcode it in utilities to cuda.
+    # shouldnt we just send to device later?
+    collated["mask"] = mask_fn(collated["document_ids"], device=device)
+
+    return collated
 
 def left_pad_sequence(
     sequences: list[torch.Tensor],
