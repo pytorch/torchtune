@@ -257,6 +257,17 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
                 top_level[key] = value
         return top_level
 
+    def render_template(
+        self, messages: list[dict[str, str]], add_eos: bool = True
+    ) -> str:
+        rendered = self.template.render(
+            messages=messages,
+            add_generation_prompt=add_eos,
+            **self.special_tokens_mapping,  # We assume that the naming is consistent
+            **self.top_level_variables,
+        )
+        return rendered
+
     def tokenize_messages(
         self,
         messages: list[Message],
@@ -273,11 +284,9 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
                 for m in messages[: i + 1]
             ]
 
-            rendered = self.template.render(
-                messages=current_messages,
-                add_generation_prompt=add_eos if i == len(messages) - 1 else False,
-                **self.special_tokens_mapping,  # We assume that the naming is consistent
-                **self.top_level_variables,
+            rendered = self.render_template(
+                current_messages,
+                add_eos=add_eos if i == len(messages) - 1 else False,
             )
 
             current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
