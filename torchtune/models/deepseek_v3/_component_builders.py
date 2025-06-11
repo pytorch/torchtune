@@ -52,8 +52,6 @@ def deepseek_v3(
     norm_eps: float = 1e-5,
 
 ):
-    # if use_yarn:
-    #     raise NotImplementedError("Yarn is not supported yet")
     rope = DeepSeekV3YarnRotaryEmbeddings(
         dim=qk_rope_head_dim,
         max_seq_len=max_seq_len,
@@ -63,8 +61,6 @@ def deepseek_v3(
         beta_fast=beta_fast,
         beta_slow=beta_slow,
     )
-    # def rope(x, input_pos=None):
-    #     return x
     layers = [] 
     for i in range(num_layers):
         q_head_dim = qk_rope_head_dim + qk_nope_head_dim

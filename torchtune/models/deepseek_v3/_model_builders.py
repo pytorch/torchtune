@@ -40,6 +40,4 @@ def deepseek_v3_6B_64e():
         original_max_seq_len=4096,
         beta_fast=32.0,
         beta_slow=1.0,
-        mscale=1.0,
-        mscale_all_dim=1.0,
     )

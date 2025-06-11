@@ -75,3 +75,14 @@ def deepseek_v3_hf_to_tune(state_dict: dict[str, torch.Tensor]) -> dict[str, tor
         new_key = get_mapped_key(key, _FROM_HF)
         converted_state_dict[new_key] = value
     return converted_state_dict
+
+
+def deepseek_v3_tune_to_hf(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    converted_state_dict = {}
+    inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()
+                             }
+    for key, value in state_dict.items():
+        new_key = get_mapped_key(key, inverted_mapping_dict)
+        converted_state_dict[new_key] = value
+        
+    return converted_state_dict
