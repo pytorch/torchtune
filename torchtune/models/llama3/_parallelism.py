@@ -23,9 +23,9 @@ from torchao.float8.float8_tensor_parallel import (
 
 
 def _get_base_llama_tp_training_plan(
-    layerwise_colwise_parallel_cls: type[ParallelStyle] = ColwiseParallel,
-    layerwise_rowwise_parallel_cls: type[ParallelStyle] = RowwiseParallel,
-    layerwise_prepare_module_input_cls: type[ParallelStyle] = PrepareModuleInput,
+    colwise_parallel_cls: type[ParallelStyle] = ColwiseParallel,
+    rowwise_parallel_cls: type[ParallelStyle] = RowwiseParallel,
+    prepare_module_input_cls: type[ParallelStyle] = PrepareModuleInput,
     loss_parallel: bool = False,
 ) -> dict[str, ParallelStyle]:
     """
@@ -41,25 +41,23 @@ def _get_base_llama_tp_training_plan(
             output_layouts=Shard(-1) if loss_parallel else Replicate(),
             use_local_output=not loss_parallel,
         ),
-        "layers.*.attn": layerwise_prepare_module_input_cls(
+        "layers.*.attn": prepare_module_input_cls(
             input_layouts=(Shard(1), Shard(1)),
             desired_input_layouts=(Replicate(), Replicate()),
         ),
-        "layers.*.mlp": layerwise_prepare_module_input_cls(
+        "layers.*.mlp": prepare_module_input_cls(
             input_layouts=(Shard(1),),
             desired_input_layouts=(Replicate(),),
         ),
         "layers.*.sa_norm": SequenceParallel(),
         "layers.*.mlp_norm": SequenceParallel(),
-        "layers.*.attn.q_proj": layerwise_colwise_parallel_cls(),
-        "layers.*.attn.k_proj": layerwise_colwise_parallel_cls(),
-        "layers.*.attn.v_proj": layerwise_colwise_parallel_cls(),
-        "layers.*.attn.output_proj": layerwise_rowwise_parallel_cls(
-            output_layouts=Shard(1)
-        ),
-        "layers.*.mlp.w1": layerwise_colwise_parallel_cls(),
-        "layers.*.mlp.w2": layerwise_rowwise_parallel_cls(output_layouts=Shard(1)),
-        "layers.*.mlp.w3": layerwise_colwise_parallel_cls(),
+        "layers.*.attn.q_proj": colwise_parallel_cls(),
+        "layers.*.attn.k_proj": colwise_parallel_cls(),
+        "layers.*.attn.v_proj": colwise_parallel_cls(),
+        "layers.*.attn.output_proj": rowwise_parallel_cls(output_layouts=Shard(1)),
+        "layers.*.mlp.w1": colwise_parallel_cls(),
+        "layers.*.mlp.w2": rowwise_parallel_cls(output_layouts=Shard(1)),
+        "layers.*.mlp.w3": colwise_parallel_cls(),
     }
 
 
@@ -114,8 +112,8 @@ def fp8_llama_tp_plan(
         dict[str, Any]: The float8-enabled tensor parallel plan for Llama3 model.
     """
     return _get_base_llama_tp_training_plan(
-        layerwise_colwise_parallel_cls=Float8ColwiseParallel,
-        layerwise_rowwise_parallel_cls=Float8RowwiseParallel,
-        layerwise_prepare_module_input_cls=PrepareFloat8ModuleInput,
+        colwise_parallel_cls=Float8ColwiseParallel,
+        rowwise_parallel_cls=Float8RowwiseParallel,
+        prepare_module_input_cls=PrepareFloat8ModuleInput,
         loss_parallel=loss_parallel,
     )
