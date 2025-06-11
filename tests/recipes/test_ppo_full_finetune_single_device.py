@@ -267,9 +267,13 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".bin"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        policy_suffix = ".bin"
+        value_suffix = ".safetensors"
+        policy_model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + policy_suffix
+        )
+        value_model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + value_suffix
         )
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
@@ -277,7 +281,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA3 \
@@ -288,7 +292,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, value_model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -396,9 +400,13 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".bin"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        policy_suffix = ".bin"
+        value_suffix = ".safetensors"
+        policy_model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + policy_suffix
+        )
+        value_model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + value_suffix
         )
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
@@ -406,7 +414,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA3 \
@@ -417,7 +425,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, value_model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
