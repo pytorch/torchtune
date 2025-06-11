@@ -1,15 +1,20 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 import logging
 from abc import ABC, abstractmethod
 from collections import deque
-from functools import partial
-from typing import Any, Dict, Generic, Iterable, Iterator, List, Optional, TypeVar
+from typing import Any, Generic, Iterable, Iterator, Optional, TypeVar
 
 import torch
 from torch.nn.attention.flex_attention import (
     create_block_mask as create_block_mask_flex,
 )
-from torch.utils.data import IterableDataset, Stateful
+from torch.utils.data import IterableDataset
+from torchdata.stateful_dataloader import Stateful
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
@@ -17,15 +22,15 @@ from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 logger = logging.getLogger(__name__)
 
 SampleType = TypeVar("SampleType")
-PackType = Dict[str, torch.Tensor]
+PackType = dict[str, torch.Tensor]
 
 
 class PackingStrategy(ABC, Generic[SampleType]):
+    """
+    Strategy to be used in IterablePackedDataset and with FlexAttention.
+    """
+
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
-        """
-        Initializes a strategy to be used in IterablePackedDataset. All strategies are meant to be used
-        with FlexAttention by leveraging 'mask_mod' to create the attention mask.
-        """
         if not _SUPPORTS_FLEX_ATTENTION:
             raise RuntimeError(
                 "The IterablePackedDataset and its strategies require Flex Attention support, "
@@ -35,9 +40,13 @@ class PackingStrategy(ABC, Generic[SampleType]):
         self.ignore_idx = ignore_idx
 
     @abstractmethod
-    def create_empty_pack(self) -> Dict[str, List[Any]]:
+    def create_empty_pack(self) -> dict[str, list[Any]]:
         """
         Creates an empty pack.
+
+        Returns:
+            dict[str, list[Any]]: An empty dictionary with lists as values.
+
         Example:
             self.create_empty_pack()
             >>> {"tokens": [], "labels": [], "document_ids": [], "input_pos": []}
@@ -48,6 +57,13 @@ class PackingStrategy(ABC, Generic[SampleType]):
     def get_sample_size(self, sample: SampleType) -> int:
         """
         Returns the size of a sample.
+
+        Args:
+            sample (SampleType): The sample to get the size of.
+
+        Returns:
+            int: The size of the sample.
+
         Example:
             # for a sample with 100 tokens
             self.get_sample_size(sample)
@@ -57,13 +73,13 @@ class PackingStrategy(ABC, Generic[SampleType]):
 
     @abstractmethod
     def add_sample_to_pack(
-        self, pack: Dict[str, List[Any]], sample: SampleType, next_doc_id: int
+        self, pack: dict[str, list[Any]], sample: SampleType, next_doc_id: int
     ) -> int:
         """
         Adds a sample to the pack dictionary in-place.
 
         Args:
-            pack (Dict[str, List[Any]]): The dictionary representing the pack, to be modified in-place.
+            pack (dict[str, list[Any]]): The dictionary representing the pack, to be modified in-place.
             sample (SampleType): The sample to add.
             next_doc_id (int): The starting document ID to use for this sample.
 
@@ -86,13 +102,13 @@ class PackingStrategy(ABC, Generic[SampleType]):
 
     @abstractmethod
     def finalize_pack(
-        self, pack: Dict[str, List[Any]], target_tokens_per_pack: int, next_doc_id: int
+        self, pack: dict[str, list[Any]], target_tokens_per_pack: int, next_doc_id: int
     ) -> PackType:
         """
         Finalizes a pack, primarily by padding it to the target length.
 
         Args:
-            pack (Dict[str, List[Any]]): The pack data.
+            pack (dict[str, list[Any]]): The pack data.
             target_tokens_per_pack (int): The target length to pad to.
             next_doc_id (int): The document ID to use for the padding tokens.
 
@@ -133,13 +149,13 @@ class PackingStrategy(ABC, Generic[SampleType]):
         Args:
             b (int): Batch index.
             h (int): Head index.
-            q_idx (Tensor): Query indices.
-            kv_idx (Tensor): Key/value indices.
-            doc_ids (Tensor): The complete document ID tensor for the batch,
+            q_idx (torch.Tensor): Query indices.
+            kv_idx (torch.Tensor): Key/value indices.
+            doc_ids (torch.Tensor): The complete document ID tensor for the batch,
                 of shape (batch_size, seq_len).
 
         Returns:
-            A boolean tensor indicating which query/key pairs are allowed to attend.
+            torch.Tensor: A boolean tensor indicating which query/key pairs are allowed to attend.
         """
         pass
 
@@ -161,6 +177,17 @@ class PackingStrategy(ABC, Generic[SampleType]):
 
 
 class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleType]):
+    """
+    IterablePackedDataset takes any IterableDataset and a PackingStrategy, packs documents until
+    the 'target_tokens_per_pack' is reached and yields a dictionary of tensors.
+
+    Args:
+        dataset (IterableDataset[SampleType]): The IterableDataset to pack.
+        strategy (PackingStrategy[SampleType]): The PackingStrategy to use for packing.
+        target_tokens_per_pack (int): The target number of tokens per pack.
+        buffer_size (int): The size of the buffer to use for packing.
+    """
+
     def __init__(
         self,
         dataset: IterableDataset[SampleType],
@@ -168,16 +195,6 @@ class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleT
         target_tokens_per_pack: int,
         buffer_size: int = 50,
     ):
-        """
-         IterablePackedDataset takes any IterableDataset and a PackingStrategy, packs documents until 
-         the 'target_tokens_per_pack' is reached and yields a dictionary of tensors.
-
-        Args:
-            dataset (IterableDataset[SampleType]): The IterableDataset to pack.
-            strategy (PackingStrategy[SampleType]): The PackingStrategy to use for packing.
-            target_tokens_per_pack (int): The target number of tokens per pack.
-            buffer_size (int): The size of the buffer to use for packing.
-        """
         self.dataset = dataset
         self.strategy = strategy
         self.target_tokens_per_pack = target_tokens_per_pack
@@ -244,7 +261,7 @@ class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleT
 
         Example:
             self._buffer = deque([(sample1, 200), (sample2, 100), (sample3, 48), (sample4, 200)])
-            
+
             # First iteration:
             selected_sample_idx = self._find_next_fitting_sample(remaining_size=150) # returns 1
             del self._buffer[selected_sample_idx]
@@ -343,7 +360,7 @@ class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleT
             elif self._exhausted and not self._buffer:
                 break
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """
         Get the state of the packer. It relies on the input dataset to save the progress of iteration.
         It does NOT save the internal buffer or any partially built pack.
@@ -356,7 +373,7 @@ class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleT
 
         return state
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """
         Load the state of the packer. This restores the state of the underlying dataset.
         The buffer and any partially-built pack are discarded.
@@ -369,7 +386,8 @@ class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleT
         self._reset_packer_state()
         self._resuming = True
 
-class TextPackingStrategy(PackingStrategy[Dict[str, List[int]]]):
+
+class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
     """
     Strategy for packing standard text samples for causal language modeling. It is designed
     to be used with the IterablePackedDataset.
@@ -381,7 +399,7 @@ class TextPackingStrategy(PackingStrategy[Dict[str, List[int]]]):
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
         super().__init__(padding_idx=padding_idx, ignore_idx=ignore_idx)
 
-    def create_empty_pack(self) -> Dict[str, List[int]]:
+    def create_empty_pack(self) -> dict[str, list[int]]:
         return {
             "tokens": [],
             "labels": [],
@@ -389,10 +407,12 @@ class TextPackingStrategy(PackingStrategy[Dict[str, List[int]]]):
             "input_pos": [],
         }
 
-    def get_sample_size(self, sample: Dict[str, List[int]]) -> int:
+    def get_sample_size(self, sample: dict[str, list[int]]) -> int:
         return len(sample["tokens"])
 
-    def add_sample_to_pack(self, pack: Dict[str, List[int]], sample: Dict[str, List[int]], next_doc_id: int) -> int:
+    def add_sample_to_pack(
+        self, pack: dict[str, list[int]], sample: dict[str, list[int]], next_doc_id: int
+    ) -> int:
         seq_len = len(sample["tokens"])
 
         # Append sample data to the pack
@@ -405,7 +425,7 @@ class TextPackingStrategy(PackingStrategy[Dict[str, List[int]]]):
         return 1
 
     def finalize_pack(
-        self, pack: Dict[str, List[int]], target_tokens_per_pack: int, next_doc_id: int
+        self, pack: dict[str, list[int]], target_tokens_per_pack: int, next_doc_id: int
     ) -> PackType:
         current_size = len(pack["tokens"])
         num_padding = target_tokens_per_pack - current_size

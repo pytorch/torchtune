@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Optional, Union, List, Dict
+from typing import Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -37,6 +37,7 @@ def collate_packed(
     collated["mask"] = mask_fn(collated["document_ids"], device=device)
 
     return collated
+
 
 def left_pad_sequence(
     sequences: list[torch.Tensor],

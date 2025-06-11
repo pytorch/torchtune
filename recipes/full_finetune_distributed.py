@@ -20,13 +20,13 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed.tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
+from torch.utils.data import IterableDataset
 from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import collate_packed, padded_collate_packed
-from torchtune.datasets import ConcatDataset, IterablePackedDataset, SFTDataset
+from torchtune.datasets import ConcatDataset, IterablePackedDataset
 from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -45,7 +45,6 @@ from torchtune.training.quantization import (
     convert_to_float8_training,
     is_fp8_tensorwise_scaling,
 )
-from torch.utils.data import IterableDataset
 
 from tqdm import tqdm
 
@@ -808,7 +807,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         sampler = StatefulDistributedSampler(
             ds, num_replicas=self.dp_degree, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
-        
+
         # 2. Set up dataset, sampler and collate function based on packing strategy
         # NOTE: This is a temporary hack to make it work with the new packing strategy
         if cfg_packing_strategy:
@@ -850,7 +849,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         else:  # Fallback for non-packed datasets
 
             final_ds = ds
-            
+
             collate_callable = partial(
                 _get_component_from_path(collate_fn),
                 padding_idx=self._tokenizer.pad_id,

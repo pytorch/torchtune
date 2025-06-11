@@ -12,6 +12,10 @@ from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
 from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
+from torchtune.datasets._iterable_packed import (
+    IterablePackedDataset,
+    TextPackingStrategy,
+)
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
@@ -44,4 +48,6 @@ __all__ = [
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
+    "IterablePackedDataset",
+    "TextPackingStrategy",
 ]
