@@ -26,7 +26,6 @@ def _get_base_llama_tp_training_plan(
     colwise_parallel_cls: type[ParallelStyle] = ColwiseParallel,
     rowwise_parallel_cls: type[ParallelStyle] = RowwiseParallel,
     prepare_module_input_cls: type[ParallelStyle] = PrepareModuleInput,
-    loss_parallel: bool = False,
 ) -> dict[str, ParallelStyle]:
     """
     Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models.
@@ -38,8 +37,7 @@ def _get_base_llama_tp_training_plan(
         "norm": SequenceParallel(),
         "output": ColwiseParallel(
             input_layouts=Shard(1),
-            output_layouts=Shard(-1) if loss_parallel else Replicate(),
-            use_local_output=not loss_parallel,
+            output_layouts=Replicate(),
         ),
         "layers.*.attn": prepare_module_input_cls(
             input_layouts=(Shard(1), Shard(1)),
@@ -75,9 +73,7 @@ def _get_base_llama_tp_inference_plan():
     }
 
 
-def _get_fp8_llama_tp_training_plan(
-    model: nn.Module, *, loss_parallel: bool = False
-) -> dict[str, ParallelStyle]:
+def _get_fp8_llama_tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     """
     Return the tensor parallel plan for Llama3 model that uses float8 for all-gather for both
     rowwise and colwise computation, currently only compatible with float8 fine-tuning with
@@ -85,7 +81,6 @@ def _get_fp8_llama_tp_training_plan(
 
     Args:
         model (nn.Module): Model to generate plan for (no-op)
-        loss_parallel (bool): Whether to use loss parallelism after the output layer
 
     Returns:
         dict[str, Any]: The float8-enabled tensor parallel plan for Llama3 model.
@@ -94,7 +89,6 @@ def _get_fp8_llama_tp_training_plan(
         colwise_parallel_cls=Float8ColwiseParallel,
         rowwise_parallel_cls=Float8RowwiseParallel,
         prepare_module_input_cls=PrepareFloat8ModuleInput,
-        loss_parallel=loss_parallel,
     )
 
 
@@ -102,7 +96,6 @@ def base_llama_tp_plan(
     model: nn.Module,
     *,
     inference: bool = False,
-    loss_parallel: bool = False,
     enable_fp8_training: bool = False,
 ) -> dict[str, ParallelStyle]:
     """
@@ -111,7 +104,6 @@ def base_llama_tp_plan(
     Args:
         model (nn.Module): Model to generate plan for (no-op)
         inference (bool): Whether running inference or not
-        loss_parallel (bool): Whether to use loss parallelism after the output layer
         enable_fp8_training (bool): Whether to enable float8 training.
 
     Returns:
@@ -125,10 +117,10 @@ def base_llama_tp_plan(
             raise ValueError(
                 "FP8 training is not compatible with inference with LLaMA-3"
             )
-        return _get_fp8_llama_tp_training_plan(model, loss_parallel=loss_parallel)
+        return _get_fp8_llama_tp_training_plan(model)
 
     return (
         _get_base_llama_tp_inference_plan()
         if inference
-        else _get_base_llama_tp_training_plan(loss_parallel=loss_parallel)
+        else _get_base_llama_tp_training_plan()
     )

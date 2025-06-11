@@ -7,7 +7,8 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributed.tensor import DTensor
+from torch.distributed.tensor import DTensor, Shard
+from torch.distributed.tensor.parallel import ColwiseParallel
 
 from torchtune.modules.loss.loss_types import SFTLoss
 from torchtune.utils import get_logger
@@ -15,7 +16,7 @@ from torchtune.utils import get_logger
 log = get_logger()
 
 
-class LinearCrossEntropyLoss(nn.Module, SFTLoss):
+class LinearCrossEntropyLoss(SFTLoss, nn.Module):
     """Memory efficient Cross-entropy loss that incrementally computes loss for chunks of tokens
     by masking ignored tokens, calculating logits and then applying cross-entropy loss. Combines
     the linear projection with the cross-entropy calculation for further memory savings.
@@ -34,9 +35,9 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         self,
         num_output_chunks: int = 8,
         ignore_index: int = -100,
-        loss_parallel: bool = False,
+        enable_loss_parallel: bool = False,
     ):
-        super().__init__()
+        super().__init__(enable_loss_parallel=enable_loss_parallel)
         """
         Args:
             num_output_chunks (int): Number of chunks to split the output tensor into. Default is 8.
@@ -45,7 +46,6 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         self.linear_projection = None
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
-        self.loss_parallel = loss_parallel
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
@@ -61,6 +61,26 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         """Modify model output to match the expected input for the loss function."""
         model.skip_output_layer = True
         self.linear_projection = model.output
+
+    def patch_tp_plan(self, tp_plan) -> bool:
+        if self.loss_parallel_enabled:
+            if "output" not in tp_plan:
+                raise KeyError("`tp_plan` requires `output` key")
+
+            tp_plan["output"] = ColwiseParallel(
+                input_layouts=Shard(1),
+                output_layouts=Shard(-1),
+                use_local_output=False,
+            )
+        return tp_plan
+
+    @property
+    def supports_loss_parallel(self) -> bool:
+        return True
+
+    @property
+    def loss_parallel_requires_ctx_manager(self) -> bool:
+        return True
 
     def compute_cross_entropy(
         self,

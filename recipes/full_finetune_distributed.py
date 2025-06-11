@@ -357,6 +357,24 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self._grad_scaler, backend=self._compile_backend
             )
 
+        # initialize loss
+        self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.enable_loss_parallel = (
+                self.parallel_dims.loss_parallel_enabled
+            )
+
+        # Whether to use the ctx manager. If the loss fn has the property, use that. Otherwise, assume it is supported.
+        # Useful if, for example, user opts to use the basic CrossEntropyLoss() instead of an SFTLoss subclass.
+        self.use_loss_parallel_ctx_manager = (
+            self.parallel_dims.loss_parallel_enabled
+            and getattr(
+                self._loss_fn,
+                "use_loss_parallel_ctx_manager",
+                True,
+            )
+        )
+
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -417,11 +435,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-
-        # initialize loss
-        self._loss_fn = config.instantiate(cfg.loss)
-        if hasattr(self._loss_fn, "loss_parallel"):
-            self._loss_fn.loss_parallel = self.parallel_dims.loss_parallel_enabled
 
         if isinstance(self._loss_fn, SFTLoss):
             self._loss_fn.set_model_output(self._model)
@@ -626,9 +639,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self.tp_plan = config.instantiate(
                     self.tp_plan,
                     model=model,
-                    loss_parallel=self.parallel_dims.loss_parallel_enabled,
                     enable_fp8_training=self._enable_fp8_training,
                 )
+                if isinstance(self._loss_fn, SFTLoss):
+                    self.tp_plan = self._loss_fn.patch_tp_plan(self.tp_plan)
+
             parallelize_module(
                 model,
                 self.world_mesh["tp"],
@@ -704,7 +719,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         # remaining context managers for fwd/bwd
         self.train_context = training.get_train_context(
-            enable_loss_parallel=self.parallel_dims.loss_parallel_enabled,
+            enable_loss_parallel=self.use_loss_parallel_ctx_manager,
         )
 
         # Ensure no params and buffers are on meta device
