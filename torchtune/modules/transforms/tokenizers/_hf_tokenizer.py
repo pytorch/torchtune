@@ -262,7 +262,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
     ) -> str:
         rendered = self.template.render(
             messages=messages,
-            add_generation_prompt=add_eos if i == len(messages) - 1 else False,
+            add_generation_prompt=add_eos,
             **self.special_tokens_mapping,  # We assume that the naming is consistent
             **self.top_level_variables,
         )
@@ -284,7 +284,10 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
                 for m in messages[: i + 1]
             ]
 
-            rendered = self.render_template(current_messages, add_eos=add_eos)
+            rendered = self.render_template(
+                current_messages,
+                add_eos=add_eos if i == len(messages) - 1 else False,
+            )
 
             current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
 
