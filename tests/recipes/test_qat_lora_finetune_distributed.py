@@ -214,7 +214,11 @@ class TestQATLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
+<<<<<<< HEAD
     @gpu_test(gpu_count=4)
+=======
+    @gpu_test(gpu_count=2)
+>>>>>>> upstream/main
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, save_adapter_weights_only",
         [
@@ -253,9 +257,15 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
+<<<<<<< HEAD
         tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
+=======
+        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+            --config {config} \
+            batch_size=8 \
+>>>>>>> upstream/main
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
@@ -279,17 +289,31 @@ class TestQATLoRAFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+<<<<<<< HEAD
         shutil.rmtree(tmpdir / "epoch_1")
 
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
+=======
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        cmd_2 = f"""
+        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+            --config {config} \
+            batch_size=8 \
+>>>>>>> upstream/main
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+<<<<<<< HEAD
+=======
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+>>>>>>> upstream/main
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
@@ -310,7 +334,11 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
+<<<<<<< HEAD
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+=======
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+>>>>>>> upstream/main
         )
 
     @pytest.mark.integration_test

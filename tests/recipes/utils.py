@@ -145,6 +145,22 @@ def llama3_test_config_137m() -> list[str]:
     ]
 
 
+def llama3_test_config_138m() -> list[str]:
+    """
+    Test config with slightly larger embed dim to be paged and flex attention friendly
+    """
+    return [
+        "model._component_=torchtune.models.llama3.llama3",
+        "model.vocab_size=128_256",
+        "model.num_layers=2",
+        "model.num_heads=16",
+        "model.embed_dim=512",
+        "model.max_seq_len=1024",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=8",
+    ]
+
+
 def llama3_2_vision_test_config() -> list[str]:
     return [
         "model=tests.recipes.utils.dummy_vision_model",
@@ -235,8 +251,9 @@ def lora_llama3_test_config(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
+    use_dora: bool = False,
 ) -> list[str]:
-    return [
+    config_overrides = [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
         "model._component_=torchtune.models.llama3.lora_llama3",
@@ -254,7 +271,13 @@ def lora_llama3_test_config(
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",
         f"model.quantize_base={quantize_base}",
+        f"model.use_dora={use_dora}",
     ]
+
+    if quantize_base:
+        config_overrides.append("model.scaler_block_size=32")
+
+    return config_overrides
 
 
 def write_hf_ckpt_config(ckpt_dir: Union[str, Path]):
@@ -323,4 +346,21 @@ MODEL_TEST_CONFIGS = {
         lora_rank=8,
         lora_alpha=16,
     ),
+    "llama3_qlora": lora_llama3_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=True,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        quantize_base=True,
+    ),
+    "llama3_dora": lora_llama3_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=False,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        use_dora=True,
+    ),
+    "llama3_hf_138m": llama3_test_config_138m(),
 }

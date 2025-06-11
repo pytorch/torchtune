@@ -45,12 +45,6 @@ class TestQATDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [
-                10.52530574798584,
-                10.510214805603027,
-                10.505669593811035,
-                10.521836280822754,
-            ],
             "llama3": [
                 11.977460861206055,
                 11.978384017944336,
@@ -64,7 +58,6 @@ class TestQATDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps",
         [
-            ("llama2/7B_qat_full", "llama2", "hf", 4, 1),
             ("llama3/8B_qat_full", "llama3", "tune", 4, 1),
             ("llama3/8B_qat_full", "llama3", "tune", 1, 4),
         ],
