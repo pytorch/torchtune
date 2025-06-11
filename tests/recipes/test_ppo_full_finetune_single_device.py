@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import os
 import runpy
 import sys
@@ -32,9 +31,6 @@ from torchtune.training.checkpointing._utils import (
     RECIPE_STATE_DIRNAME,
     SHARD_FNAME,
 )
-
-
-logger = logging.getLogger(__name__)
 
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
@@ -143,8 +139,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-
-        logger.error(f"Loss values: {loss_values}")
 
         expected_loss_values = self._get_expected_loss_values()
         torch.testing.assert_close(
