@@ -16,9 +16,6 @@ from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
     dummy_text_completion_alpaca_dataset_config,
-    # llama2_classifier_test_config,
-    # llama2_test_config,
-    write_hf_ckpt_config,
     write_llama3_hf_ckpt_config,
     MODEL_TEST_CONFIGS
 )
@@ -66,25 +63,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
 
-    # Unfortunately we get different values on different hardware.
-    # This is a hack to allow us to run CI on T4s/A10Gs and still run tests locally
-    def _get_expected_loss_values(self, device_capability):
-        if device_capability == (7, 5):
-            return [
-                1.0030436515808105,
-                0.9150941967964172,
-                0.8794946074485779,
-                1.0626529455184937,
-                0.964613676071167,
-                0.980392575263977,
-                1.0056356191635132,
-                0.9202911853790283,
-                0.8534448146820068,
-                1.045704960823059,
-                0.9574834704399109,
-                0.8822144865989685,
-            ]
-        elif device_capability == (8, 6):
+    # these values are for our current CI machines which use A10s
+    def _get_expected_loss_values(self):
             return [
                 1.1089695692062378,
                 1.0091122388839722,
@@ -99,28 +79,10 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
                 0.976087749004364,
                 0.9090427756309509
             ]
-        elif device_capability == (9, 0):
-            return [
-                1.0266655683517456,
-                0.9376769661903381,
-                0.8898855447769165,
-                1.0626059770584106,
-                0.966614842414856,
-                0.9599114656448364,
-                1.0275567770004272,
-                0.9341378211975098,
-                0.9341893196105957,
-                1.0539714097976685,
-                0.9588900208473206,
-                0.950813889503479,
-            ]
-        else:
-            raise ValueError("Unsupported device")
-
     @pytest.mark.integration_test
     @pytest.mark.skipif(
         not torch.cuda.is_available()
-        or torch.cuda.get_device_capability() not in ((7, 5), (8, 6), (9, 0)),
+        or torch.cuda.get_device_capability() not in ((8, 6)),
         reason="Unexpected device type",
     )
     @gpu_test(gpu_count=1)
@@ -183,9 +145,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         logger.error(f"Loss values: {loss_values}")
 
-        expected_loss_values = self._get_expected_loss_values(
-            torch.cuda.get_device_capability()
-        )
+        expected_loss_values = self._get_expected_loss_values()
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
@@ -222,7 +182,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -352,8 +312,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            
             checkpointer.model_type=LLAMA3 \
+            
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
