@@ -267,7 +267,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
+        suffix = ".bin"
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )
@@ -396,7 +396,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
+        suffix = ".bin"
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )
