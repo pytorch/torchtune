@@ -14,8 +14,8 @@ import pytest
 
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
-    llama2_test_config,
     llama3_2_vision_test_config,
+    llama3_test_config,
     write_hf_ckpt_config,
     write_hf_vision_ckpt_config,
 )
@@ -50,8 +50,8 @@ class TestEleutherEval:
     @pytest.mark.parametrize(
         "eval_name, expected_acc, bsz",
         [
-            ("truthfulqa_gen", 0.1, 4),
-            ("truthfulqa_mc2", 0.4, 4),
+            ("truthfulqa_gen", 0.1818, 4),
+            ("truthfulqa_mc2", 0.3015, 4),
         ],
     )
     @pytest.mark.integration_test
@@ -59,7 +59,7 @@ class TestEleutherEval:
     def test_torchtune_checkpoint_eval_results(
         self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz
     ):
-        ckpt = "llama2_tune"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
@@ -73,8 +73,9 @@ class TestEleutherEval:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             limit=11 \
             dtype=fp32 \
@@ -82,7 +83,7 @@ class TestEleutherEval:
             batch_size={bsz} \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = llama3_test_config()
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -108,7 +109,7 @@ class TestEleutherEval:
     @pytest.mark.usefixtures("hide_correct_version_number")
     @gpu_test(gpu_count=1)
     def test_eval_recipe_errors_without_lm_eval(self, monkeypatch, tmpdir):
-        ckpt = "llama2_tune"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
@@ -120,14 +121,15 @@ class TestEleutherEval:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = llama3_test_config()
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -143,7 +145,7 @@ class TestEleutherEval:
     def test_eval_recipe_errors_with_quantization_hf_checkpointer(
         self, monkeypatch, tmpdir
     ):
-        ckpt = "llama2_hf"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
@@ -158,8 +160,9 @@ class TestEleutherEval:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
@@ -167,7 +170,7 @@ class TestEleutherEval:
             quantizer.groupsize=256 \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = llama3_test_config()
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -181,7 +184,7 @@ class TestEleutherEval:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
     def test_eval_recipe_errors_with_qat_quantizer(self, monkeypatch, tmpdir):
-        ckpt = "llama2_tune"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
@@ -193,8 +196,9 @@ class TestEleutherEval:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
@@ -202,7 +206,7 @@ class TestEleutherEval:
             quantizer.groupsize=32\
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = llama3_test_config()
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)

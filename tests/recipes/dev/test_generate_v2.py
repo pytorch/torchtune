@@ -12,7 +12,7 @@ import pytest
 
 from tests.common import TUNE_PATH
 from tests.recipes.utils import MODEL_TEST_CONFIGS, write_hf_ckpt_config
-from tests.test_utils import CKPT_MODEL_PATHS, mps_ignored_test, TOKENIZER_PATHS
+from tests.test_utils import CKPT_MODEL_PATHS, mps_ignored_test
 
 
 class TestGenerateV2:
@@ -20,10 +20,9 @@ class TestGenerateV2:
 
     @pytest.mark.integration_test
     @mps_ignored_test()
-    def test_llama2_generate_results(self, caplog, monkeypatch, tmpdir):
-        ckpt = "llama2_tune"
+    def test_llama3_generate_results(self, caplog, monkeypatch, tmpdir):
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS["llama2"])
         ckpt_dir = ckpt_path.parent
 
         # Config file needed for model conversion.
@@ -37,15 +36,16 @@ class TestGenerateV2:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            checkpointer.model_type=LLAMA3 \
+            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             device=cpu \
             dtype=fp32 \
             max_new_tokens=10 \
             seed=123 \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2"]
+        model_config = MODEL_TEST_CONFIGS["llama3"]
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -55,15 +55,13 @@ class TestGenerateV2:
         # this is gibberish b/c the model is random weights, but it's
         # the expected value for what we currently have in V2
         # this test should catch any changes to the generate recipe that affect output
-        expected_output = (
-            "restricted chap Пав Frenchisto porqueноello ignor ambientQuery"
-        )
+        expected_output = "janinya.sort ATT_Max opi bruarrivalτυblinkửi"
 
         logs = caplog.text
         assert expected_output in logs
 
     @pytest.mark.integration_test
-    def test_llama2_fail_on_bad_input(self, capsys, monkeypatch, tmpdir):
+    def test_llama3_fail_on_bad_input(self, capsys, monkeypatch, tmpdir):
         """Should fail when user passes in a bad input:
         - No prompt provided
         - Prompt has multiple entries in content and no image
