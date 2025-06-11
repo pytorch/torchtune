@@ -102,7 +102,7 @@ def llama2_test_config() -> list[str]:
 
 
 def llama3_classifier_test_config() -> list[str]:
-    return [ 
+    return [
         "model._component_=torchtune.modules.classifier_model",
         "model.num_classes=1",
         "model.base_model_path=torchtune.models.llama3.llama3",
@@ -113,7 +113,7 @@ def llama3_classifier_test_config() -> list[str]:
         "model.max_seq_len=1024",
         "model.norm_eps=1e-5",
         "model.num_kv_heads=4",
-        "model.intermediate_dim=null"
+        "model.intermediate_dim=null",
     ]
 
 
@@ -268,6 +268,7 @@ def write_hf_ckpt_config(ckpt_dir: Union[str, Path]):
     with config_file.open("w") as f:
         json.dump(config, f)
 
+
 def write_llama3_hf_ckpt_config(ckpt_dir: Union[str, Path]):
     config = {
         "hidden_size": 64,
@@ -277,6 +278,7 @@ def write_llama3_hf_ckpt_config(ckpt_dir: Union[str, Path]):
     config_file = Path.joinpath(Path(ckpt_dir), "config.json")
     with config_file.open("w") as f:
         json.dump(config, f)
+
 
 def write_hf_vision_ckpt_config(ckpt_dir: str):
     config = {

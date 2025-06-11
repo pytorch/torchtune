@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import logging
+import os
 import runpy
 import sys
 from pathlib import Path
@@ -16,8 +16,8 @@ from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
     dummy_text_completion_alpaca_dataset_config,
+    MODEL_TEST_CONFIGS,
     write_llama3_hf_ckpt_config,
-    MODEL_TEST_CONFIGS
 )
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
@@ -65,20 +65,21 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
     # these values are for our current CI machines which use A10s
     def _get_expected_loss_values(self):
-            return [
-                1.1089695692062378,
-                1.0091122388839722,
-                0.9985737800598145,
-                1.076175570487976,
-                0.9825485348701477,
-                0.9362708926200867,
-                1.0785716772079468,
-                0.9799201488494873,
-                0.9865158200263977,
-                1.0669920444488525,
-                0.976087749004364,
-                0.9090427756309509
-            ]
+        return [
+            1.1089695692062378,
+            1.0091122388839722,
+            0.9985737800598145,
+            1.076175570487976,
+            0.9825485348701477,
+            0.9362708926200867,
+            1.0785716772079468,
+            0.9799201488494873,
+            0.9865158200263977,
+            1.0669920444488525,
+            0.976087749004364,
+            0.9090427756309509,
+        ]
+
     @pytest.mark.integration_test
     @pytest.mark.skipif(
         not torch.cuda.is_available()
@@ -230,10 +231,12 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         policy_suffix = ".bin"
         value_suffix = ".safetensors"
         policy_model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + policy_suffix
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + policy_suffix
         )
         value_model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + value_suffix
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + value_suffix
         )
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
@@ -313,7 +316,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA3 \
-            
+
             ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
@@ -363,10 +366,12 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         policy_suffix = ".bin"
         value_suffix = ".safetensors"
         policy_model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + policy_suffix
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + policy_suffix
         )
         value_model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + value_suffix
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + value_suffix
         )
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
