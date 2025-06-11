@@ -886,19 +886,12 @@ def get_context_parallel_manager(
     return context
 
 
-def get_train_context(
-    enable_loss_parallel: bool, enable_compiled_autograd: bool
-) -> Generator[None, None, None]:
+def get_train_context(enable_loss_parallel: bool) -> Generator[None, None, None]:
     @contextlib.contextmanager
     def context(cp_context: Generator[None, None, None] | None = None):
         with contextlib.ExitStack() as stack:
             if enable_loss_parallel:
                 stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
-
-            if enable_compiled_autograd:
-                stack.enter_context(
-                    torch._dynamo.utils.maybe_enable_compiled_autograd(True)
-                )
 
             # because we create a noop ctx manager, this is never None in actual recipes
             # leave condition so this can be used separately

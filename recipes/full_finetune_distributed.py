@@ -341,13 +341,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile_loss = compile_bool
         self._compile_optimizer_step = compile_bool
         self._compile_scale_grads = compile_bool
-        self._compile_autograd = False  # TODO: work out why this isn't working. We leave it parameterisable for debug purposes.
         if isinstance(compile, DictConfig):
             self._compile_model = compile.get("model", True)
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
             self._compile_scale_grads = compile.get("scale_grads", True)
-            self._compile_autograd = compile.get("autograd", False)
         if self._compile_model:
             # Capture scalar outputs is required to compile MoE
             torch._dynamo.config.capture_scalar_outputs = True
@@ -706,7 +704,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # remaining context managers for fwd/bwd
         self.train_context = training.get_train_context(
             enable_loss_parallel=self.parallel_dims.loss_parallel_enabled,
-            enable_compiled_autograd=self._compile_autograd,
         )
 
         # Ensure no params and buffers are on meta device
@@ -1024,6 +1021,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 num_tokens / self.parallel_dims.non_data_parallel_size
                             )
                             / (time_per_step * self.world_size),
+                            "num_tokens": num_tokens,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
