@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+import re
 
 from torchtune.models.convert_weights import get_mapped_key
 
@@ -131,6 +132,48 @@ def qwen3_tune_to_hf(
     return converted_state_dict
 
 
+def get_mapped_key_moe(key: str, mapping_dict: dict[str, str]) -> str:
+    """
+    Maps a key from a model's state dictionary to a new key based on a mapping dictionary.
+
+    This function is designed to handle keys that include layer numbers (e.g., "layer.0.attention").
+    It correctly identifies the *first* number in the key as the layer index,
+    replaces it with a placeholder '{}' to find the generic mapping, and then formats
+    the new key with the original layer number. Other numbers in the key are left unchanged.
+
+    Args:
+        key: The original key from the state dictionary.
+        mapping_dict: A dictionary mapping generic keys (with '{}' as a placeholder
+                      for the layer number) to new generic keys.
+
+    Returns:
+        The newly mapped key.
+
+    Raises:
+        Exception: If the key cannot be found in the mapping dictionary, indicating a
+                   mismatch in model formats.
+    """
+    try:
+        match = re.search(r"\.(\d+)", key)
+
+        if match:
+            layer_num = match.group(1)
+            abstract_key = f"{key[:match.start()]}.{{}}{key[match.end():]}"
+            new_key = mapping_dict[abstract_key].format(layer_num)
+        else:
+            new_key = mapping_dict[key]
+
+    except KeyError as e:
+        raise Exception(
+            f'Error converting the state dict. Found unexpected key: "{key}". '
+            "Please make sure you're loading a checkpoint with the right format."
+        ) from e
+
+    return new_key
+
+
+
+
 def qwen3_moe_hf_to_tune(
     state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
@@ -173,16 +216,18 @@ def qwen3_moe_hf_to_tune(
         if "rotary_emb.inv_freq" in key:  # Skip loading the position embeddings
             continue
         if "experts.0" in key:
-            new_key = get_mapped_key(key, _FROM_HF)
+            new_key = get_mapped_key_moe(key, _FROM_HF)
             converted_state_dict[new_key] = torch.stack(
                 [
-                    state_dict[str(i).join(key.rsplit("0", 1))]
+                    state_dict[str(i).join(key.rsplit("0", 1))].T
                     for i in range(num_experts)
                 ]
             )
         elif "experts" in key:
             continue
         else:
+            #if "input_layernorm.weight" in key:
+            #    print("KEK", key)
             new_key = get_mapped_key(key, _FROM_HF)
             converted_state_dict[new_key] = value
     return converted_state_dict
@@ -221,10 +266,10 @@ def qwen3_moe_tune_to_hf(
         head_dim = dim // num_heads
 
     for key, value in state_dict.items():
-        new_key = get_mapped_key(key, inverted_mapping_dict)
+        new_key = get_mapped_key_moe(key, inverted_mapping_dict)
         if "experts" in key:
             for i, tensor in enumerate(torch.unbind(value)):
-                converted_state_dict[str(i).join(new_key.rsplit("0", 1))] = tensor
+                converted_state_dict[str(i).join(new_key.rsplit("0", 1))] = tensor.T
         else:
             converted_state_dict[new_key] = value
         if QWEN3_TUNE_EMBEDDING_KEY in key and tie_word_embeddings:

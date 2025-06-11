@@ -61,7 +61,7 @@ class TokenChoiceTopKRouter(nn.Module):
 
         # By default, sigmoid is performed in float32 to avoid loss explosion
         if self.softmax:
-            scores = nn.functional.softmax(scores, dim=1, dtype=torch.float32)
+            scores = nn.functional.softmax(scores, dim=1, dtype=torch.float32).to(x.dtype)
         else:
             scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
 
@@ -71,7 +71,7 @@ class TokenChoiceTopKRouter(nn.Module):
         )
         self.selected_experts_indices = selected_experts_indices
         if self.norm_topk_prob:
-            top_scores /= top_scores.sum(dim=-1, keep_dim=True).to(x.dtype)
+            top_scores /= top_scores.sum(dim=-1, keepdim=True).to(x.dtype)
 
         # group tokens together by expert indices from 0 to num_experts and pass that to experts forward
         num_tokens_per_expert = torch.histc(
