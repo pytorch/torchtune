@@ -462,14 +462,23 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader, the max_steps_per_epoch param set by the user and the
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
+
+        # NOTE: Hack to get it running. needs to be properly addressesd.
+        if isinstance(self._dataloader.dataset, IterableDataset):
+            if self.max_steps_per_epoch is None:
+                raise ValueError(
+                    "max_steps_per_epoch must be specified for iterable datasets."
+                )
             self._steps_per_epoch = self.max_steps_per_epoch
+        else:
+            self._steps_per_epoch = (
+                len(self._dataloader) // self._gradient_accumulation_steps
+            )
+            if (
+                self.max_steps_per_epoch is not None
+                and self.max_steps_per_epoch < self._steps_per_epoch
+            ):
+                self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
         # Setup lr scheduler
