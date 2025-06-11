@@ -145,6 +145,22 @@ def llama3_test_config_137m() -> list[str]:
     ]
 
 
+def llama3_test_config_138m() -> list[str]:
+    """
+    Test config with slightly larger embed dim to be paged and flex attention friendly
+    """
+    return [
+        "model._component_=torchtune.models.llama3.llama3",
+        "model.vocab_size=128_256",
+        "model.num_layers=2",
+        "model.num_heads=16",
+        "model.embed_dim=512",
+        "model.max_seq_len=1024",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=8",
+    ]
+
+
 def llama3_2_vision_test_config() -> list[str]:
     return [
         "model=tests.recipes.utils.dummy_vision_model",
@@ -346,4 +362,5 @@ MODEL_TEST_CONFIGS = {
         lora_alpha=16,
         use_dora=True,
     ),
+    "llama3_hf_138m": llama3_test_config_138m(),
 }
