@@ -44,8 +44,6 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         original_max_seq_len: int = 4096,
         beta_fast: float = 32.0,
         beta_slow: float = 1.0,
-        mscale: float = 1.0,
-        mscale_all_dim: float = 0.0,
     ) -> None:
         super().__init__()
         self.dim = dim
@@ -55,8 +53,7 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         self.original_max_seq_len = original_max_seq_len
         self.beta_fast = beta_fast
         self.beta_slow = beta_slow
-        self.mscale = mscale
-        self.mscale_all_dim = mscale_all_dim
+        self.mscale = None
         self.rope_init()
 
     def _yarn_find_correction_dim(
@@ -120,6 +117,11 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
 
+    @property
+    def mscale(self):
+        return self._yarn_get_mscale(self.scaling_factor, self.mscale)
+
+    
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
         seq_idx = torch.arange(
@@ -131,14 +133,14 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
 
         # Calculate magnitude scaling
-        mscale = float(
+        self.mscale = float(
             self._yarn_get_mscale(self.scaling_factor, self.mscale)
             / self._yarn_get_mscale(self.scaling_factor, self.mscale_all_dim)
         )
 
         # cache includes both the cos and sin components and so the output shape is
         # [max_seq_len, dim // 2, 2]
-        cache = torch.stack([idx_theta.cos() * mscale, idx_theta.sin() * mscale], dim=-1)
+        cache = torch.stack([idx_theta.cos() * self.mscale, idx_theta.sin() * self.mscale], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
     def forward(

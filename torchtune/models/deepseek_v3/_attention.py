@@ -43,7 +43,7 @@ class DeepSeekV3Attention(nn.Module):
         self.kv_proj = kv_proj
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
-        self.softmax_scale = self.q_head_dim ** (-0.5)
+        self.softmax_scale = self.q_head_dim ** (-0.5) * self.pos_embeddings.mscale * self.pos_embeddings.mscale
         self.cache_enabled = False
 
         self._attention_call = _sdpa_or_flex_attention()
@@ -91,7 +91,7 @@ class DeepSeekV3Attention(nn.Module):
             is_causal=mask is None,
             scale=self.softmax_scale,
         )
-        
+
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
 

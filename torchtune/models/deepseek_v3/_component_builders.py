@@ -29,6 +29,10 @@ def deepseek_v3(
     num_heads: int,
     max_seq_len: int,
     rope_base: int = 10_000,
+    rope_scaling_factor: Optional[float] = None,
+    original_max_seq_len: Optional[int] = None,
+    beta_fast: Optional[float] = None,
+    beta_slow: Optional[float] = None,
     q_lora_rank: Optional[int] = None,
     qk_rope_head_dim: Optional[int] = None,
     qk_nope_head_dim: Optional[int] = None,
@@ -46,6 +50,7 @@ def deepseek_v3(
     mlp_hidden_dim: Optional[int] = None,
     moe_hidden_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
+
 ):
     # if use_yarn:
     #     raise NotImplementedError("Yarn is not supported yet")
@@ -57,8 +62,6 @@ def deepseek_v3(
         original_max_seq_len=original_max_seq_len,
         beta_fast=beta_fast,
         beta_slow=beta_slow,
-        mscale=mscale,
-        mscale_all_dim=mscale_all_dim,
     )
     # def rope(x, input_pos=None):
     #     return x
