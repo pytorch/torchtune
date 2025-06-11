@@ -627,6 +627,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     self.tp_plan,
                     model=model,
                     loss_parallel=self.parallel_dims.loss_parallel_enabled,
+                    enable_fp8_training=self._enable_fp8_training,
                 )
             parallelize_module(
                 model,

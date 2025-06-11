@@ -75,28 +75,7 @@ def _get_base_llama_tp_inference_plan():
     }
 
 
-def base_llama_tp_plan(
-    model: nn.Module, *, inference: bool = False, loss_parallel: bool = False
-) -> dict[str, ParallelStyle]:
-    """
-    Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
-
-    Args:
-        model (nn.Module): Model to generate plan for (no-op)
-        inference (bool): Whether running inference or not
-        loss_parallel (bool): Whether to use loss parallelism after the output layer
-
-    Returns:
-        dict[str, Any]: The tensor parallel plan for Llama3 model.
-    """
-    return (
-        _get_base_llama_tp_inference_plan()
-        if inference
-        else _get_base_llama_tp_training_plan(loss_parallel=loss_parallel)
-    )
-
-
-def fp8_llama_tp_plan(
+def _get_fp8_llama_tp_training_plan(
     model: nn.Module, *, loss_parallel: bool = False
 ) -> dict[str, ParallelStyle]:
     """
@@ -116,4 +95,40 @@ def fp8_llama_tp_plan(
         rowwise_parallel_cls=Float8RowwiseParallel,
         prepare_module_input_cls=PrepareFloat8ModuleInput,
         loss_parallel=loss_parallel,
+    )
+
+
+def base_llama_tp_plan(
+    model: nn.Module,
+    *,
+    inference: bool = False,
+    loss_parallel: bool = False,
+    enable_fp8_training: bool = False,
+) -> dict[str, ParallelStyle]:
+    """
+    Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
+
+    Args:
+        model (nn.Module): Model to generate plan for (no-op)
+        inference (bool): Whether running inference or not
+        loss_parallel (bool): Whether to use loss parallelism after the output layer
+        enable_fp8_training (bool): Whether to enable float8 training.
+
+    Returns:
+        dict[str, Any]: The tensor parallel plan for Llama3 model.
+
+    Raises:
+        ValueError: if FP8 training is enabled with inference.
+    """
+    if enable_fp8_training:
+        if inference:
+            raise ValueError(
+                "FP8 training is not compatible with inference with LLaMA-3"
+            )
+        return _get_fp8_llama_tp_training_plan(model, loss_parallel=loss_parallel)
+
+    return (
+        _get_base_llama_tp_inference_plan()
+        if inference
+        else _get_base_llama_tp_training_plan(loss_parallel=loss_parallel)
     )
