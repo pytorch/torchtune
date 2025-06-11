@@ -25,8 +25,8 @@ from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import padded_collate_packed
-from torchtune.datasets import ConcatDataset
+from torchtune.data import collate_packed, padded_collate_packed
+from torchtune.datasets import ConcatDataset, IterablePackedDataset, SFTDataset
 from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -45,6 +45,7 @@ from torchtune.training.quantization import (
     convert_to_float8_training,
     is_fp8_tensorwise_scaling,
 )
+from torch.utils.data import IterableDataset
 
 from tqdm import tqdm
 
@@ -428,12 +429,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
+        collate_name = cfg.get("collate_fn", None)
+        if collate_name is None:
+            if cfg.get("packing_strategy") is not None:
+                collate_name = "torchtune.data.collate_packed"
+            else:
+                collate_name = "torchtune.data.padded_collate_sft"
+
         self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
+            cfg_packing_strategy=cfg.get("packing_strategy"),
         )
 
         # Setup validation dataloader if validation dataset is provided
@@ -444,6 +452,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 cfg_dataset=cfg.dataset_val,
                 batch_size=batch_size_val,
                 collate_fn=collate_name,
+                cfg_packing_strategy=cfg.get("packing_strategy"),
                 shuffle=False,
             )
 
@@ -778,6 +787,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
+        cfg_packing_strategy: Optional[DictConfig] = None,
         dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
@@ -785,40 +795,74 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
         it is loaded into the dataloader.
         """
+        # 1. Instantiate the base map-style dataset
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
                 config.instantiate(single_cfg_dataset, self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
-            packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
-            packed = cfg_dataset.get("packed", False)
-
-        # Instantiate collate_fn
-        if "left_pad_sequence" in collate_fn:
-            raise RuntimeError("left_pad_sequence collator is only for inference.")
-        collate_fn = _get_component_from_path(collate_fn)
 
         sampler = StatefulDistributedSampler(
             ds, num_replicas=self.dp_degree, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
+        
+        # 2. Set up dataset, sampler and collate function based on packing strategy
+        # NOTE: This is a temporary hack to make it work with the new packing strategy
+        if cfg_packing_strategy:
+            if self._is_rank_zero:
+                self._logger.info("Using IterablePackedDataset for on-the-fly packing.")
+
+            packing_strategy = config.instantiate(
+                cfg_packing_strategy,
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
+            )
+
+            # Wrapper to make map-style dataset compatible with IterablePackedDataset
+            class _SamplerWrapper(IterableDataset):
+                def __init__(self, data, sampler):
+                    self._data = data
+                    self._sampler = sampler
+
+                def __iter__(self):
+                    for i in self._sampler:
+                        yield self._data[i]
+
+            iterable_ds = _SamplerWrapper(ds, sampler)
+
+            final_ds = IterablePackedDataset(
+                dataset=iterable_ds,
+                strategy=packing_strategy,
+                target_tokens_per_pack=self._tokenizer.max_seq_len,
+            )
+
+            # Sampler must be None for iterable datasets
+            sampler = None
+
+            collate_callable = partial(
+                _get_component_from_path(collate_fn),
+                mask_fn=packing_strategy.create_block_mask,
+                device=self._device,
+            )
+        else:  # Fallback for non-packed datasets
+
+            final_ds = ds
+            
+            collate_callable = partial(
+                _get_component_from_path(collate_fn),
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
+                pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
+            )
+
         dataloader = StatefulDataLoader(
-            dataset=ds,
+            dataset=final_ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=(
-                partial(
-                    collate_fn,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
-                )
-                if not packed
-                else padded_collate_packed
-            ),
-            # dropping last avoids shape issues with compile + flex attention
+            collate_fn=collate_callable,
             drop_last=True,
         )
 
@@ -913,7 +957,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
-            self._dataloader.sampler.set_epoch(curr_epoch)
+            # NOTE: Temporary hack to make it work with the new packing strategy
+            if self._dataloader.sampler is not None:
+                self._dataloader.sampler.set_epoch(curr_epoch)
+            else:
+                self._dataloader.dataset.dataset.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
