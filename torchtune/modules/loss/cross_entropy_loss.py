@@ -99,23 +99,17 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         Raises:
             AttributeError: if called before update_model
         """
-        # Select hidden states and targets where mask is True
-        mask_chunk = target_chunk != self.ignore_index
-        if mask_chunk.sum() == 0:
-            # Unmask 1 token to allow loss to sync with all data parallel workers
-            mask_chunk[0] = True
-
-        target_chunk = target_chunk[mask_chunk]  # [num_valid]
         if isinstance(hidden_chunk, DTensor):
-            # DTensor doesn't support masks so we have to mask locally
-            mesh = hidden_chunk.device_mesh
-            placements = hidden_chunk.placements
-            local_hidden_chunk = hidden_chunk.to_local()[mask_chunk]
-            hidden_chunk = DTensor.from_local(
-                local_hidden_chunk, mesh, placements
-            )  # [num_valid, embed_dim]
-
+            # TODO: work out if masking can still be done after avoiding the Replicate issue
+            pass
         else:
+            # Select hidden states and targets where mask is True
+            mask_chunk = target_chunk != self.ignore_index
+            if mask_chunk.sum() == 0:
+                # Unmask 1 token to allow loss to sync with all data parallel workers
+                mask_chunk[0] = True
+
+            target_chunk = target_chunk[mask_chunk]  # [num_valid]
             hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
 
         # [num_valid, embed_dim] @ [embed_dim, vocab_size]
@@ -151,9 +145,28 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         mask = targets != self.ignore_index
         total_elements = mask.sum()
 
-        # Chunk along sequence dimension
-        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
-        target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
+        if isinstance(outputs, DTensor):
+            original_placements = outputs.placements
+            original_mesh = outputs.device_mesh
+
+            # resharding to a different dim stops the sharding dim from decaying to Replicate during tensor_split
+            outputs = outputs.redistribute(
+                device_mesh=original_mesh, placements=[Shard(-1)] * original_mesh.ndim
+            )
+            # perform the splitting on a different dimension
+            hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
+            target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
+            hidden_chunks = [
+                h.flatten(0, 1).redistribute(
+                    device_mesh=original_mesh, placements=original_placements
+                )  # this last redistribute is to remain consistent with the TP plan, which may cause overhead
+                for h in hidden_chunks
+            ]
+            target_chunks = [t.flatten(0, 1) for t in target_chunks]
+
+        else:
+            hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
+            target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
 
         # Compute cross-entropy loss for the chunks
         total_loss = 0.0
