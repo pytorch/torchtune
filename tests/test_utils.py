@@ -27,17 +27,19 @@ CKPT_MODEL_PATHS = {
     "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
     "llama2_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
     "llama2_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
-    "llama2_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-07122024.pt",
+    "llama3_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-06092025.pt",
     "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
     "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
     "llama3_2_vision_meta": "/tmp/test-artifacts/small-ckpt-meta-vision-10172024.pt",
     "llama3_137M": "/tmp/test-artifacts/llama3-hf-04232025/model.safetensors",
+    "llama3_hf_138m": "/tmp/test-artifacts/llama3-hf-06112025/",  # Includes a config file and the safetensors file
 }
 
 TOKENIZER_PATHS = {
     "llama2": "/tmp/test-artifacts/tokenizer.model",
     "llama3": "/tmp/test-artifacts/tokenizer_llama3.model",
+    "llama3_hf_138m": "/tmp/test-artifacts/tokenizer_llama3.model",
 }
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:

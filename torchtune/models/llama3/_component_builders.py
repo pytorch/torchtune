@@ -174,6 +174,7 @@ def lora_llama3(
     use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
+    scaler_block_size: Optional[int] = None,
 ) -> TransformerDecoder:
     """
     Return a version of Llama3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -210,6 +211,7 @@ def lora_llama3(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
+        scaler_block_size: Optional(int): Block size for quantizing base model parameters.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3 model with LoRA applied to
@@ -235,6 +237,7 @@ def lora_llama3(
             lora_dropout=lora_dropout,
             quantize_base=quantize_base,
             use_dora=use_dora,
+            scaler_block_size=scaler_block_size,
         )
 
         if apply_lora_to_mlp:
@@ -246,6 +249,7 @@ def lora_llama3(
                 quantize_base=quantize_base,
                 lora_dropout=lora_dropout,
                 use_dora=use_dora,
+                scaler_block_size=scaler_block_size,
             )
         else:
             mlp = llama3_mlp(
@@ -309,6 +313,7 @@ def lora_llama3_self_attention(
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
     use_dora: bool = False,
+    scaler_block_size: Optional[int] = None,
 ) -> MultiHeadAttention:
     """
     Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
@@ -335,6 +340,7 @@ def lora_llama3_self_attention(
             LoRA is being applied to. Default is ``False``.
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
+        scaler_block_size (Optional[int]): Block size for quantizing base model parameters.
 
     Returns:
         MultiHeadAttention: instantiation of self-attention module with LoRA
@@ -359,12 +365,18 @@ def lora_llama3_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            scaler_block_size=scaler_block_size,
         )
         if "q_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim,
+                num_heads * head_dim,
+                bias=False,
+                scaler_block_size=scaler_block_size,
+            )
         )
     )
     k_proj = (
@@ -375,12 +387,18 @@ def lora_llama3_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            scaler_block_size=scaler_block_size,
         )
         if "k_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim,
+                num_kv_heads * head_dim,
+                bias=False,
+                scaler_block_size=scaler_block_size,
+            )
         )
     )
     v_proj = (
@@ -391,12 +409,18 @@ def lora_llama3_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            scaler_block_size=scaler_block_size,
         )
         if "v_proj" in lora_modules
         else (
             nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim,
+                num_kv_heads * head_dim,
+                bias=False,
+                scaler_block_size=scaler_block_size,
+            )
         )
     )
     output_proj = (
@@ -407,12 +431,18 @@ def lora_llama3_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            scaler_block_size=scaler_block_size,
         )
         if "output_proj" in lora_modules
         else (
             nn.Linear(embed_dim, embed_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+            else FrozenNF4Linear(
+                embed_dim,
+                embed_dim,
+                bias=False,
+                scaler_block_size=scaler_block_size,
+            )
         )
     )
     rope = RotaryPositionalEmbeddings(
@@ -443,6 +473,7 @@ def lora_llama3_mlp(
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
     use_dora: bool = False,
+    scaler_block_size: Optional[int] = None,
 ) -> FeedForward:
     adapter_cls = DoRALinear if use_dora else LoRALinear
     gate_proj = adapter_cls(
@@ -452,6 +483,7 @@ def lora_llama3_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        scaler_block_size=scaler_block_size,
     )
     down_proj = adapter_cls(
         in_dim=hidden_dim,
@@ -460,6 +492,7 @@ def lora_llama3_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        scaler_block_size=scaler_block_size,
     )
     up_proj = adapter_cls(
         in_dim=dim,
@@ -468,6 +501,7 @@ def lora_llama3_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        scaler_block_size=scaler_block_size,
     )
     return FeedForward(
         gate_proj=gate_proj,

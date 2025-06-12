@@ -32,7 +32,6 @@ model:
   num_kv_heads: 4
   embed_dim: 2048
   max_seq_len: 2048
-  intermediate_dim: 5632
   attn_dropout: 0.0
   norm_eps: 1e-5
 
