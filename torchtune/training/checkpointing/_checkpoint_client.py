@@ -46,6 +46,7 @@ class TrainingProgress:
     steps_run: Optional[int] = None
     total_training_steps: Optional[int] = None
     dataloader_state_dict: Optional[dict[str, Any]] = None
+    val_dataloader_state_dict: Optional[dict[str, Any]] = None
 
     def state_dict(self) -> dict[str, object]:
         return {
@@ -56,6 +57,7 @@ class TrainingProgress:
             "steps_run": self.steps_run,
             "total_training_steps": self.total_training_steps,
             training.DATALOADER_KEY: self.dataloader_state_dict,
+            training.VAL_DATALOADER_KEY: self.val_dataloader_state_dict,
         }
 
 
@@ -369,7 +371,7 @@ class CheckpointClient:
         adapter_only: bool = False,
         single_device: bool = False,
         *,
-        fast_save: Optional[bool] = None,
+        full_tensors: bool = True,
         dir_prefix: str = "epoch",
     ) -> None:
         """
@@ -389,9 +391,8 @@ class CheckpointClient:
             )
         except TypeError:
             intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
-        if fast_save is None:
-            fast_save = intermediate_checkpoint
-        if fast_save and self._enable_async_checkpointing:
+
+        if not full_tensors and self._enable_async_checkpointing:
             self._save_checkpoint_async(
                 model,
                 optimizer,

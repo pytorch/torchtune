@@ -75,6 +75,7 @@ RNG_KEY = "rng_state"
 
 # key used for dataloader state
 DATALOADER_KEY = "dataloader"
+VAL_DATALOADER_KEY = "val_dataloader"
 
 
 class ModelType(Enum):

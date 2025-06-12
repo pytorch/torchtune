@@ -524,7 +524,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataloader.load_state_dict(dataloader_state_dict)
         return dataloader
 
-    def save_checkpoint(self, *, epoch: int, step: int, fast_save: bool) -> None:
+    def save_checkpoint(self, *, epoch: int, step: int, full_tensors: bool) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
@@ -547,7 +547,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             epoch=epoch,
             single_device=True,
-            fast_save=fast_save,
+            full_tensors=full_tensors,
             dir_prefix=self.checkpoint_dir_prefix,
         )
 
@@ -667,7 +667,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # Save checkpoint if specified by user
                     if self.global_step % self.save_every_n_steps == 0:
                         self.save_checkpoint(
-                            epoch=curr_epoch, step=self.global_step, fast_save=True
+                            epoch=curr_epoch, step=self.global_step, full_tensors=False
                         )
 
                     running_loss, num_tokens = 0.0, 0
@@ -692,7 +692,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._profiler.stop()
         # Save final checkpoint
-        self.save_checkpoint(epoch=curr_epoch, step=self.global_step, fast_save=False)
+        self.save_checkpoint(epoch=curr_epoch, step=self.global_step, full_tensors=True)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

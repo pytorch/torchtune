@@ -440,7 +440,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if recipe_checkpoint != "recipe_state.pt":
-            recipe_checkpoint = "recipe_state.pt"
             # I don't want to log warning for None, b/c that's been the default for a long time
             if recipe_checkpoint is not None:
                 logger.warning(
@@ -448,6 +447,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "output_dir / epoch_x (or step_x). If you are trying to resume from a specific checkpoint, then "
                     "you can pass in checkpoint_dir=PATH/epoch_x (or step_x). We will then load PATH/epoch_1/recipe_state.pt"
                 )
+            recipe_checkpoint = "recipe_state.pt"
 
         # Create fsspec filesystem for the checkpoint directory
         self._input_fs, _ = url_to_fs(checkpoint_dir)
@@ -1447,7 +1447,6 @@ class DistributedCheckpointer(_CheckpointerInterface):
                     thread_count=16,
                     single_file_per_rank=False,
                     sync_files=False,
-                    cache_staged_state_dict=True,
                 ),
                 process_group=self._process_group,
             )
