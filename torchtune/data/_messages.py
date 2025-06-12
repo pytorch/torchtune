@@ -52,6 +52,7 @@ class Message:
         masked (bool): whether the message is masked in the sample. If True, do not use
             in loss calculation. Default: False
         ipython (bool): whether the message is a tool call. Default: False
+        tool_calls (Optional[list]): list of tool calls related to this message. Default: None
         eot (bool): whether the message corresponds to the end of a turn, where control is handed over
             to the assistant from the user or the user from the assistant. Default: True. Should be true
             in most cases except for:
@@ -71,12 +72,14 @@ class Message:
         content: Union[str, list[dict[str, Any]]],
         masked: bool = False,
         ipython: bool = False,
+        tool_calls: Optional[list] = None,
         eot: bool = True,
     ):
         self.role = role
         self.content = self._convert_to_list_of_dict(content)
         self.masked = masked
         self.ipython = ipython
+        self.tool_calls = tool_calls
         self.eot = eot
 
         self._validate_message()
