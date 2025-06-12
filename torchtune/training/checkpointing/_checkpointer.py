@@ -531,10 +531,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
 
         if self._enable_dcp:
-            from torch.distributed.checkpoint import _HuggingFaceStorageReader
+            from torch.distributed.checkpoint import HuggingFaceStorageReader
 
             # DCP load using the storage reader
-            hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
+            hf_storage_reader = HuggingFaceStorageReader(path=self._checkpoint_dir)
 
             # TODO: reading the metadata isn't the best way to do this because
             # DCP can change their metadata structure and we've already read in
@@ -808,14 +808,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
             if self._enable_dcp:
-                from torch.distributed.checkpoint import _HuggingFaceStorageWriter
+                from torch.distributed.checkpoint import HuggingFaceStorageWriter
 
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
                 for fqn, filename in self._weight_map.items():
                     index = int(filename.split("-")[1])
                     fqn_to_file_index_mapping[fqn] = index
-                storage_writer = _HuggingFaceStorageWriter(
+                storage_writer = HuggingFaceStorageWriter(
                     path=os.path.join(self._output_dir, f"epoch_{epoch}"),
                     fqn_to_index_mapping=fqn_to_file_index_mapping,
                 )
