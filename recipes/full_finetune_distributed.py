@@ -911,7 +911,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def save_checkpoint(self, *, epoch: int, full_tensors: bool):
         if self.global_step % self._steps_per_epoch == 0:
             epoch += 1
-            self.epochs_run += 1
 
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -922,7 +921,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=self.epochs_run,
+                epochs_run=epoch,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 steps_run=self.global_step,
@@ -975,7 +974,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             batch_count = 0
 
             # Continue looping until we reach max steps or exhaust the dataset
-            while inner_step_count < self.max_steps_per_epoch:
+            while inner_step_count < self._steps_per_epoch:
                 # Try to get the next batch, break if we've reached the end of the dataset
                 try:
                     batch = next(dataloader_iter)
@@ -1128,11 +1127,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     pbar.refresh()
                     self.validate()
 
-                if self._is_rank_zero:
-                    print(self.total_epochs, self.epochs_run, self.global_step)
-
             self.epochs_run += 1
-        print("why would i be here already?")
+
         self._profiler.stop()
         self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
