@@ -165,6 +165,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
+        enable_loss_parallel = cfg.get("enable_loss_parallel", True)
 
         # Set up n-d device mesh
         self.parallel_dims = training.ParallelDims(
@@ -173,6 +174,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             tp=self.tp_degree,
             cp=self.cp_degree,
             world_size=self.world_size,
+            enable_loss_parallel=enable_loss_parallel,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
         if self.parallel_dims.dp_enabled:
@@ -359,6 +361,24 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self._grad_scaler, backend=self._compile_backend
             )
 
+        # initialize loss
+        self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.enable_loss_parallel = (
+                self.parallel_dims.loss_parallel_enabled
+            )
+
+        # Whether to use the ctx manager. If the loss fn has the property, use that. Otherwise, assume it is supported.
+        # Useful if, for example, user opts to use the basic CrossEntropyLoss() instead of an SFTLoss subclass.
+        self.use_loss_parallel_ctx_manager = (
+            self.parallel_dims.loss_parallel_enabled
+            and getattr(
+                self._loss_fn,
+                "use_loss_parallel_ctx_manager",
+                True,
+            )
+        )
+
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -420,8 +440,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
 
-        # initialize loss
-        self._loss_fn = config.instantiate(cfg.loss)
         if isinstance(self._loss_fn, SFTLoss):
             self._loss_fn.set_model_output(self._model)
 
@@ -600,11 +618,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 raise RuntimeError(
                     "Float8 fine-tuning requires PyTorch 2.8.0.dev20250318 or later."
                 )
-            if self.tp_plan is not None:
-                raise ValueError(
-                    "FP8 training does not support tensor parallelism yet. "
-                    "This will be enabled in the near future."
-                )
             if self.cp_degree > 1:
                 raise ValueError(
                     "Context Parallel for fp8 training is not currently supported"
@@ -623,7 +636,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self.tp_plan = config.instantiate(
                     self.tp_plan,
                     model=model,
+                    enable_fp8_training=self._enable_fp8_training,
                 )
+                if isinstance(self._loss_fn, SFTLoss):
+                    self.tp_plan = self._loss_fn.patch_tp_plan(self.tp_plan)
+
             parallelize_module(
                 model,
                 self.world_mesh["tp"],
@@ -671,13 +688,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
-        # Define context manager for context parallelism
-        self.context_parallel_manager = training.get_context_parallel_manager(
-            enabled=self.cp_degree > 1,
-            world_mesh=self.world_mesh,
-            model=model,
-        )
-
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
@@ -697,6 +707,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading, activation_offloading_use_streams
+        )
+        # context parallel
+        self.optional_context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            world_mesh=self.world_mesh,
+            model=model,
+        )
+        # remaining context managers for fwd/bwd
+        self.train_context = training.get_train_context(
+            enable_loss_parallel=self.use_loss_parallel_ctx_manager,
         )
 
         # Ensure no params and buffers are on meta device
@@ -931,9 +951,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ).sum()
                 num_tokens += current_num_tokens
 
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                with self.context_parallel_manager(list(batch.values())):
+                with self.train_context(
+                    self.optional_context_parallel_manager(list(batch.values()))
+                ):
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
                     # For optimizer in backward, we need to normalize before calling backward
