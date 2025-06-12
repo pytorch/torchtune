@@ -18,6 +18,8 @@ from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
 from torchtune.models.clip._transform import CLIPImageTransform
 from torchtune.models.qwen2_5._tokenizer import Qwen2_5Tokenizer
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -243,28 +245,23 @@ class Qwen2_5_VLImageTransform:
 
         return sample
 
-class Qwen2_5_VLTransform:
+class Qwen2_5_VLTransform(ModelTokenizer, Transform):
     """
     Transform for Qwen 2.5 Vision model that handles both text tokenization and image processing.
 
     Args:
-        path (str): Path to the tokenizer model file.
-        tile_size (int): Size of the image tiles.
-        patch_size (int): Size of the patches within each tile.
-        max_num_tiles (int): Only used if possible_resolutions is NOT given.
-            Maximum number of tiles to break an image into.
-            This will be used to generate possible_resolutions,
-            e.g. [(224, 224), (224, 448), (448, 224)] if ``max_num_tiles = 2`` and ``tile_size = 224``.
-            Default 4.
-        pixel_shuffle_scaling_factor (float): scaling factor for pixel shuffle. Default is 0.5. You must ensure this
-            matches the pixel shuffle scaling factor used in the vision projection head if modified from default.
+        path (str): Path to the tokenizer vocab.json file.
+        merges_file (str): Path to the tokenizer merges.txt file.
+        patch_size (int): Size of the patches used in vision processing. Default 14.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Qwen 2.5 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
         image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+            Default None to use OPENAI_CLIP_MEAN.
         image_std (Optional[List[float]]): Standard deviations for each channel, used for normalization.
+            Default None to use OPENAI_CLIP_STD.
         dtype (torch.dtype): Data type of transformed image. Default torch.bfloat16.
         prompt_template (Optional[_TemplateType]): template used to format the messages based on their role.
 
@@ -280,11 +277,9 @@ class Qwen2_5_VLTransform:
     def __init__(
         self,
         path: str,
+        merges_file: str,
         *,
-        tile_size: int,
-        patch_size: int,
-        max_num_tiles: int = 4,
-        pixel_shuffle_scaling_factor: float = 0.5,
+        patch_size: int = 14,
         special_tokens_path: Optional[str] = None,
         max_seq_len: Optional[int] = None,
         image_mean: Optional[List[float]] = None,
@@ -304,17 +299,10 @@ class Qwen2_5_VLTransform:
         )
         self.tokenizer = Qwen2_5Tokenizer(
             path=path,
+            merges_file=merges_file,
             special_tokens=special_tokens,
             max_seq_len=max_seq_len,
             prompt_template=template,
-        )
-        self.thumbnail_transform = v2.Compose(
-            [
-                v2.Resize((tile_size, tile_size)),
-                v2.ToImage(),
-                v2.ToDtype(dtype=dtype, scale=True),
-                v2.Normalize(mean=image_mean, std=image_std, inplace=True),
-            ]
         )
         
         # Initialize the Qwen2.5 VL image transform
@@ -331,48 +319,84 @@ class Qwen2_5_VLTransform:
         self.stop_tokens = self.tokenizer.stop_tokens
         self.special_tokens = self.tokenizer.special_tokens
         self.max_seq_len = max_seq_len
-        self.max_num_tiles = max_num_tiles
-        patch_grid_size = tile_size // patch_size
-        self.patches_per_tile = patch_grid_size**2
-        self.image_seq_len = max_num_tiles * self.patches_per_tile  # No CLS token
-        self.pixel_shuffle_scaling_factor = pixel_shuffle_scaling_factor
-        # Number of patches in each tile in image tensor after accounting for pixel shuffling.
-        self.patch_tokens_per_tile = int(
-            self.patches_per_tile * (self.pixel_shuffle_scaling_factor**2)
-        )
+        self.patch_size = patch_size
         self.prompt_template = prompt_template
         self.pad_id = self.tokenizer.pad_id
 
     @property
     def base_vocab_size(self) -> int:
-        return self.tokenizer.base_vocab_size
+        return len(self.tokenizer.encoder)
 
     @property
     def vocab_size(self) -> int:
-        return self.tokenizer.vocab_size
+        # Total vocab size includes base vocab + special tokens
+        return len(self.tokenizer.encoder) + len(self.tokenizer.special_tokens)
+
+    def encode(
+        self,
+        text: str,
+        add_bos: bool = True,
+        add_eos: bool = True,
+    ) -> List[int]:
+        """
+        Encode a string into a list of token ids.
+
+        Args:
+            text (str): The string to encode.
+            add_bos (bool): Whether to add the tokenizer's bos_id. Default is True.
+            add_eos (bool): Whether to add the tokenizer's eos_id. Default is True.
+
+        Returns:
+            List[int]: The list of token ids.
+        """
+        return self.tokenizer.encode(text=text, add_bos=add_bos, add_eos=add_eos)
+
+    def decode(
+        self,
+        token_ids: List[int],
+        truncate_at_eos: bool = True,
+        skip_special_tokens: bool = True,
+    ) -> str:
+        """
+        Decode a list of token ids into a string.
+
+        Args:
+            token_ids (List[int]): The list of token ids.
+            truncate_at_eos (bool): Whether to truncate the string at the end of
+                sequence token. Default is True.
+            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
+                Default is True.
+
+        Returns:
+            str: The decoded string.
+        """
+        # Handle truncate_at_eos manually since Qwen2_5Tokenizer doesn't support it
+        if truncate_at_eos and self.tokenizer.eos_id in token_ids:
+            eos_index = token_ids.index(self.tokenizer.eos_id)
+            token_ids = token_ids[:eos_index]
+        
+        return self.tokenizer.decode(token_ids, skip_special_tokens=skip_special_tokens)
 
     def transform_image(
         self, image: Image.Image, inference: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Transform an image into tiles for the vision encoder.
+        Transform an image into flattened patches for the vision encoder.
+        This method applies the transformations defined in `Qwen2_5_VLImageTransform`.
 
         Args:
             image (Image.Image): The input image.
-            inference (bool): Whether to run in inference mode. Default is False.
+            inference (bool): Whether to run in inference mode. This is passed to the
+                underlying image transform. Default is False.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: The transformed image tiles and aspect ratio.
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - The transformed image patches as a tensor.
+                - The image grid dimensions (t, h, w) as a tensor.
         """
-        if inference:
-            # For inference, we use the thumbnail transform
-            image_tensor = self.thumbnail_transform(image)
-            return image_tensor.unsqueeze(0), torch.tensor([1, 1])
-        else:
-            # For training, we use the Qwen2.5 VL image transform
-            sample = {"image": image}
-            transformed = self.image_transform(sample)
-            return transformed["pixel_values"], transformed["image_grid_thw"]
+        sample = {"image": image}
+        transformed = self.image_transform(sample, inference=inference)
+        return transformed["pixel_values"], transformed["image_grid_thw"]
 
     def tokenize_message(
         self,
@@ -441,13 +465,10 @@ class Qwen2_5_VLTransform:
             for content in message.content:
                 if content["type"] == "image":
                     image = content["content"]
-                    tiles, ar = self.transform_image(image, inference=inference)
-                    encoder_input["vision"]["images"].append(tiles)
+                    pixel_values, image_grid_thw = self.transform_image(image, inference=inference)
+                    encoder_input["vision"]["images"].append(pixel_values)
 
-                    # Add number of patch tokens, tiles, and aspect ratio to metadata
-                    # so tokenizer can add the corresponding special tokens
-                    content["patch_tokens_per_tile"] = self.patch_tokens_per_tile
-                    content["aspect_ratio"] = ar
+                    content["image_grid_thw"] = image_grid_thw
 
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)

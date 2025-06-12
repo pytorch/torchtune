@@ -1,5 +1,4 @@
 # Notes
-*qwen2_5_vision/context.md
 *qwen2_5_vision/*test*
 
 # Derived from basic .gitignore template for python projects:
@@ -191,3 +190,11 @@ cover/
 
 # wandb
 wandb/
+
+# Ignore all test files and markdown documentation in qwen2_5_vision
+qwen2_5_vision/test.py
+qwen2_5_vision/test_full_transform.py
+qwen2_5_vision/test_integration.py
+qwen2_5_vision/test_end_to_end.py
+qwen2_5_vision/test_edge_cases.py
+qwen2_5_vision/*.md
