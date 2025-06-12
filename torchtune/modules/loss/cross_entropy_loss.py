@@ -105,20 +105,17 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         Raises:
             AttributeError: if called before update_model
         """
-        # target_chunk = target_chunk.flatten(0, 1)
-        # hidden_chunk = hidden_chunk.flatten(0, 1)
         mask_chunk = target_chunk != self.ignore_index
         if mask_chunk.sum() == 0:
             # Unmask 1 token to allow loss to sync with all data parallel workers
             mask_chunk[0] = True
-        target_chunk = target_chunk[mask_chunk]
 
+        target_chunk = target_chunk[mask_chunk]  # [num_valid]
         if isinstance(hidden_chunk, DTensor):
             local_hidden_chunk = hidden_chunk.to_local()[mask_chunk]
             hidden_chunk = DTensor.from_local(
                 local_hidden_chunk, original_mesh, original_placements
             )  # [num_valid, embed_dim]
-
         else:
             hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
 
