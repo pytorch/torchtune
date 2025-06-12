@@ -49,3 +49,4 @@ create_block_causal_mask(document_ids)
 7) **Logging**: Since we cannot do len(iterable_dataset), we need to add proper logging/metadata to assist users in understanding how far along they are on each dataset and metrics regarding the samples (avg num tokens, avg num samples / pack, etc.)
 8) **Packing-aware Loss**: For SFT, the same loss works for map-style and packing. This is not the case for DPO/GRPO, which would need different masking. Future work will have to handle how to associate packing with a loss that supports it.
 9) **Packing-aware metrics**: Advanced metrics, such as logprob per sample, would require to be aware of packing;
+10) **tokenization**: For advanced packing, e.g. shared prompts in GRPO/DPO, we will need extra metadata from upstream datasets, e.g. prompt len.
