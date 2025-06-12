@@ -75,6 +75,7 @@ RNG_KEY = "rng_state"
 
 # key used for dataloader state
 DATALOADER_KEY = "dataloader"
+VAL_DATALOADER_KEY = "val_dataloader"
 
 
 class ModelType(Enum):
@@ -430,15 +431,17 @@ def copy_files(
 
 def get_recipe_checkpoint_path(
     output_dir: Union[str, Path],
+    checkpoint_dir: Union[str, Path],
     recipe_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
 ) -> Optional[str]:
     """
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
+    If recipe_checkpoint is None, look for recipe_state.pt in {checkpoint_dir/recipe_state.pt}.
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
 
     Args:
-        output_dir (Union[str, Path]): Directory containing the recipe checkpoint.
+        output_dir (Union[str, Path]): Directory containing the directory that has the recipe checkpoint.
+        checkpoint_dir (Union[str, Path]): Directory containing the recipe checkpoint.
         recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
         should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.
     Returns:
@@ -453,9 +456,7 @@ def get_recipe_checkpoint_path(
     if recipe_checkpoint:
         recipe_checkpoint_path = os.path.join(output_dir, recipe_checkpoint)
     else:
-        recipe_checkpoint_path = os.path.join(
-            output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
-        )
+        recipe_checkpoint_path = os.path.join(checkpoint_dir, "recipe_state.pt")
 
     fs, _ = url_to_fs(recipe_checkpoint_path)
 
@@ -718,3 +719,34 @@ def prune_surplus_checkpoints(
         shutil.rmtree(checkpoint)
 
     return
+
+
+def get_most_recent_checkpoint(dir: Path) -> Optional[Path]:
+    """
+    Return the most recent checkpoint in the given directory.
+    The function assumes that the checkpoint files are named in the format "epoch_{epoch_number}" or "step_{step_number}".
+    The function will return None if no checkpoint files are found in the directory.
+
+    Args:
+        dir (Path): The directory containing the checkpoints.
+
+    Returns:
+        Optional[Path]: The path to the most recent checkpoint, or None if no checkpoints are found.
+    """
+    # First, check for epochs
+    checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^epoch_(\d+)")
+
+    # If no epochs found, check for steps
+    if not checkpoints:
+        checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^step_(\d+)")
+
+    # If no steps found, return None
+    if not checkpoints:
+        return None
+
+    # Finally, loop through checkpoints and return the most recent (non-empty) one
+    checkpoints.sort(key=lambda x: int(x.name.split("_")[-1]))
+    while checkpoints:
+        ckpt = checkpoints.pop()
+        if any(ckpt.iterdir()):
+            return ckpt

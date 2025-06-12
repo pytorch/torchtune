@@ -59,6 +59,7 @@ from torchtune.training.checkpointing import (
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
+    VAL_DATALOADER_KEY,
 )
 from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup, get_lr
 from torchtune.training.memory import (
@@ -104,6 +105,7 @@ __all__ = [
     "SEED_KEY",
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
+    "VAL_DATALOADER_KEY",
     "get_quantizer_mode",
     "get_cosine_schedule_with_warmup",
     "get_distributed_backend",

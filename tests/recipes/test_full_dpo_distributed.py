@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -185,6 +186,8 @@ class TestFullDPODistributedRecipe:
 
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
+
+        shutil.rmtree(tmpdir / "epoch_1")
 
         # Resume training
         cmd_2 = f"""
