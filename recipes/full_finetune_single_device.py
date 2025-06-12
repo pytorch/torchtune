@@ -272,8 +272,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
-        self.optimizer = self._setup_optimizer(
-            cfg_optimizer=cfg.optimizer,
+        self.optimizer, self.muon = self._setup_optimizer(
+            cfg=cfg,
             opt_state_dict=(
                 ckpt_dict[training.OPT_KEY] if training.OPT_KEY in ckpt_dict else None
             ),
@@ -424,7 +424,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return model
 
-    def _setup_optimizer(
+# TODO: Remove this function
+    def _setup_optimizer_delete(
         self,
         cfg_optimizer: DictConfig,
         opt_state_dict: Optional[dict[str, Any]] = None,
@@ -444,6 +445,66 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             optimizer.load_state_dict(opt_state_dict)
         self._logger.info("Optimizer is initialized.")
         return optimizer
+    
+    def _setup_optimizer(self, cfg, opt_state_dict: Optional[dict[str, Any]] = None,) -> Optimizer:
+        cfg_optimizer = cfg.optimizer
+        muon_enabled = cfg.muon.pop("enabled")
+        cfg_muon = cfg.muon
+
+        if muon_enabled:
+            if self.optimizer_in_bwd:
+                # TODO: Modify optimizer_in_bwd for muon
+                pass
+            else:
+                muon_params = []
+                non_muon_params = []
+
+                for name, module in self._model.named_modules():
+                    for param_name, param in module.named_parameters(recurse=False):
+                        full_name = f"{name}.{param_name}" if name else param_name
+
+                        if not param.requires_grad:
+                            continue
+
+                        # Skip if embedding
+                        if isinstance(module, nn.Embedding) or "embed" in full_name.lower():
+                            non_muon_params.append(param)
+                        # Skip if scalar (ndim < 2)
+                        elif param.ndim < 2:
+                            non_muon_params.append(param)
+                        # Skip known head layers
+                        elif "lm_head" in full_name.lower():
+                            non_muon_params.append(param)
+                        else:
+                            muon_params.append(param)
+                
+                optimizer = config.instantiate(
+                    cfg_optimizer, params=non_muon_params
+                )
+                muon = config.instantiate(
+                    cfg_muon, params=muon_params
+                )
+            if opt_state_dict:
+                optimizer.load_state_dict(opt_state_dict)
+            self._logger.info("Optimizer is initialized.")
+            return optimizer, muon
+
+        else:
+            if self.optimizer_in_bwd:
+                optimizer_cls = _get_component_from_path(cfg_optimizer.pop("_component_"))
+                optimizer = OptimizerInBackward(
+                    params=self._model.parameters(),
+                    optimizer_cls=optimizer_cls,
+                    **cfg_optimizer,
+                )
+            else:
+                optimizer = config.instantiate(
+                    cfg_optimizer, params=self._model.parameters()
+                )
+            if opt_state_dict:
+                optimizer.load_state_dict(opt_state_dict)
+            self._logger.info("Optimizer is initialized.")
+            return optimizer, None
 
     def _setup_lr_scheduler(
         self,
@@ -555,6 +616,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def train(self) -> None:
         self.optimizer.zero_grad()
+        if self.muon:
+            self.muon.zero_grad()
         t0 = time.perf_counter()
         running_loss, num_tokens = 0.0, 0
         self._profiler.start()
@@ -599,11 +662,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # This will be a no-op for optim in bwd, but prevents a warning w/ LR Scheduler
                     self.optimizer.step()
                     self.optimizer.zero_grad(set_to_none=True)
+                    if self.muon:
+                        self.muon.step()
+                        self.muon.zero_grad(set_to_none=True)
 
                     if self.lr_scheduler is not None:
                         self.lr_scheduler.step()
 
                     self.global_step += 1
+                    print(f"running_loss: {running_loss} ; num_tokens: {num_tokens}")
                     loss_value = (
                         running_loss
                         / (num_tokens if not self.optimizer_in_bwd else 1.0)
