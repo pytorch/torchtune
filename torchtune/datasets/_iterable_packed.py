@@ -88,7 +88,7 @@ class PackingStrategy(ABC, Generic[SampleType]):
 
         Example:
             pack = {"tokens": [1, 2], "labels": [3, 4], "document_ids": [0, 0], "input_pos": [0, 1]}
-            sample = {"tokens": [5, 6], "labels": [7, 8], "document_ids": [1, 1], "input_pos": [0, 1]}
+            sample = {"tokens": [5, 6], "labels": [7, 8]}
             added_docs = self.add_sample_to_pack(pack, sample, next_doc_id=1)
             print(pack)
             >>> {"tokens": [1, 2, 5, 6],
@@ -458,3 +458,140 @@ class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
         causal_mask = q_idx >= kv_idx
         document_mask = doc_ids[b, q_idx] == doc_ids[b, kv_idx]
         return causal_mask & document_mask
+
+
+
+# NOTE: For demonstration purposes only.
+
+class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
+    """
+    Strategy for packing DPO samples with a shared prompt. It packs a DPO
+    sample as three logical documents: a shared prompt, a chosen response,
+    and a rejected response. This structure is encoded in the `document_ids`
+    metadata, allowing the strategy to build the correct attention pattern
+    (e.g., both responses can attend to the prompt, but not to each other).
+
+    ASSUMPTION: The input DPO sample dict contains pre-tokenized:
+    - "prompt_ids"
+    - "chosen_response_only_ids"
+    - "chosen_response_only_labels"
+    - "rejected_response_only_ids"
+    - "rejected_response_only_labels"
+    """
+
+    def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
+        super().__init__(padding_idx=padding_idx, ignore_idx=ignore_idx)
+
+    def create_empty_pack(self) -> dict[str, list[int]]:
+        return {
+            "tokens": [],
+            "labels": [],
+            "document_ids": [],
+            "input_pos": [],
+            "chosen_response_mask": [],
+            "rejected_response_mask": [],
+        }
+
+    def get_sample_size(self, sample: dict[str, list[int]]) -> int:
+        # The total size of one DPO sample is the shared prompt + both responses.
+        return (
+            len(sample["prompt_ids"])
+            + len(sample["chosen_response_only_ids"])
+            + len(sample["rejected_response_only_ids"])
+        )
+
+    def add_sample_to_pack(
+        self, pack: dict[str, list[int]], sample: dict[str, list[int]], next_doc_id: int
+    ) -> int:
+        # Assign a unique doc ID triplet for (prompt, chosen, rejected)
+        prompt_doc_id = next_doc_id
+        chosen_doc_id = next_doc_id + 1
+        rejected_doc_id = next_doc_id + 2
+
+        prompt_ids = sample["prompt_ids"]
+        chosen_ids = sample["chosen_response_only_ids"]
+        rejected_ids = sample["rejected_response_only_ids"]
+
+        # Input positions restart from 0 for each new DPO sample in the pack
+        total_len = len(prompt_ids) + len(chosen_ids) + len(rejected_ids)
+        pack["input_pos"].extend(range(total_len))
+
+        # 1. Add Shared Prompt data
+        pack["tokens"].extend(prompt_ids)
+        pack["labels"].extend([self.ignore_idx] * len(prompt_ids))
+        pack["document_ids"].extend([prompt_doc_id] * len(prompt_ids))
+        pack["chosen_response_mask"].extend([False] * len(prompt_ids))
+        pack["rejected_response_mask"].extend([False] * len(prompt_ids))
+
+        # 2. Add Chosen Response data
+        pack["tokens"].extend(chosen_ids)
+        pack["labels"].extend(sample["chosen_response_only_labels"])
+        pack["document_ids"].extend([chosen_doc_id] * len(chosen_ids))
+        pack["chosen_response_mask"].extend([True] * len(chosen_ids))
+        pack["rejected_response_mask"].extend([False] * len(chosen_ids))
+
+        # 3. Add Rejected Response data
+        pack["tokens"].extend(rejected_ids)
+        pack["labels"].extend(sample["rejected_response_only_labels"])
+        pack["document_ids"].extend([rejected_doc_id] * len(rejected_ids))
+        pack["chosen_response_mask"].extend([False] * len(rejected_ids))
+        pack["rejected_response_mask"].extend([True] * len(rejected_ids))
+
+        # Advance the document ID counter by 3 for the next DPO sample.
+        return 3
+
+    def finalize_pack(
+        self, pack: dict[str, list[int]], target_tokens_per_pack: int, next_doc_id: int
+    ) -> dict[str, torch.Tensor]:
+        current_size = len(pack["tokens"])
+        num_padding = target_tokens_per_pack - current_size
+
+        if num_padding > 0:
+            pack["tokens"].extend([self.padding_idx] * num_padding)
+            pack["labels"].extend([self.ignore_idx] * num_padding)
+            pack["input_pos"].extend([0] * num_padding)
+            pack["chosen_response_mask"].extend([False] * num_padding)
+            pack["rejected_response_mask"].extend([False] * num_padding)
+            pack["document_ids"].extend([next_doc_id] * num_padding)
+
+        return {
+            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
+            "labels": torch.tensor(pack["labels"], dtype=torch.long),
+            "document_ids": torch.tensor(pack["document_ids"], dtype=torch.long),
+            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+            "chosen_response_mask": torch.tensor(
+                pack["chosen_response_mask"], dtype=torch.bool
+            ),
+            "rejected_response_mask": torch.tensor(
+                pack["rejected_response_mask"], dtype=torch.bool
+            ),
+        }
+
+    def _mask_mod(
+        self,
+        b: int,
+        h: int,
+        q_idx: torch.Tensor,
+        kv_idx: torch.Tensor,
+        doc_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Mask logic for DPO.
+        - Causal self-attention within the same document.
+        - Cross-attention from response tokens (chosen/rejected) to their
+          corresponding prompt tokens.
+        """
+        q_doc = doc_ids[b, q_idx]
+        kv_doc = doc_ids[b, kv_idx]
+
+        # 1. Document-level Causal self-attention
+        is_same_doc = q_doc == kv_doc
+        self_attention_mask = is_same_doc & (q_idx >= kv_idx)
+
+        # 2. Cross-attention from response to prompt
+        q_prompt_doc_id = (q_doc // 3) * 3
+        kv_is_part_of_q_prompt = kv_doc == q_prompt_doc_id
+        q_is_response = (q_doc % 3) > 0
+        cross_attention_mask = q_is_response & kv_is_part_of_q_prompt
+
+        return self_attention_mask | cross_attention_mask

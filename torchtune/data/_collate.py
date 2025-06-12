@@ -26,10 +26,13 @@ def collate_packed(
 
     # Assumes all samples in the batch have the same keys, which are all tensors.
     keys_to_stack = batch[0].keys()
-    collated = {
-        key: torch.stack([sample[key] for sample in batch], dim=0)
-        for key in keys_to_stack
-    }
+    collated = {}
+    for key in keys_to_stack:
+        if isinstance(batch[0][key], torch.Tensor):
+            collated[key] = torch.stack([sample[key] for sample in batch], dim=0)
+        else:
+            # TODO: Remove? i dont see a situation where it would not be a tensor.
+            collated[key] = [sample[key] for sample in batch]
 
     # Delegate mask creation to the provided specialized function
     # TODO: investigate the need for device here. Currently we hardcode it in utilities to cuda.
