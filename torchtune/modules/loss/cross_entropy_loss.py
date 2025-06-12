@@ -7,7 +7,8 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributed.tensor import DTensor, Shard
+from torch.distributed.device_mesh import DeviceMesh
+from torch.distributed.tensor import DTensor, Placement, Shard
 from torch.distributed.tensor.parallel import ColwiseParallel
 
 from torchtune.modules.loss.loss_types import SFTLoss
@@ -86,12 +87,17 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         self,
         hidden_chunk: torch.Tensor,
         target_chunk: torch.Tensor,
+        *,
+        original_mesh: DeviceMesh | None = None,
+        original_placements: list[Placement] | None = None,
     ) -> torch.Tensor:
         """Computes cross-entropy by masking tokens, calculating logits and then applying cross-entropy loss.
 
         Args:
             hidden_chunk (torch.Tensor): [batch_size, chunk_size, embed_dim]
             target_chunk (torch.Tensor): [batch_size, chunk_size]
+            original_mesh (DeviceMesh | None): Device mesh of the original tensor if distributed
+            original_placements (list[Placement] | None): Placements of the original tensor if distributed
 
         Returns:
             torch.Tensor: Sum of cross-entropy loss for non-ignored tokens in the chunk
@@ -99,17 +105,21 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         Raises:
             AttributeError: if called before update_model
         """
-        if isinstance(hidden_chunk, DTensor):
-            # TODO: work out if masking can still be done after avoiding the Replicate issue
-            pass
-        else:
-            # Select hidden states and targets where mask is True
-            mask_chunk = target_chunk != self.ignore_index
-            if mask_chunk.sum() == 0:
-                # Unmask 1 token to allow loss to sync with all data parallel workers
-                mask_chunk[0] = True
+        # target_chunk = target_chunk.flatten(0, 1)
+        # hidden_chunk = hidden_chunk.flatten(0, 1)
+        mask_chunk = target_chunk != self.ignore_index
+        if mask_chunk.sum() == 0:
+            # Unmask 1 token to allow loss to sync with all data parallel workers
+            mask_chunk[0] = True
+        target_chunk = target_chunk[mask_chunk]
 
-            target_chunk = target_chunk[mask_chunk]  # [num_valid]
+        if isinstance(hidden_chunk, DTensor):
+            local_hidden_chunk = hidden_chunk.to_local()[mask_chunk]
+            hidden_chunk = DTensor.from_local(
+                local_hidden_chunk, original_mesh, original_placements
+            )  # [num_valid, embed_dim]
+
+        else:
             hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
 
         # [num_valid, embed_dim] @ [embed_dim, vocab_size]
@@ -145,28 +155,20 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         mask = targets != self.ignore_index
         total_elements = mask.sum()
 
+        original_mesh = None
+        original_placements = None
         if isinstance(outputs, DTensor):
             original_placements = outputs.placements
             original_mesh = outputs.device_mesh
 
-            # resharding to a different dim stops the sharding dim from decaying to Replicate during tensor_split
+            # resharding on the feature dim stops the sharding dim (currently sequence) from
+            # decaying to Replicate during tensor_split
             outputs = outputs.redistribute(
                 device_mesh=original_mesh, placements=[Shard(-1)] * original_mesh.ndim
             )
-            # perform the splitting on a different dimension
-            hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
-            target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
-            hidden_chunks = [
-                h.flatten(0, 1).redistribute(
-                    device_mesh=original_mesh, placements=original_placements
-                )  # this last redistribute is to remain consistent with the TP plan, which may cause overhead
-                for h in hidden_chunks
-            ]
-            target_chunks = [t.flatten(0, 1) for t in target_chunks]
 
-        else:
-            hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
-            target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
+        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
+        target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
 
         # Compute cross-entropy loss for the chunks
         total_loss = 0.0
@@ -174,6 +176,8 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
             total_loss += self.compute_cross_entropy(
                 hidden_chunks[idx],
                 target_chunks[idx],
+                original_mesh=original_mesh,
+                original_placements=original_placements,
             )
 
         if total_elements == 0:
