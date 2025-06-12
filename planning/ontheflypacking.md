@@ -30,14 +30,14 @@ create_block_causal_mask(document_ids)
 0) Make packing a first-class citizen in TorchTune, available for all sorts of models and recipes.
 
 ###  Context:
-1) We currently have map-style packing. We pre-process the entire dataset before training starts, which is not scalable.
+1) We currently have map-style packing. We pre-process the dataset before training, which is not scalable.
 2) Packing is only present for SFT + text data. There is no contract for how to extend it to multimodal, DPO, etc.
 3) Collate function has to be aware of packing logic. This is currently hardcoded in the recipe with if/else.
 
 ### Solution:
 4) Implement a new on-the-fly packing that takes any iterable dataset as input;
 5) Packing contract consists of
-    i) a `PackingStrategy` that defines how a) to pack and b) the **_mask_mod** used for flex attention;
+    i) a `PackingStrategy` that defines a) how to pack and b) the **_mask_mod** used for flex attention;
     ii) a `IterablePackedDataset` that takes any a) `PackingStrategy`, b) **iterable dataset** as input and yields packed samples;
     iii) a `packed_collate_fn` that takes the batch of packed samples and a **mask_fn** (e.g. `strategy.create_block_mask`) to generate the attention mask on the fly.
    To define a new packing strategy, the user only needs to implement the `PackingStrategy` class.
