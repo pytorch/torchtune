@@ -33,7 +33,13 @@ from ._model_builders import (
     qwen3_tokenizer,
 )
 
+from ._component_builders import qwen3_moe
+
+from ._parallelism import tp_plan
+
 __all__ = [
+    "tp_plan",
+    "qwen3_moe",
     "lora_qwen3_0_6b_base",
     "lora_qwen3_0_6b_instruct",
     "lora_qwen3_1_7b_base",
