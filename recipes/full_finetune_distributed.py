@@ -1037,7 +1037,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 num_tokens / self.parallel_dims.non_data_parallel_size
                             )
                             / (time_per_step * self.world_size),
-                            "num_tokens": num_tokens,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
