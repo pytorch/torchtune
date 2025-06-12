@@ -120,6 +120,8 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
             - Model-specific templates that are required whenever the model is prompted, such as the [INST]
               tags in Llama2 and in Mistral
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
@@ -136,6 +138,7 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
         special_tokens: Optional[dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplateInterface] = None,
+        truncation_type: str = "right",
     ):
         self.special_tokens = (
             special_tokens if special_tokens is not None else LLAMA4_SPECIAL_TOKENS
@@ -187,6 +190,8 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
         self._special_token_header_regex = re.compile(
             r"<\|header_start\|>.*?<\|header_end\|>\n\n"
         )
+
+        self.truncation_type = truncation_type
 
     def _validate_special_tokens(
         self,
@@ -420,9 +425,17 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
 
         if self.max_seq_len:
             tokens = truncate(
-                tokens, self.max_seq_len, self.eos_id if add_end_tokens else None
+                tokens=tokens,
+                max_seq_len=self.max_seq_len,
+                eos_id=self.eos_id if add_end_tokens else None,
+                truncation_type=self.truncation_type,
             )
-            mask = truncate(mask, self.max_seq_len, True if add_end_tokens else None)
+            mask = truncate(
+                tokens=mask,
+                max_seq_len=self.max_seq_len,
+                eos_id=True if add_end_tokens else None,
+                truncation_type=self.truncation_type,
+            )
 
         return tokens, mask
 
