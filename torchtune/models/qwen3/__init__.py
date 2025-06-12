@@ -27,10 +27,19 @@ from ._model_builders import (
     qwen3_4b_instruct,
     qwen3_8b_base,
     qwen3_8b_instruct,
+    qwen3_moe_235b_a22b,
+    qwen3_moe_30b_a3b_base,
+    qwen3_moe_30b_a3b_instruct,
     qwen3_tokenizer,
 )
 
+from ._component_builders import qwen3_moe
+
+from ._parallelism import tp_plan
+
 __all__ = [
+    "tp_plan",
+    "qwen3_moe",
     "lora_qwen3_0_6b_base",
     "lora_qwen3_0_6b_instruct",
     "lora_qwen3_1_7b_base",
@@ -53,5 +62,8 @@ __all__ = [
     "qwen3_14b_base",
     "qwen3_14b_instruct",
     "qwen3_32b",
+    "qwen3_moe_30b_a3b_base",
+    "qwen3_moe_30b_a3b_instruct",
+    "qwen3_moe_235b_a22b",
     "qwen3_tokenizer",
 ]
