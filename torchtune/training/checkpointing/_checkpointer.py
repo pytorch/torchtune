@@ -536,15 +536,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # DCP load using the storage reader
             hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
 
-            state_dict = _load_state_dict_from_keys(storage_reader=hf_storage_reader)
             # TODO: reading the metadata isn't the best way to do this because
             # DCP can change their metadata structure and we've already read in
             # the metadata when doing _load_state_dict_from_keys
             metadata = hf_storage_reader.read_metadata()
             self._weight_map = {
-                key: os.path.basename(val.relative_path)
+                key.fqn: os.path.basename(val.relative_path)
                 for key, val in metadata.storage_data.items()
             }
+
+            state_dict = _load_state_dict_from_keys(storage_reader=hf_storage_reader)
 
             merged_state_dict = state_dict
         else:
