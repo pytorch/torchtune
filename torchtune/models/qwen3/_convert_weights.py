@@ -269,7 +269,7 @@ def qwen3_moe_tune_to_hf(
         new_key = get_mapped_key_moe(key, inverted_mapping_dict)
         if "experts" in key:
             for i, tensor in enumerate(torch.unbind(value)):
-                converted_state_dict[str(i).join(new_key.rsplit("0", 1))] = tensor.T
+                converted_state_dict[str(i).join(new_key.rsplit("0", 1))] = tensor.T.contiguous()
         else:
             converted_state_dict[new_key] = value
         if QWEN3_TUNE_EMBEDDING_KEY in key and tie_word_embeddings:
