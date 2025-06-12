@@ -226,8 +226,6 @@ def qwen3_moe_hf_to_tune(
         elif "experts" in key:
             continue
         else:
-            #if "input_layernorm.weight" in key:
-            #    print("KEK", key)
             new_key = get_mapped_key(key, _FROM_HF)
             converted_state_dict[new_key] = value
     return converted_state_dict
