@@ -18,3 +18,20 @@ class DeepSeekV3Tokenizer(ModelTokenizer, Transform):
     def vocab_size(self) -> int:
         return self.hf_tokenizer.get_vocab_size()
     
+
+if __name__ == "__main__":
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained("smohammadi/deepseek-v3-micro")
+    text = "Hello, world!"
+    tokens = tokenizer.encode(text, add_special_tokens=True)
+    print(tokens)
+    print(tokenizer.decode(tokens))
+
+    tt_tokenizer = DeepSeekV3Tokenizer(
+        path="/Users/salmanmohammadi/projects/torchtune/target/deepseek/deepseek-v3-micro/tokenizer.json",
+        config_path="/Users/salmanmohammadi/projects/torchtune/target/deepseek/deepseek-v3-micro/tokenizer_config.json",
+        max_seq_len=1024
+    )
+    tt_tokens = tt_tokenizer.encode(text, add_bos=True, add_eos=True)
+    print(tt_tokens)
+    print(tt_tokenizer.decode(tt_tokens))
