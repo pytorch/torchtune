@@ -625,7 +625,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if (batch_count + 1) % self._gradient_accumulation_steps == 0:
                     grad_norm = None
                     if not self.optimizer_in_bwd:
-                        training.scale_grads(self._model, 1.0 / num_tokens)
+                        training.scale_grads_(
+                            self._model.parameters(), 1.0 / num_tokens
+                        )
                         if self._clip_grad_norm:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(), float(self._clip_grad_norm)
