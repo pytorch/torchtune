@@ -467,7 +467,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
 
-        # NOTE: Hack to get it running. needs to be properly addressed.
+        # NOTE: Hack to get it running. Iterable doesnt allow len(dataloader)
+        # ------------------------------------------------------------
         if isinstance(self._dataloader.dataset, IterableDataset):
             if self.max_steps_per_epoch is None:
                 raise ValueError(
