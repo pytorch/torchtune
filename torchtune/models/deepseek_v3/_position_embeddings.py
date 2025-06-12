@@ -44,6 +44,8 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         original_max_seq_len: int = 4096,
         beta_fast: float = 32.0,
         beta_slow: float = 1.0,
+        mscale: float = 1.0,
+        mscale_all_dim: float = 1.0,
     ) -> None:
         super().__init__()
         self.dim = dim
@@ -53,33 +55,34 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         self.original_max_seq_len = original_max_seq_len
         self.beta_fast = beta_fast
         self.beta_slow = beta_slow
-        self.mscale = None
+        self.mscale = mscale
+        self.mscale_all_dim = mscale_all_dim
         self.rope_init()
 
-    def _yarn_find_correction_dim(
+    def _find_correction_dim(
         self, num_rotations: float, dim: int, base: int, max_position_embeddings: int
     ) -> float:
         return (dim * math.log(max_position_embeddings / (num_rotations * 2 * math.pi))) / (
             2 * math.log(base)
         )
 
-    def _yarn_find_correction_range(
+    def _find_correction_range(
         self, low_rot: float, high_rot: float, dim: int, base: int, max_position_embeddings: int
     ) -> tuple[int, int]:
         low = math.floor(
-            self._yarn_find_correction_dim(low_rot, dim, base, max_position_embeddings)
+            self._find_correction_dim(low_rot, dim, base, max_position_embeddings)
         )
         high = math.ceil(
-            self._yarn_find_correction_dim(high_rot, dim, base, max_position_embeddings)
+            self._find_correction_dim(high_rot, dim, base, max_position_embeddings)
         )
         return max(low, 0), min(high, dim - 1)
 
-    def _yarn_get_mscale(self, scale: float = 1.0, mscale: float = 1.0) -> float:
+    def get_mscale(self, scale: float = 1.0, mscale: float = 1.0) -> float:
         if scale <= 1:
             return 1.0
         return 0.1 * mscale * math.log(scale) + 1.0
 
-    def _yarn_linear_ramp_mask(self, min_val: int, max_val: int, dim: int) -> torch.Tensor:
+    def _get_linear_ramp_mask(self, min_val: int, max_val: int, dim: int) -> torch.Tensor:
         if min_val == max_val:
             max_val += 0.001
 
@@ -100,7 +103,7 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         )
 
         # Find correction range for frequency interpolation
-        low, high = self._yarn_find_correction_range(
+        low, high = self._find_correction_range(
             self.beta_fast,
             self.beta_slow,
             self.dim,
@@ -109,7 +112,7 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         )
 
         # Create interpolation mask
-        inv_freq_mask = 1.0 - self._yarn_linear_ramp_mask(low, high, self.dim // 2)
+        inv_freq_mask = 1.0 - self._get_linear_ramp_mask(low, high, self.dim // 2)
 
         # Interpolate between scaled and unscaled frequencies
         theta = freq_interp * (1 - inv_freq_mask) + freq_base * inv_freq_mask
@@ -117,11 +120,6 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
 
-    @property
-    def mscale(self):
-        return self._yarn_get_mscale(self.scaling_factor, self.mscale)
-
-    
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
         seq_idx = torch.arange(
@@ -133,14 +131,14 @@ class DeepSeekV3YarnRotaryEmbeddings(nn.Module):
         idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
 
         # Calculate magnitude scaling
-        self.mscale = float(
-            self._yarn_get_mscale(self.scaling_factor, self.mscale)
-            / self._yarn_get_mscale(self.scaling_factor, self.mscale_all_dim)
+        mscale = float(
+            self.get_mscale(self.scaling_factor, self.mscale)
+            / self.get_mscale(self.scaling_factor, self.mscale_all_dim)
         )
 
         # cache includes both the cos and sin components and so the output shape is
         # [max_seq_len, dim // 2, 2]
-        cache = torch.stack([idx_theta.cos() * self.mscale, idx_theta.sin() * self.mscale], dim=-1)
+        cache = torch.stack([idx_theta.cos() * mscale, idx_theta.sin() * mscale], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
     def forward(

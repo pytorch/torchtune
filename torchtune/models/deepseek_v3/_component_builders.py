@@ -33,6 +33,8 @@ def deepseek_v3(
     original_max_seq_len: Optional[int] = None,
     beta_fast: Optional[float] = None,
     beta_slow: Optional[float] = None,
+    mscale: Optional[float] = None,
+    mscale_all_dim: Optional[float] = None,
     q_lora_rank: Optional[int] = None,
     qk_rope_head_dim: Optional[int] = None,
     qk_nope_head_dim: Optional[int] = None,
@@ -60,6 +62,8 @@ def deepseek_v3(
         original_max_seq_len=original_max_seq_len,
         beta_fast=beta_fast,
         beta_slow=beta_slow,
+        mscale=mscale,
+        mscale_all_dim=mscale_all_dim,
     )
     layers = [] 
     for i in range(num_layers):
