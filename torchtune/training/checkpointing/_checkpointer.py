@@ -196,6 +196,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         # resume recipe_state ckpt
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
+            checkpoint_dir=self._checkpoint_dir,
             recipe_checkpoint=recipe_checkpoint,
             should_load_recipe_state=self._should_load_recipe_state,
         )
@@ -1086,6 +1087,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # resume recipe_state ckpt
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
+            checkpoint_dir=self._checkpoint_dir,
             recipe_checkpoint=recipe_checkpoint,
             should_load_recipe_state=self._should_load_recipe_state,
         )

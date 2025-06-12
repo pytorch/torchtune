@@ -430,15 +430,17 @@ def copy_files(
 
 def get_recipe_checkpoint_path(
     output_dir: Union[str, Path],
+    checkpoint_dir: Union[str, Path],
     recipe_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
 ) -> Optional[str]:
     """
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
+    If recipe_checkpoint is None, look for recipe_state.pt in {checkpoint_dir/recipe_state.pt}.
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
 
     Args:
-        output_dir (Union[str, Path]): Directory containing the recipe checkpoint.
+        output_dir (Union[str, Path]): Directory containing the directory that has the recipe checkpoint.
+        checkpoint_dir (Union[str, Path]): Directory containing the recipe checkpoint.
         recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
         should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.
     Returns:
@@ -454,7 +456,7 @@ def get_recipe_checkpoint_path(
         recipe_checkpoint_path = os.path.join(output_dir, recipe_checkpoint)
     else:
         recipe_checkpoint_path = os.path.join(
-            output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
+            checkpoint_dir, "recipe_state.pt"
         )
 
     fs, _ = url_to_fs(recipe_checkpoint_path)
