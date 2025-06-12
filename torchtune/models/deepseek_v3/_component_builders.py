@@ -54,17 +54,24 @@ def deepseek_v3(
     norm_eps: float = 1e-5,
 
 ):
-    rope = DeepSeekV3YarnRotaryEmbeddings(
-        dim=qk_rope_head_dim,
-        max_seq_len=max_seq_len,
-        base=rope_base,
-        scaling_factor=rope_scaling_factor,
-        original_max_seq_len=original_max_seq_len,
-        beta_fast=beta_fast,
-        beta_slow=beta_slow,
-        mscale=mscale,
-        mscale_all_dim=mscale_all_dim,
-    )
+    if rope_scaling_factor:
+        rope = DeepSeekV3YarnRotaryEmbeddings(
+            dim=qk_rope_head_dim,
+            max_seq_len=max_seq_len,
+            base=rope_base,
+            scaling_factor=rope_scaling_factor,
+            original_max_seq_len=original_max_seq_len,
+            beta_fast=beta_fast,
+            beta_slow=beta_slow,
+            mscale=mscale,
+            mscale_all_dim=mscale_all_dim,
+        )
+    else:
+        rope = RotaryPositionalEmbeddings(
+            dim=qk_rope_head_dim,
+            max_seq_len=max_seq_len,
+            base=rope_base,
+        )
     layers = [] 
     for i in range(num_layers):
         q_head_dim = qk_rope_head_dim + qk_nope_head_dim

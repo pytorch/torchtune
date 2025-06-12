@@ -44,8 +44,9 @@ class DeepSeekV3Attention(nn.Module):
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
         self.softmax_scale = self.q_head_dim ** (-0.5)
-        mscale = self.pos_embeddings.get_mscale(self.pos_embeddings.scaling_factor, self.pos_embeddings.mscale_all_dim)
-        self.softmax_scale = self.softmax_scale * mscale * mscale
+        if hasattr(self.pos_embeddings, "get_mscale"):
+            mscale = self.pos_embeddings.get_mscale(self.pos_embeddings.scaling_factor, self.pos_embeddings.mscale_all_dim)
+            self.softmax_scale = self.softmax_scale * mscale * mscale
         self.cache_enabled = False
 
         self._attention_call = _sdpa_or_flex_attention()
