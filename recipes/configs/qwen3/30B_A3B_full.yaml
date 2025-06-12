@@ -1,5 +1,5 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
-# using a Qwen3 15B A2B model
+# using a Qwen3 30B A3B model
 #
 # This config assumes that you've run the following command before launching:
 #   tune download Qwen/Qwen3-30B-A3B --output-dir /tmp/Qwen3-30B-A3B
@@ -11,10 +11,6 @@
 # to override the checkpointer directory while launching training
 # you can run:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config qwen3/30B_A3B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-#
-# This config works best when the model is being fine-tuned on 4+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 15B_A2B_full_single_device.yaml for those cases
 
 output_dir: /tmp/qwen3_30B_A3B/full # /tmp may be deleted by your system. Change it to your preference.
 
