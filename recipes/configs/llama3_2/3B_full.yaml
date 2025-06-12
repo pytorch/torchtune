@@ -24,16 +24,20 @@ output_dir: /tmp/torchtune/llama3_2_3B/full # /tmp may be deleted by your system
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Llama-3.2-3B-Instruct/original/tokenizer.model
-  max_seq_len: null
+  max_seq_len: 4096
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-  packed: False  # True increases speed
   split: train[:95%]
 seed: null
 shuffle: True
 batch_size: 4
+
+# On-the-fly packing strategy
+# Set packing_strategy: null to disable packing
+packing_strategy:
+  _component_: torchtune.datasets.TextPackingStrategy
 
 # Validation
 run_val_every_n_steps: null  # Change to an integer to enable validation every N steps

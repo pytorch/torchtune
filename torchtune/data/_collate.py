@@ -12,6 +12,36 @@ from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
 from torchtune.modules.attention_utils import packed_block_causal_mask
 
 
+def collate_packed(
+    batch: list[dict[str, torch.Tensor]], mask_fn: callable, device: str
+) -> dict[str, torch.Tensor]:
+    """
+    Generic collate function for packed samples from an IterablePackedDataset.
+
+    This function handles tensor stacking and delegates attention mask creation
+    to a provided `mask_fn`.
+    """
+    if not batch:
+        return {}
+
+    # Assumes all samples in the batch have the same keys, which are all tensors.
+    keys_to_stack = batch[0].keys()
+    collated = {}
+    for key in keys_to_stack:
+        if isinstance(batch[0][key], torch.Tensor):
+            collated[key] = torch.stack([sample[key] for sample in batch], dim=0)
+        else:
+            # TODO: Remove? i dont see a situation where it would not be a tensor.
+            collated[key] = [sample[key] for sample in batch]
+
+    # Delegate mask creation to the provided specialized function
+    # TODO: investigate the need for device here. Currently we hardcode it in utilities to cuda.
+    # shouldnt we just send to device later?
+    collated["mask"] = mask_fn(collated["document_ids"], device=device)
+
+    return collated
+
+
 def left_pad_sequence(
     sequences: list[torch.Tensor],
     batch_first: bool = False,
