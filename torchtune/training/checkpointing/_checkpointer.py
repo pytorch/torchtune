@@ -531,10 +531,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
 
         if self._enable_dcp:
-            from torch.distributed.checkpoint import HuggingFaceStorageReader
+            from torch.distributed.checkpoint import _HuggingFaceStorageReader
 
             # DCP load using the storage reader
-            hf_storage_reader = HuggingFaceStorageReader(path=self._checkpoint_dir)
+            hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
             metadata = hf_storage_reader.read_metadata()
 
             self._weight_map = metadata.storage_data
@@ -802,10 +802,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
             if self._enable_dcp:
-                from torch.distributed.checkpoint import (
-                    _HuggingFaceSavePlanner,
-                    _HuggingFaceStorageWriter,
-                )
+                from torch.distributed.checkpoint import _HuggingFaceStorageWriter
 
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
@@ -819,7 +816,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
                     storage_writer=storage_writer,
-                    planner=_HuggingFaceSavePlanner(),
                     no_dist=True,
                 )
             else:
