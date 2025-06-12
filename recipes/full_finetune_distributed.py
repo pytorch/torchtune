@@ -444,7 +444,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            cfg_packing_strategy=cfg.get("packing_strategy"),
+            cfg_packing_strategy=cfg.get("packing_strategy", None),
         )
 
         # Setup validation dataloader if validation dataset is provided
@@ -455,7 +455,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 cfg_dataset=cfg.dataset_val,
                 batch_size=batch_size_val,
                 collate_fn=collate_name,
-                cfg_packing_strategy=cfg.get("packing_strategy"),
+                cfg_packing_strategy=cfg.get("packing_strategy", None),
                 shuffle=False,
             )
 
@@ -467,7 +467,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
 
-        # NOTE: Hack to get it running. needs to be properly addressesd.
+        # NOTE: Hack to get it running. needs to be properly addressed.
         if isinstance(self._dataloader.dataset, IterableDataset):
             if self.max_steps_per_epoch is None:
                 raise ValueError(
@@ -800,7 +800,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
         it is loaded into the dataloader.
         """
-        # 1. Instantiate the base map-style dataset
+        # 1. Instantiate the base map-style dataset (to be replaced with IterableDataset)
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
                 config.instantiate(single_cfg_dataset, self._tokenizer)
@@ -814,8 +814,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ds, num_replicas=self.dp_degree, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
 
-        # 2. Set up dataset, sampler and collate function based on packing strategy
-        # NOTE: This is a temporary hack to make it work with the new packing strategy
+        # 2. Set up packing
         if cfg_packing_strategy:
             if self._is_rank_zero:
                 self._logger.info("Using IterablePackedDataset for on-the-fly packing.")
@@ -826,7 +825,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             )
 
-            # Wrapper to make map-style dataset compatible with IterablePackedDataset
+            # NOTE: This is a temporary hack to make map-style dataset 
+            # compatible with IterablePackedDataset
+            # ------------------------------------------------------------
             class _SamplerWrapper(IterableDataset):
                 def __init__(self, data, sampler):
                     self._data = data
@@ -838,14 +839,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             iterable_ds = _SamplerWrapper(ds, sampler)
 
+            # Sampler must be None for iterable datasets
+            sampler = None
+            # ------------------------------------------------------------
+
             final_ds = IterablePackedDataset(
                 dataset=iterable_ds,
                 strategy=packing_strategy,
                 target_tokens_per_pack=self._tokenizer.max_seq_len,
             )
-
-            # Sampler must be None for iterable datasets
-            sampler = None
 
             collate_callable = partial(
                 _get_component_from_path(collate_fn),
