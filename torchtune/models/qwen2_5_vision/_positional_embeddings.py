@@ -3,7 +3,7 @@ import torch.nn as nn
 from typing import Any, Optional
 
 
-class Qwen2_5_VisionRotaryPositionalEmbeddings(nn.Module):
+class Qwen2_5_VLRotaryPositionalEmbeddings(nn.Module):
     """
     This class implements two-dimensional Rotary Positional Embeddings (RoPE) for images
     based on the axial frequency 2D RoPE described in https://arxiv.org/pdf/2403.13298.
