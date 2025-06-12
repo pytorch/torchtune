@@ -25,6 +25,7 @@ from torch.distributed.checkpoint import (
     load,
     save,
 )
+from torch.distributed.checkpoint.state_dict_loader import _load_state_dict_from_keys
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -530,26 +531,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
 
         if self._enable_dcp:
-            from torch.distributed.checkpoint import (
-                _HuggingFaceLoadPlanner,
-                _HuggingFaceStorageReader,
-            )
+            from torch.distributed.checkpoint import HuggingFaceStorageReader
 
             # DCP load using the storage reader
-            hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
+            hf_storage_reader = HuggingFaceStorageReader(path=self._checkpoint_dir)
+
+            # TODO: reading the metadata isn't the best way to do this because
+            # DCP can change their metadata structure and we've already read in
+            # the metadata when doing _load_state_dict_from_keys
             metadata = hf_storage_reader.read_metadata()
-            state_dict = {}
-            for key in metadata.state_dict_metadata.keys():
-                # arbitrary value to ensure that the state_dict is not empty
-                state_dict[key] = torch.empty(1)
+            self._weight_map = {
+                key.fqn: os.path.basename(val.relative_path)
+                for key, val in metadata.storage_data.items()
+            }
 
-            self._weight_map = metadata.storage_data
-
-            load(
-                state_dict=state_dict,
-                storage_reader=hf_storage_reader,
-                planner=_HuggingFaceLoadPlanner(allow_tensor_resize=True),
-            )
+            state_dict = _load_state_dict_from_keys(storage_reader=hf_storage_reader)
 
             merged_state_dict = state_dict
         else:
@@ -812,24 +808,20 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
             if self._enable_dcp:
-                from torch.distributed.checkpoint import (
-                    _HuggingFaceSavePlanner,
-                    _HuggingFaceStorageWriter,
-                )
+                from torch.distributed.checkpoint import HuggingFaceStorageWriter
 
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
                 for fqn, filename in self._weight_map.items():
                     index = int(filename.split("-")[1])
                     fqn_to_file_index_mapping[fqn] = index
-                storage_writer = _HuggingFaceStorageWriter(
+                storage_writer = HuggingFaceStorageWriter(
                     path=os.path.join(self._output_dir, f"epoch_{epoch}"),
                     fqn_to_index_mapping=fqn_to_file_index_mapping,
                 )
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
                     storage_writer=storage_writer,
-                    planner=_HuggingFaceSavePlanner(),
                     no_dist=True,
                 )
             else:
