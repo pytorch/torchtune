@@ -7,7 +7,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributed.tensor import DTensor
+from torch.distributed.tensor import DTensor, Replicate
 
 from torchtune.modules.loss.loss_types import SFTLoss
 from torchtune.utils import get_logger
@@ -94,7 +94,9 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
             )  # [num_valid, embed_dim]
         else:
             hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
-
+            if isinstance(self.linear_projection.weight, DTensor):
+                mesh = self.linear_projection.weight.device_mesh
+                hidden_chunk = DTensor.from_local(hidden_chunk, mesh, [Replicate()])
         # [num_valid, embed_dim] @ [embed_dim, vocab_size]
         if self.linear_projection is None:
             raise AttributeError("forward called before update_model")
