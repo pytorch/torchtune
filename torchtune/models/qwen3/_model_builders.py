@@ -335,37 +335,6 @@ def qwen3_32b() -> TransformerDecoder:
     )
 
 
-def qwen3_moe_15b_a2b_base() -> TransformerDecoder:
-    """
-    Builder for creating a Qwen3 15B A2B model (base, no instruct variant) initialized w/ the default parameter values
-    from https://huggingface.co/Qwen/Qwen3-15B-A2B-Base
-
-    Returns:
-        TransformerDecoder: Instantiation of Qwen3 15B A2B base model (there's no instruct variant for the 15B A2B)
-    """
-    return qwen3_moe(
-        vocab_size=151936,
-        num_layers=24,
-        num_heads=32,
-        num_kv_heads=4,
-        embed_dim=2048,
-        intermediate_dim=8192,
-        moe_intermediate_size=768,
-        num_experts=128,
-        num_experts_per_tok=8,
-        max_seq_len=4096,
-        head_dim=128,
-        attn_dropout=0.0,
-        norm_eps=1e-6,
-        rope_base=1000000.0,
-        q_proj_bias=False,
-        k_proj_bias=False,
-        v_proj_bias=False,
-        q_norm=True,
-        k_norm=True,
-    )
-
-
 def qwen3_moe_30b_a3b_instruct() -> TransformerDecoder:
     """
     Builder for creating a Qwen3 30B A3B instruct model initialized w/ the default parameter values
