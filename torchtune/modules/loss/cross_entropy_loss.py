@@ -20,6 +20,10 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
     by masking ignored tokens, calculating logits and then applying cross-entropy loss. Combines
     the linear projection with the cross-entropy calculation for further memory savings.
 
+    This implementation is compatible with ``torch.compile`` and ``DTensor`` by separating
+    the core computation from the distributed logic. It operates on local tensors and
+    aggregates the results at the end.
+
     Linear cross entropy masks out ignored tokens before the projection layer to save memory.
     You therefore need to skip the final projection layer in your model and pass it to the loss instead.
     You can setup the loss with the model and compile it as shown below.
@@ -48,11 +52,9 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
-        log.warning("Skipping compile loss, as it is not supported at this time")
-        # TODO fix compile and re-enable
-        # self.compute_cross_entropy = torch.compile(
-        #     self.compute_cross_entropy, *args, **kwargs
-        # )
+        self.compute_cross_entropy = torch.compile(
+            self.compute_cross_entropy, *args, **kwargs
+        )
         return self
 
     def set_model_output(self, model: nn.Module) -> None:
@@ -64,50 +66,55 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         self,
         hidden_chunk: torch.Tensor,
         target_chunk: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes cross-entropy by masking tokens, calculating logits and then applying cross-entropy loss.
 
         Args:
             hidden_chunk (torch.Tensor): [batch_size, chunk_size, embed_dim]
             target_chunk (torch.Tensor): [batch_size, chunk_size]
-
         Returns:
-            torch.Tensor: Sum of cross-entropy loss for non-ignored tokens in the chunk
-
+            tuple[torch.Tensor, torch.Tensor]: returns a tuple of
+            - The sum of the cross-entropy loss for the valid tokens in the chunk.
+            - The number of valid tokens in the chunk.
         Raises:
-            AttributeError: if called before update_model
+            AttributeError: If the linear projection is not set, an AttributeError is raised.
         """
-        # Select hidden states and targets where mask is True
-        mask_chunk = target_chunk != self.ignore_index
-        if mask_chunk.sum() == 0:
-            # Unmask 1 token to allow loss to sync with all data parallel workers
-            mask_chunk[0] = True
+        hidden_flat = hidden_chunk.reshape(-1, hidden_chunk.size(-1))
+        target_flat = target_chunk.reshape(-1)
+        mask_flat = target_flat != self.ignore_index
 
-        target_chunk = target_chunk[mask_chunk]  # [num_valid]
-        if isinstance(hidden_chunk, DTensor):
-            # DTensor doesn't support masks so we have to mask locally
-            mesh = hidden_chunk.device_mesh
-            placements = hidden_chunk.placements
-            local_hidden_chunk = hidden_chunk.to_local()[mask_chunk]
-            hidden_chunk = DTensor.from_local(
-                local_hidden_chunk, mesh, placements
-            )  # [num_valid, embed_dim]
-        else:
-            hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
+        # Get indices of valid (non-ignored) tokens
+        valid_indices = torch.where(mask_flat)[0]
+
+        if valid_indices.numel() == 0:
+            return (
+                torch.tensor(0.0, device=hidden_chunk.device),
+                torch.tensor(0, device=hidden_chunk.device),
+            )
+
+        # Mask: Select hidden states and targets for valid tokens using index_select.
+        # (where+index_select works better with compile than boolean indexing)
+        valid_hidden = torch.index_select(hidden_flat, 0, valid_indices)
+        valid_targets = torch.index_select(target_flat, 0, valid_indices)
 
         # [num_valid, embed_dim] @ [embed_dim, vocab_size]
         if self.linear_projection is None:
-            raise AttributeError("forward called before update_model")
-        logits = self.linear_projection(hidden_chunk)  # [num_valid, vocab_size]
-        if isinstance(logits, DTensor):
-            logits = logits.full_tensor()
+            raise AttributeError(
+                "Loss function was not properly configured. "
+                "Ensure set_model_output() is called before the forward pass."
+            )
+        logits = self.linear_projection(valid_hidden)  # [num_valid, vocab_size]
 
-        return F.cross_entropy(
+        loss_sum = F.cross_entropy(
             logits.float(),
-            target_chunk,
+            valid_targets,
             reduction="sum",
             ignore_index=self.ignore_index,
         )
+        num_valid_tokens = torch.tensor(
+            valid_indices.numel(), device=hidden_chunk.device
+        )
+        return loss_sum, num_valid_tokens
 
     def forward(
         self,
@@ -116,30 +123,42 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
     ) -> torch.Tensor:
         """
         Args:
-            outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
+            outputs (torch.Tensor): Hidden state of the model, pre projection.
+                Can be a ``DTensor``. Shape ``[bsz, seq_len, emb_dim]``
             targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
 
         Returns:
-            torch.Tensor: loss tensor
+            torch.Tensor: The final, averaged loss tensor.
         """
-        # Total number of non-ignored tokens across the entire batch
-        mask = targets != self.ignore_index
-        total_elements = mask.sum()
+        # --- DTensor Handling ---
+        # Check if the input is a DTensor and convert to local tensor.
+        # All subsequent operations are performed on local tensors, making them
+        # torch.compile / masking friendly.
+        is_dtensor_input = isinstance(outputs, DTensor)
+        if is_dtensor_input:
+            local_outputs = outputs.to_local()
+        else:
+            local_outputs = outputs
 
-        # Chunk along sequence dimension
-        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
+        # --- Chunk along sequence dimension ---
+        hidden_chunks = local_outputs.tensor_split(self.num_output_chunks, dim=1)
         target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
 
         # Compute cross-entropy loss for the chunks
-        total_loss = 0.0
-        for idx in range(len(hidden_chunks)):
-            total_loss += self.compute_cross_entropy(
-                hidden_chunks[idx],
-                target_chunks[idx],
+        total_loss = torch.tensor(0.0, device=local_outputs.device)
+        total_valid_tokens = torch.tensor(0, device=local_outputs.device)
+        for hidden_chunk, target_chunk in zip(hidden_chunks, target_chunks):
+            loss_sum, num_valid_tokens = self.compute_cross_entropy(
+                hidden_chunk, target_chunk
             )
+            total_loss += loss_sum
+            total_valid_tokens += num_valid_tokens
 
-        if total_elements == 0:
-            # must return after calling compute_cross_entropy to not hang during data parallel training
-            return total_loss
-        else:
-            return total_loss / total_elements
+        # --- Mean reduce ---
+        # If total_valid_tokens is 0, return a zero loss to avoid division by zero.
+        # Use torch.where to avoid calling .item().
+        return torch.where(
+            total_valid_tokens > 0,
+            total_loss / total_valid_tokens,
+            total_loss,  # This will be 0.0 if total_valid_tokens is 0
+        )
