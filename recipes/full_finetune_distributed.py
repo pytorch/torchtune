@@ -479,13 +479,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
-        # Used to ignore labels for loss computation
-        bsz_cache = (
-            cfg.batch_size
-            if self._val_dataloader is None
-            else max(cfg.batch_size, self._val_dataloader.batch_size)
-        )
-
     def _setup_lr_scheduler(
         self,
         cfg_lr_scheduler: Optional[DictConfig],
