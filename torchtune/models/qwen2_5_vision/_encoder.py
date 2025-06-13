@@ -141,8 +141,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
             bias=False,
         )
 
-        self.ln_post = Fp32LayerNorm(embed_dim)
-        self.ln_pre = Fp32LayerNorm(embed_dim)
 
     def rot_pos_emb(self, grid_thw: torch.Tensor) -> torch.Tensor:
         """
@@ -210,20 +208,21 @@ class Qwen2_5_VisionTransformer(nn.Module):
         
         Args:
             pixel_values (torch.Tensor): Flattened patches tensor of shape 
-                [num_patches, channels * temporal_patch_size * patch_size * patch_size]
+                [bsz, num_patches, channels * temporal_patch_size * patch_size * patch_size]
             grid_thw (torch.Tensor): Grid dimensions tensor of shape [num_items, 3] containing
                 temporal, height, and width dimensions for each item.
                 
         Returns:
-            torch.Tensor: Processed embeddings of shape [num_patches, embed_dim]
+            torch.Tensor: Processed embeddings of shape [bsz, num_patches, embed_dim]
         """
         # Reshape flattened patches for 3D convolution
         # From [num_patches, channels * temporal_patch_size * patch_size * patch_size]
         # to [num_patches, channels, temporal_patch_size, patch_size, patch_size]
-        num_patches = pixel_values.shape[0]
+        bsz, num_patches, _ = pixel_values.shape
         channels = pixel_values.shape[1] // (self.temporal_patch_size * self.patch_size * self.patch_size)
         
         x = pixel_values.view(
+            bsz,
             num_patches,
             channels,
             self.temporal_patch_size,
@@ -235,8 +234,8 @@ class Qwen2_5_VisionTransformer(nn.Module):
         target_dtype = self.conv.weight.dtype
         x = self.conv(x.to(dtype=target_dtype))
         
-        # Reshape to [num_patches, embed_dim]
-        x = x.view(num_patches, -1)
+        # Reshape to [bsz, num_patches, embed_dim]
+        x = x.view(-1, num_patches, self.embed_dim)
         
         # Calculate total sequence length from grid dimensions
         total_t = grid_thw[:, 0].sum()
@@ -244,11 +243,9 @@ class Qwen2_5_VisionTransformer(nn.Module):
         total_w = grid_thw[:, 2].sum() // self.spatial_merge_size
         seq_len = total_t * total_h * total_w
         
-        # Reshape to [seq_len, embed_dim]
-        x = x[:seq_len]
+        # Reshape to [bsz, seq_len, embed_dim]
+        x = x[:, :seq_len]
         
-        # Apply pre-norm
-        x = self.ln_pre(x)
         
         # Get rotary position embeddings
         rotary_pos_emb = self.rot_pos_emb(grid_thw)
@@ -260,8 +257,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
                 pass
             x = transformer_layer(x, rotary_pos_emb)
         
-        # Apply post-norm
-        x = self.ln_post(x)
         
         return x
 
