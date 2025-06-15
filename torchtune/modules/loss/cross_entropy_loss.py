@@ -105,6 +105,10 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         Raises:
             AttributeError: if called before update_model
         """
+        # this explicit flattening ensures same tensor dimension, regardless of if mask is all true
+        target_chunk = target_chunk.reshape(-1)
+        hidden_chunk = hidden_chunk.reshape(-1, hidden_chunk.shape[-1])
+
         mask_chunk = target_chunk != self.ignore_index
         if mask_chunk.sum() == 0:
             # Unmask 1 token to allow loss to sync with all data parallel workers
