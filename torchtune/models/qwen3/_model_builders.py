@@ -412,7 +412,7 @@ def qwen3_moe_235b_a22b() -> TransformerDecoder:
         num_kv_heads=4,
         embed_dim=4096,
         intermediate_dim=12288,
-        moe_intermediate_size=768,
+        moe_intermediate_size=1536,
         num_experts=128,
         num_experts_per_tok=8,
         max_seq_len=40960,
