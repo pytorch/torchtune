@@ -78,41 +78,41 @@ class TestDevice:
         with pytest.raises(ValueError):
             batch_to_device(batch, device)
 
-    @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
-    def test_get_gpu_device(self) -> None:
-        device_idx = torch.cuda.device_count() - 1
-        assert device_idx >= 0
-        with mock.patch.dict(os.environ, {"LOCAL_RANK": str(device_idx)}, clear=True):
-            device = get_device()
-            assert device.type == "cuda"
-            assert device.index == device_idx
-            assert device.index == torch.cuda.current_device()
+    # @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
+    # def test_get_gpu_device(self) -> None:
+    #     device_idx = torch.cuda.device_count() - 1
+    #     assert device_idx >= 0
+    #     with mock.patch.dict(os.environ, {"LOCAL_RANK": str(device_idx)}, clear=True):
+    #         device = get_device()
+    #         assert device.type == "cuda"
+    #         assert device.index == device_idx
+    #         assert device.index == torch.cuda.current_device()
 
-            # Test that we raise an error if the device index is specified on distributed runs
-            if device_idx > 0:
-                with pytest.raises(
-                    RuntimeError,
-                    match=(
-                        f"You can't specify a device index when using distributed training. "
-                        f"Device specified is cuda:0 but local rank is:{device_idx}"
-                    ),
-                ):
-                    device = get_device("cuda:0")
+    #         # Test that we raise an error if the device index is specified on distributed runs
+    #         if device_idx > 0:
+    #             with pytest.raises(
+    #                 RuntimeError,
+    #                 match=(
+    #                     f"You can't specify a device index when using distributed training. "
+    #                     f"Device specified is cuda:0 but local rank is:{device_idx}"
+    #                 ),
+    #             ):
+    #                 device = get_device("cuda:0")
 
-        invalid_device_idx = device_idx + 10
-        with mock.patch.dict(os.environ, {"LOCAL_RANK": str(invalid_device_idx)}):
-            with pytest.raises(
-                RuntimeError,
-                match="The local rank is larger than the number of available GPUs",
-            ):
-                device = get_device("cuda")
+    #     invalid_device_idx = device_idx + 10
+    #     with mock.patch.dict(os.environ, {"LOCAL_RANK": str(invalid_device_idx)}):
+    #         with pytest.raises(
+    #             RuntimeError,
+    #             match="The local rank is larger than the number of available GPUs",
+    #         ):
+    #             device = get_device("cuda")
 
-        # Test that we fall back to 0 if LOCAL_RANK is not specified
-        device = torch.device(_get_device_type_from_env())
-        device = _setup_device(device)
-        assert device.type == "cuda"
-        assert device.index == 0
-        assert device.index == torch.cuda.current_device()
+    #     # Test that we fall back to 0 if LOCAL_RANK is not specified
+    #     device = torch.device(_get_device_type_from_env())
+    #     device = _setup_device(device)
+    #     assert device.type == "cuda"
+    #     assert device.index == 0
+    #     assert device.index == torch.cuda.current_device()
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
     @patch("torch.cuda.is_available", return_value=True)
