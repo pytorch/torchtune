@@ -365,8 +365,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Whether to use the ctx manager. If the loss fn has the property, use that. Otherwise, assume it is not supported.
-        # Currently our TP plans assume replicating on the output of `output` so without a custom loss class, there is
-        # no memory benefit to the ctx manager
+        # Currently our TP plans assume replicating on the output of `output` so without a custom loss class patching the
+        # TP plan, there is no memory benefit to the ctx manager
         self.use_loss_parallel_ctx_manager = (
             self.parallel_dims.loss_parallel_enabled
             and getattr(
