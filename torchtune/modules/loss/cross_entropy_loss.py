@@ -134,8 +134,6 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
             - The indexed hidden states
             - The indexed targets
         """
-        # slicing requires both tensors to be same type
-        # since hidden is sharded on the feature dim, slicing on seq dim is possible
         if isinstance(hidden, DTensor):
             device_mesh = hidden.device_mesh
             hidden = hidden.to_local().index_select(0, indices)
@@ -174,7 +172,6 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
                 placements=[Shard(-1)] * outputs.device_mesh.ndim,
             )
 
-        # forcefully reshaping ensures same dim tensor, even if mask is all True
         targets = targets.reshape(-1)
         outputs = outputs.reshape(-1, outputs.shape[-1])
 
