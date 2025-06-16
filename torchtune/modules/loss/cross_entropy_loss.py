@@ -36,21 +36,26 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         num_output_chunks: int = 8,
         ignore_index: int = -100,
         enable_loss_parallel: bool = False,
+        mask_ignored_tokens: bool = True,
     ):
         super().__init__(enable_loss_parallel=enable_loss_parallel)
         """
         Args:
             num_output_chunks (int): Number of chunks to split the output tensor into. Default is 8.
             ignore_index (int): Index to ignore in the target tensor. Default is -100.
+            enable_loss_parallel (bool): Whether to enable loss parallel. Default is False.
+            mask_ignored_tokens (bool): Whether to mask out ignored tokens during loss computation. Default is True.
         """
         self.linear_projection = None
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
+        self.mask_ignored_tokens = mask_ignored_tokens
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
-        if not self.loss_parallel_enabled:
+        # we might be able to compile in TP case if masking is disabled?
+        if not self.loss_parallel_enabled or not self.mask_ignored:
             self.compute_cross_entropy = torch.compile(
                 self.compute_cross_entropy, *args, **kwargs
             )
@@ -168,22 +173,20 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
                 device_mesh=outputs.device_mesh,
                 placements=[Shard(-1)] * outputs.device_mesh.ndim,
             )
-        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
-        target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
+
+        # forcefully reshaping ensures same dim tensor, even if mask is all True
+        targets = targets.reshape(-1)
+        outputs = outputs.reshape(-1, outputs.shape[-1])
+
+        if self.mask_ignored:
+            indices = torch.where(targets != self.ignore_index)[0]
+            outputs, targets = self.mask_inputs(outputs, targets, indices)
+
+        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=0)
+        target_chunks = targets.tensor_split(self.num_output_chunks, dim=0)
 
         total_loss = torch.tensor(0.0, device=targets.device)
         for hidden_chunk, target_chunk in zip(hidden_chunks, target_chunks):
-            # forcefully reshaping ensures same dim tensor, even if mask is all True
-            target_chunk = target_chunk.reshape(-1)
-            hidden_chunk = hidden_chunk.reshape(-1, hidden_chunk.shape[-1])
-
-            # non-ignored indices
-            indices = torch.where(target_chunk != self.ignore_index)[0]
-
-            hidden_chunk, target_chunk = self.mask_inputs(
-                hidden_chunk, target_chunk, indices
-            )
-
             loss = self.compute_cross_entropy(hidden_chunk, target_chunk)
             # without this backprop throws `'Tensor' object has no attribute '_local_tensor'`
             if isinstance(loss, DTensor):
