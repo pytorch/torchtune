@@ -569,6 +569,8 @@
 <span class="sd">            - Model-specific templates that are required whenever the model is prompted, such as the [INST]</span>
 <span class="sd">              tags in Llama2 and in Mistral</span>
 <span class="sd">            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`</span>
+<span class="sd">        truncation_type (str): type of truncation to apply, either &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">            Default is &quot;right&quot;.</span>
 
 <span class="sd">            The extra text will still get tokenized as normal text, not as special tokens. Default is None.</span>
 
@@ -585,6 +587,7 @@
         <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PromptTemplateInterface</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">truncation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">special_tokens</span> <span class="k">if</span> <span class="n">special_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">LLAMA4_SPECIAL_TOKENS</span>
@@ -636,6 +639,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_special_token_header_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
             <span class="sa">r</span><span class="s2">&quot;&lt;\|header_start\|&gt;.*?&lt;\|header_end\|&gt;\n\n&quot;</span>
         <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">truncation_type</span> <span class="o">=</span> <span class="n">truncation_type</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_special_tokens</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -869,9 +874,17 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
-                <span class="n">tokens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span>
+                <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
+                <span class="n">eos_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">truncation_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation_type</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
+                <span class="n">tokens</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+                <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">,</span>
+                <span class="n">eos_id</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">add_end_tokens</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">truncation_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation_type</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span></div>
 
