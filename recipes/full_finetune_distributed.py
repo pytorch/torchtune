@@ -364,14 +364,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self.parallel_dims.loss_parallel_enabled
             )
 
-        # Whether to use the ctx manager. If the loss fn has the property, use that. Otherwise, assume it is supported.
-        # Useful if, for example, user opts to use the basic CrossEntropyLoss() instead of an SFTLoss subclass.
+        # Whether to use the ctx manager. If the loss fn has the property, use that. Otherwise, assume it is not supported.
+        # Currently our TP plans assume replicating on the output of `output` so without a custom loss class, there is
+        # no memory benefit to the ctx manager
         self.use_loss_parallel_ctx_manager = (
             self.parallel_dims.loss_parallel_enabled
             and getattr(
                 self._loss_fn,
                 "use_loss_parallel_ctx_manager",
-                True,
+                False,
             )
         )
 

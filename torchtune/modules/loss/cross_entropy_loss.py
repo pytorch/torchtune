@@ -7,8 +7,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed.tensor import DTensor, Placement, Shard
+from torch.distributed.tensor import DTensor, Shard
 from torch.distributed.tensor.parallel import ColwiseParallel
 
 from torchtune.modules.loss.loss_types import SFTLoss
@@ -51,11 +50,14 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
-        log.warning("Skipping compile loss, as it is not supported at this time")
-        # TODO fix compile and re-enable
-        # self.compute_cross_entropy = torch.compile(
-        #     self.compute_cross_entropy, *args, **kwargs
-        # )
+        if not self.loss_parallel_enabled:
+            self.compute_cross_entropy = torch.compile(
+                self.compute_cross_entropy, *args, **kwargs
+            )
+        else:
+            log.warning(
+                "Skipping compile loss, as it is not supported with loss parallel enabled."
+            )
         return self
 
     def set_model_output(self, model: nn.Module) -> None:
@@ -87,17 +89,12 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         self,
         hidden_chunk: torch.Tensor,
         target_chunk: torch.Tensor,
-        *,
-        original_mesh: DeviceMesh | None = None,
-        original_placements: list[Placement] | None = None,
     ) -> torch.Tensor:
         """Computes cross-entropy by masking tokens, calculating logits and then applying cross-entropy loss.
 
         Args:
             hidden_chunk (torch.Tensor): [batch_size, chunk_size, embed_dim]
             target_chunk (torch.Tensor): [batch_size, chunk_size]
-            original_mesh (DeviceMesh | None): Device mesh of the original tensor if distributed
-            original_placements (list[Placement] | None): Placements of the original tensor if distributed
 
         Returns:
             torch.Tensor: Sum of cross-entropy loss for non-ignored tokens in the chunk
@@ -105,24 +102,6 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         Raises:
             AttributeError: if called before update_model
         """
-        # this explicit flattening ensures same tensor dimension, regardless of if mask is all true
-        target_chunk = target_chunk.reshape(-1)
-        hidden_chunk = hidden_chunk.reshape(-1, hidden_chunk.shape[-1])
-
-        mask_chunk = target_chunk != self.ignore_index
-        if mask_chunk.sum() == 0:
-            # Unmask 1 token to allow loss to sync with all data parallel workers
-            mask_chunk[0] = True
-
-        target_chunk = target_chunk[mask_chunk]  # [num_valid]
-        if isinstance(hidden_chunk, DTensor):
-            local_hidden_chunk = hidden_chunk.to_local()[mask_chunk]
-            hidden_chunk = DTensor.from_local(
-                local_hidden_chunk, original_mesh, original_placements
-            )  # [num_valid, embed_dim]
-        else:
-            hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
-
         # [num_valid, embed_dim] @ [embed_dim, vocab_size]
         if self.linear_projection is None:
             raise AttributeError("forward called before update_model")
@@ -134,10 +113,37 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
             reduction="sum",
             ignore_index=self.ignore_index,
         )
-        # the all-reduce later complains if a DTensor is returned
-        if isinstance(loss, DTensor):
-            loss = loss.full_tensor()
         return loss
+
+    def mask_inputs(
+        self, hidden: torch.Tensor, target: torch.Tensor, indices: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Args:
+            hidden (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
+            target (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
+            indices (torch.Tensor): Indices of the valid tokens. Shape ``[num_valid]``
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: returns a tuple of
+            - The indexed hidden states
+            - The indexed targets
+        """
+        # slicing requires both tensors to be same type
+        # since hidden is sharded on the feature dim, slicing on seq dim is possible
+        if isinstance(hidden, DTensor):
+            device_mesh = hidden.device_mesh
+            hidden = hidden.to_local().index_select(0, indices)
+            hidden = DTensor.from_local(
+                hidden,
+                device_mesh=device_mesh,
+                placements=[Shard(-1)] * device_mesh.ndim,
+            )
+        else:
+            hidden = hidden.index_select(0, indices)
+
+        target = target.index_select(0, indices)
+        return hidden, target
 
     def forward(
         self,
@@ -152,37 +158,36 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         Returns:
             torch.Tensor: loss tensor
         """
-        # Total number of non-ignored tokens across the entire batch
-        mask = targets != self.ignore_index
-        total_elements = mask.sum()
+        total_valid_tokens = torch.where(targets != self.ignore_index)[0].numel()
+        if total_valid_tokens == 0:
+            return torch.tensor(0.0, device=targets.device)
 
-        original_mesh = None
-        original_placements = None
+        # this redistribute allows tensor spitting without replication
         if isinstance(outputs, DTensor):
-            original_placements = outputs.placements
-            original_mesh = outputs.device_mesh
-
-            # resharding on the feature dim stops the sharding dim (currently sequence) from
-            # decaying to Replicate during tensor_split
             outputs = outputs.redistribute(
-                device_mesh=original_mesh, placements=[Shard(-1)] * original_mesh.ndim
+                device_mesh=outputs.device_mesh,
+                placements=[Shard(-1)] * outputs.device_mesh.ndim,
             )
-
         hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
         target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
 
-        # Compute cross-entropy loss for the chunks
-        total_loss = 0.0
-        for idx in range(len(hidden_chunks)):
-            total_loss += self.compute_cross_entropy(
-                hidden_chunks[idx],
-                target_chunks[idx],
-                original_mesh=original_mesh,
-                original_placements=original_placements,
+        total_loss = torch.tensor(0.0, device=targets.device)
+        for hidden_chunk, target_chunk in zip(hidden_chunks, target_chunks):
+            # forcefully reshaping ensures same dim tensor, even if mask is all True
+            target_chunk = target_chunk.reshape(-1)
+            hidden_chunk = hidden_chunk.reshape(-1, hidden_chunk.shape[-1])
+
+            # non-ignored indices
+            indices = torch.where(target_chunk != self.ignore_index)[0]
+
+            hidden_chunk, target_chunk = self.mask_inputs(
+                hidden_chunk, target_chunk, indices
             )
 
-        if total_elements == 0:
-            # must return after calling compute_cross_entropy to not hang during data parallel training
-            return total_loss
-        else:
-            return total_loss / total_elements
+            loss = self.compute_cross_entropy(hidden_chunk, target_chunk)
+            # without this backprop throws `'Tensor' object has no attribute '_local_tensor'`
+            if isinstance(loss, DTensor):
+                loss = loss.full_tensor()
+            total_loss += loss
+
+        return total_loss / total_valid_tokens
