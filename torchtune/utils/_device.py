@@ -265,3 +265,10 @@ def get_torch_device_namespace() -> any:
             f"Device namespace '{device_type}' not found in torch, try to load torch.cuda."
         )
         return torch.cuda
+
+
+def has_cuda_capability(major: int, minor: int) -> bool:
+    return torch.cuda.is_available() and torch.cuda.get_device_capability() >= (
+        major,
+        minor,
+    )

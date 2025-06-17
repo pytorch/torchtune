@@ -17,7 +17,7 @@ SMALL_MODEL_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-03082024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-03082024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-llama3-05052024.pt"
-    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-reward-07122024.pt"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-reward-06092025.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-vision-10172024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-vision-10172024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/config.json"
@@ -27,6 +27,8 @@ SMALL_MODEL_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/special_tokens_map.json"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/tokenizer.json"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/tokenizer_config.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-06112025/config.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-06112025/model.safetensors"
 )
 FULL_MODEL_URL=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
 TOKENIZER_URLS=(
@@ -92,6 +94,8 @@ for S3_URL in "${S3_URLS[@]}"; do
     # TODO: this is a horrible hack
     if [[ "$S3_URL" == *"llama3-hf-04232025"* ]]; then
         FILE_NAME="llama3-hf-04232025/"$(basename "$S3_URL")
+    elif [[ "$S3_URL" == *"llama3-hf-06112025"* ]]; then
+        FILE_NAME="llama3-hf-06112025/"$(basename "$S3_URL")
     else
         FILE_NAME=$(basename "$S3_URL")
     fi
