@@ -15,7 +15,7 @@ class SFTLoss(ABC):
     """Interface for loss functions in torchtune used in sft recipes."""
 
     # makes subclasses with multiple inheritance including nn.Module play nicely
-    # https://docs.pytorch.org/docs/stable/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.loss_parallel
+    # https://github.com/pytorch/pytorch/pull/91819
     call_super_init = True
 
     def __init__(self, *, tp_enabled: bool = False):
@@ -47,8 +47,8 @@ class SFTLoss(ABC):
     @property
     def tp_requires_loss_parallel_ctx_manager(self) -> bool:
         """
-        Whether to use the loss parallel context manager for loss parallelism. Can be
-        used if the function relies on the standard cross_entropy() or CrossEntropyLoss.
+        Whether to use the loss parallel context manager for loss parallelism.
+        https://docs.pytorch.org/docs/stable/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.loss_parallel
         """
         return False
 
