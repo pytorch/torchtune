@@ -6,7 +6,7 @@
 
 import json
 
-from typing import Any, Optional
+from typing import Any, Optional, Mapping
 
 import jinja2
 from jinja2 import StrictUndefined
@@ -228,6 +228,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         *,
         tokenizer_config_json_path: Optional[str] = None,
         generation_config_path: Optional[str] = None,
+        max_seq_len: Optional[int] = None,
         truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
@@ -235,6 +236,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
             tokenizer_config_json_path=tokenizer_config_json_path,
             generation_config_path=generation_config_path,
         )
+        self.max_seq_len = max_seq_len
 
         # Contents of the tokenizer_config.json
         config = self.base_tokenizer.config
@@ -279,7 +281,6 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         self,
         messages: list[Message],
         add_eos: bool = True,
-        max_seq_len: Optional[int] = None,
     ) -> tuple[list[int], list[bool]]:
         tokenized_messages = []
         mask = []
@@ -321,16 +322,26 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         # Finally, truncate if necessary
         tokenized_messages = truncate(
             tokens=tokenized_messages,
-            max_seq_len=max_seq_len,
+            max_seq_len=self.max_seq_len,
             eos_id=self.base_tokenizer.eos_id,
             truncation_type=self.truncation_type,
         )
 
         mask = truncate(
             tokens=mask,
-            max_seq_len=max_seq_len,
+            max_seq_len=self.max_seq_len,
             eos_id=True if add_eos else None,
             truncation_type=self.truncation_type,
         )
 
         return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any], inference: bool = False) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages, add_eos=not inference)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample
