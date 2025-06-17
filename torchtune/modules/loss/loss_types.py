@@ -15,7 +15,7 @@ class SFTLoss(ABC):
     """Interface for loss functions in torchtune used in sft recipes."""
 
     # makes subclasses with multiple inheritance including nn.Module play nicely
-    # https://github.com/pytorch/pytorch/pull/91819
+    # https://docs.pytorch.org/docs/stable/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.loss_parallel
     call_super_init = True
 
     def __init__(self, *, tp_enabled: bool = False):

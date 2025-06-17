@@ -54,14 +54,13 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
-        # compiling with loss parallelism appears to work without masking
-        if not self.tp_enabled or not self.mask_ignored_tokens:
-            self.compute_cross_entropy = torch.compile(
-                self.compute_cross_entropy, *args, **kwargs
+        if self.tp_enabled and self.mask_ignored_tokens:
+            log.warning(
+                "Skipping compile loss, as it is not supported with both masking and tensor parallelism enabled."
             )
         else:
-            log.warning(
-                "Skipping compile loss, as it is not supported with loss parallel enabled."
+            self.compute_cross_entropy = torch.compile(
+                self.compute_cross_entropy, *args, **kwargs
             )
         return self
 
@@ -129,6 +128,7 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
             - The indexed hidden states
             - The indexed targets
         """
+        indices = torch.where(target != self.ignore_index)[0]
         if isinstance(hidden, DTensor):
             device_mesh = hidden.device_mesh
             hidden = hidden.to_local().index_select(0, indices)
@@ -171,8 +171,7 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         outputs = outputs.reshape(-1, outputs.shape[-1])
 
         if self.mask_ignored_tokens:
-            indices = torch.where(targets != self.ignore_index)[0]
-            outputs, targets = self.mask_inputs(outputs, targets, indices)
+            outputs, targets = self.mask_inputs(outputs, targets)
 
         hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=0)
         target_chunks = targets.tensor_split(self.num_output_chunks, dim=0)
