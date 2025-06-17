@@ -306,7 +306,7 @@ torchtune supports finetuning on a variety of devices, including NVIDIA GPU, Int
 
 Step 1: Refer to the [Getting Started on Intel GPU guide](https://docs.pytorch.org/docs/stable/notes/get_start_xpu.html) to configure your environment.
 
-Step 2: Update device information via ither CLI override or config changes.
+Step 2: Update device information via either CLI override or config changes.
 You can directly overwrite config fields from the command line:
 
 ```bash
