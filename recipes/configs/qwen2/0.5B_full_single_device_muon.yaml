@@ -49,16 +49,14 @@ resume_from_checkpoint: False
 # Fine-tuning arguments
 batch_size: 3
 epochs: 1
-muon:
-  enabled: True
-  _component_: torchtune.modules.SingleDeviceMuon
-  momentum: 0.95
-  lr: 5e-4 #0.02
-  weight_decay: 0
 optimizer:
-  _component_: torch.optim.AdamW
-  fused: True
-  lr: 2e-5
+  _component_: torchtune.modules.optim.SingleDeviceMuonWithAuxAdam
+  muon_lr: 0.02
+  muon_momentum: 0.95
+  weight_decay: 0
+  adam_lr: 2e-5
+  adam_betas: [0.9, 0.95]
+  adam_eps: 1e-10
 
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
