@@ -115,13 +115,14 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         return loss
 
     def mask_inputs(
-        self, hidden: torch.Tensor, target: torch.Tensor, indices: torch.Tensor
+        self,
+        hidden: torch.Tensor,
+        target: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             hidden (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz*seq_len, emb_dim]``
             target (torch.Tensor): Labels for the model. Shape ``[bsz*seq_len]``
-            indices (torch.Tensor): Indices of the valid tokens. Shape ``[num_valid]``
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: returns a tuple of
