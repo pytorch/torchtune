@@ -54,7 +54,7 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
-        # we might be able to compile in TP case if masking is disabled?
+        # compiling with loss parallelism appears to work without masking
         if not self.loss_parallel_enabled or not self.mask_ignored:
             self.compute_cross_entropy = torch.compile(
                 self.compute_cross_entropy, *args, **kwargs
@@ -125,8 +125,8 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
-            hidden (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
-            target (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
+            hidden (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz*seq_len, emb_dim]``
+            target (torch.Tensor): Labels for the model. Shape ``[bsz*seq_len]``
             indices (torch.Tensor): Indices of the valid tokens. Shape ``[num_valid]``
 
         Returns:

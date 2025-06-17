@@ -49,7 +49,7 @@ class SFTLoss(ABC):
     def supports_loss_parallel(self) -> bool:
         """
         Whether the loss function supports loss parallel.
-        Set to loss if loss parallelism isn't tested with your loss class.
+        Set to false if loss parallelism isn't tested with your loss class.
         """
         pass
 
@@ -60,7 +60,7 @@ class SFTLoss(ABC):
         Whether to use the loss parallel context manager for loss parallelism. Can be
         used if the function relies on the standard cross_entropy() or CrossEntropyLoss.
         Set to false if loss parallelism isn't tested with your loss class, or your loss
-        parallelism doesn't require the context manager..
+        parallelism doesn't require the context manager.
         """
         pass
 
