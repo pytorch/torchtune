@@ -36,8 +36,6 @@ from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
 from .embedding_utils import resize_token_embeddings  # usort: skip
 
-from .muon import Muon, SingleDeviceMuon
-
 __all__ = [
     "MultiHeadAttention",
     "TanhGate",
@@ -65,6 +63,4 @@ __all__ = [
     "classifier_model",
     "rms_norm",
     "resize_token_embeddings",
-    "Muon", 
-    "SingleDeviceMuon"
 ]

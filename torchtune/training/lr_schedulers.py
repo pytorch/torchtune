@@ -10,6 +10,7 @@ from typing import Union
 import torch
 from torch.optim.lr_scheduler import LambdaLR
 from torchtune.training.memory import OptimizerInBackwardWrapper
+from torchtune.modules.optim import SingleDeviceMuonWithAuxAdam
 
 
 def get_cosine_schedule_with_warmup(
@@ -88,6 +89,14 @@ def get_lr(
         )
 
     # LR Schedulers are the same across all param groups for full_finetune right now
+        
+    if isinstance(optimizer, SingleDeviceMuonWithAuxAdam):
+        for group in param_groups:
+            lr = group["lr"]
+            if group['use_muon']:   # Returning only Muon learning rate
+                return lr
+        return lr
+
     lr = param_groups[0]["lr"]
     for group in param_groups:
         if group["lr"] != lr:
