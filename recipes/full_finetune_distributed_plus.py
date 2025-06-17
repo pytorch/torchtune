@@ -142,6 +142,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
             for batch_idx, batch in enumerate(
                 tqdm(self._dataloader, desc="Precomputing reference logprobs")
             ):
+                
                 # Move batch to device
                 batch = {k: v.to(self._device) for k, v in batch.items()}
                 # Get a unique identifier for the batch (hash of input tokens)
@@ -153,6 +154,8 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
 
                 # Forward pass through reference model
                 ref_logits = self._model(**batch)
+                if self.divide_logits_with_temp:
+                        logits /= self.sampling_temperature
 
                 # Shift labels as in training loop
                 shifted_labels = torch.hstack(
@@ -421,6 +424,9 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
+                    if self.divide_logits_with_temp:
+                        logits /= self.sampling_temperature
+
 
                 if self.use_reference:
                     # Get batch key to look up precomputed logprobs
@@ -497,7 +503,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                     del old_log_ps
                 torch.cuda.empty_cache()  # Force CUDA to release memory
 
-                running_loss += current_loss
+                running_loss += current_loss + self.ent_weight * full_token_entropy_mean
                 running_per_token_ent_sum += per_token_entropy_sum.detach()
                 running_full_token_ent_sum += full_token_entropy_sum.detach()
                 running_per_token_ent_mean += per_token_entropy_mean.detach()
@@ -599,9 +605,9 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
 
                     # Reset running stats for the next step
                     running_loss = 0
+                    combined_loss = 0
                     num_tokens = 0
-                    real_num_tokens = 0  # NOTE: added by us
-                    # Reset all entropy tracking variables
+                    real_num_tokens = 0
                     running_per_token_ent_sum = 0
                     running_full_token_ent_sum = 0
                     running_per_token_ent_mean = 0
