@@ -35,27 +35,27 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         self,
         num_output_chunks: int = 8,
         ignore_index: int = -100,
-        enable_loss_parallel: bool = False,
+        tp_enabled: bool = False,
         mask_ignored_tokens: bool = True,
     ):
-        super().__init__(enable_loss_parallel=enable_loss_parallel)
+        super().__init__(tp_enabled=tp_enabled)
         """
         Args:
             num_output_chunks (int): Number of chunks to split the output tensor into. Default is 8.
             ignore_index (int): Index to ignore in the target tensor. Default is -100.
-            enable_loss_parallel (bool): Whether to enable loss parallel. Default is False.
             mask_ignored_tokens (bool): Whether to mask out ignored tokens during loss computation. Default is True.
         """
         self.linear_projection = None
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
         self.mask_ignored_tokens = mask_ignored_tokens
+        self.tp_enabled = tp_enabled
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
         # compiling with loss parallelism appears to work without masking
-        if not self.loss_parallel_enabled or not self.mask_ignored:
+        if not self.tp_enabled or not self.mask_ignored_tokens:
             self.compute_cross_entropy = torch.compile(
                 self.compute_cross_entropy, *args, **kwargs
             )
@@ -71,23 +71,18 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         self.linear_projection = model.output
 
     def patch_tp_plan(self, tp_plan) -> bool:
-        if self.loss_parallel_enabled:
-            if "output" not in tp_plan:
-                raise KeyError("`tp_plan` requires `output` key")
+        if "output" not in tp_plan:
+            raise KeyError("`tp_plan` requires `output` key")
 
-            tp_plan["output"] = ColwiseParallel(
-                input_layouts=Shard(1),
-                output_layouts=Shard(-1),
-                use_local_output=False,
-            )
+        tp_plan["output"] = ColwiseParallel(
+            input_layouts=Shard(1),
+            output_layouts=Shard(-1),
+            use_local_output=False,
+        )
         return tp_plan
 
     @property
-    def supports_loss_parallel(self) -> bool:
-        return True
-
-    @property
-    def loss_parallel_requires_ctx_manager(self) -> bool:
+    def tp_requires_loss_parallel_ctx_manager(self) -> bool:
         return True
 
     def compute_cross_entropy(
@@ -175,7 +170,7 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         targets = targets.reshape(-1)
         outputs = outputs.reshape(-1, outputs.shape[-1])
 
-        if self.mask_ignored:
+        if self.mask_ignored_tokens:
             indices = torch.where(targets != self.ignore_index)[0]
             outputs, targets = self.mask_inputs(outputs, targets, indices)
 

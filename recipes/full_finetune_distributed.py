@@ -161,7 +161,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
-        enable_loss_parallel = cfg.get("enable_loss_parallel", True)
 
         # Set up n-d device mesh
         self.parallel_dims = training.ParallelDims(
@@ -170,7 +169,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             tp=self.tp_degree,
             cp=self.cp_degree,
             world_size=self.world_size,
-            enable_loss_parallel=enable_loss_parallel,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
         if self.parallel_dims.dp_enabled:
@@ -359,21 +357,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        if isinstance(self._loss_fn, SFTLoss):
-            self._loss_fn.enable_loss_parallel = (
-                self.parallel_dims.loss_parallel_enabled
-            )
 
         # Whether to use the ctx manager. If the loss fn has the property, use that. Otherwise, assume it is not supported.
         # Currently our TP plans assume replicating on the output of `output` so without a custom loss class patching the
         # TP plan, there is no memory benefit to the ctx manager
-        self.use_loss_parallel_ctx_manager = (
-            self.parallel_dims.loss_parallel_enabled
-            and getattr(
-                self._loss_fn,
-                "use_loss_parallel_ctx_manager",
-                False,
-            )
+        self.use_loss_parallel_ctx_manager = self.parallel_dims.tp_enabled and getattr(
+            self._loss_fn,
+            "tp_requires_loss_parallel_ctx_manager",
+            False,
         )
 
         self._model = self._setup_model(
@@ -643,6 +634,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     enable_fp8_training=self._enable_fp8_training,
                 )
                 if isinstance(self._loss_fn, SFTLoss):
+                    self._loss_fn.tp_enabled = True
                     self.tp_plan = self._loss_fn.patch_tp_plan(self.tp_plan)
 
             parallelize_module(

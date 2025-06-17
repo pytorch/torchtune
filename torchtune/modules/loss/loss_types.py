@@ -18,9 +18,9 @@ class SFTLoss(ABC):
     # https://github.com/pytorch/pytorch/pull/91819
     call_super_init = True
 
-    def __init__(self, *, enable_loss_parallel: bool = False):
+    def __init__(self, *, tp_enabled: bool = False):
         super().__init__()
-        self.enable_loss_parallel = enable_loss_parallel
+        self.tp_enabled = tp_enabled
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Compile the loss function for inference."""
@@ -45,47 +45,16 @@ class SFTLoss(ABC):
         pass
 
     @property
-    @abstractmethod
-    def supports_loss_parallel(self) -> bool:
-        """
-        Whether the loss function supports loss parallel.
-        Set to false if loss parallelism isn't tested with your loss class.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def loss_parallel_requires_ctx_manager(self) -> bool:
+    def tp_requires_loss_parallel_ctx_manager(self) -> bool:
         """
         Whether to use the loss parallel context manager for loss parallelism. Can be
         used if the function relies on the standard cross_entropy() or CrossEntropyLoss.
-        Set to false if loss parallelism isn't tested with your loss class, or your loss
-        parallelism doesn't require the context manager.
         """
-        pass
+        return False
 
     def patch_tp_plan(self, tp_plan) -> bool:
         """Whether the loss function supports loss parallel. Defaults to a noop."""
         return tp_plan
-
-    @property
-    def loss_parallel_enabled(self) -> bool:
-        """
-        The `enable_loss_parallel` flag is a directive from the user.
-        This property also validates that it is supported, or raises an error.
-        """
-        if self.enable_loss_parallel and not self.supports_loss_parallel:
-            raise ValueError(
-                f"Loss function is enabled, but {self.__class__.__name__} does not support loss parallelism"
-            )
-        return self.enable_loss_parallel
-
-    @property
-    def use_loss_parallel_ctx_manager(self) -> bool:
-        """
-        Whether to enable the loss parallelism ctx manager for this instance of the class.
-        """
-        return self.loss_parallel_enabled and self.loss_parallel_requires_ctx_manager
 
 
 class RLLoss(ABC):
