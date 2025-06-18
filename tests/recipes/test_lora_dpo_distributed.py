@@ -146,7 +146,7 @@ class TestLoRADPODistributedRecipe:
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @gpu_test(gpu_count=4)
     @pytest.mark.integration_test
-    def test_training_state_on_resume(
+    def test_training_state_on_resume_with_async_checkpointing(
         self, tmpdir, monkeypatch, save_adapter_weights_only
     ):
         """
