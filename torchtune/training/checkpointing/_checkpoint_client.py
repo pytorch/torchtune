@@ -256,11 +256,10 @@ class CheckpointClient:
         optim_state_dict = {}
 
         if is_not_distributed_checkpointer and not single_device:
-            # this logic is needed because staging an async checkpoint needs cpu gathering
+            # this logic is needed because staging an async checkpoint needs cpu
             # which is also used here to save a sync checkpoint that causes issues when
-            # occurring concurrently. This case should never be called in theory because
-            # an epoch would be much longer than an async checkpoint. But running into this
-            # for a test case with a very fast epoch.
+            # occurring concurrently. We should wait for async checkpoint to clear
+            # before saving a sync checkpoint that requires cpu gathering.
             if self._get_dcp_checkpointer()._checkpoint_future is not None:
                 time_start_waiting = time.perf_counter()
                 self._get_dcp_checkpointer()._checkpoint_future.result()

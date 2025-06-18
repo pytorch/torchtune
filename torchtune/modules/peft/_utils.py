@@ -316,7 +316,6 @@ def get_merged_lora_dist_ckpt(
                 dist.barrier()
                 result = mm_module(transposed_b, transposed_a)
 
-                # Apply the result using out-of-place addition
                 proj_weight = state_dict[f"{module}.{param}_proj"]
 
                 dist.barrier()
