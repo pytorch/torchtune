@@ -88,7 +88,7 @@ class CheckpointClient:
         device = self._cfg.get("device", None)
         self._device = utils.get_device(device=device)
 
-        self._world_size, self._rank = utils.get_world_size_and_rank()
+        _, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
 
     def _get_checkpointer(self):
@@ -131,6 +131,7 @@ class CheckpointClient:
         epoch: int,
         adapter_config: Optional[dict[str, Any]],
         adapter_only: bool,
+        single_device: bool,
     ) -> None:
         """
         Checkpoint the training state asynchronously as a distributed checkpoint. Saving
@@ -167,7 +168,7 @@ class CheckpointClient:
                 }
             )
 
-            if self._world_size == 0:
+            if single_device:
                 get_merged_lora_ckpt(
                     ckpt_dict[training.MODEL_KEY],
                     adapter_config["r"],
@@ -375,6 +376,7 @@ class CheckpointClient:
                 epoch,
                 adapter_config,
                 adapter_only,
+                single_device,
             )
         else:
             self._save_checkpoint_sync(
