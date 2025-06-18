@@ -11,6 +11,7 @@ from ._utils import (  # noqa
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    get_merged_lora_dist_ckpt,
     LORA_ATTN_MODULES,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,

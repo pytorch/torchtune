@@ -23,6 +23,7 @@ from torchtune.modules.optim import OptimizerInBackward
 from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_merged_lora_ckpt,
+    get_merged_lora_dist_ckpt,
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.training.checkpointing._checkpointer import DistributedCheckpointer
@@ -87,7 +88,7 @@ class CheckpointClient:
         device = self._cfg.get("device", None)
         self._device = utils.get_device(device=device)
 
-        _, self._rank = utils.get_world_size_and_rank()
+        self._world_size, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
 
     def _get_checkpointer(self):
@@ -166,11 +167,18 @@ class CheckpointClient:
                 }
             )
 
-            get_merged_lora_ckpt(
-                ckpt_dict[training.MODEL_KEY],
-                adapter_config["r"],
-                adapter_config["lora_alpha"],
-            )
+            if self._world_size == 0:
+                get_merged_lora_ckpt(
+                    ckpt_dict[training.MODEL_KEY],
+                    adapter_config["r"],
+                    adapter_config["lora_alpha"],
+                )
+            else:
+                get_merged_lora_dist_ckpt(
+                    ckpt_dict[training.MODEL_KEY],
+                    adapter_config["r"],
+                    adapter_config["lora_alpha"],
+                )
 
         dcp_saver = self._get_dcp_checkpointer()
         if not adapter_only:
@@ -269,10 +277,10 @@ class CheckpointClient:
                 # This check can be removed once we fully migrate over to ``OptimizerInBackward``
                 if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[
-                            param
-                        ] = training.get_full_optimizer_state_dict(
-                            model, opt, self._is_rank_zero, device=self._device
+                        optim_state_dict[param] = (
+                            training.get_full_optimizer_state_dict(
+                                model, opt, self._is_rank_zero, device=self._device
+                            )
                         )
                 elif isinstance(optimizer, OptimizerInBackward):
                     optim_state_dict = optimizer.state_dict()
@@ -359,7 +367,6 @@ class CheckpointClient:
         checkpointer user has configured.
         """
         intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
-
         if intermediate_checkpoint and self._enable_async_checkpointing:
             self._save_checkpoint_async(
                 model,
@@ -414,9 +421,9 @@ class CheckpointClient:
         if "param_groups" in optim_state_dict:
             for param_group in optim_state_dict["param_groups"]:
                 if param_group.get("initial_lr") is None:
-                    param_group[
-                        "initial_lr"
-                    ] = 0.0  # This will get overriden by the actual value in optimizer
+                    param_group["initial_lr"] = (
+                        0.0  # This will get overriden by the actual value in optimizer
+                    )
 
         checkpoint_dict.update(
             {
