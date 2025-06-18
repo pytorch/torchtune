@@ -156,6 +156,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
+        self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
@@ -688,14 +689,20 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-                start_save_checkpoint = time.perf_counter()
-                self._logger.info("Starting checkpoint save...")
-                self.save_checkpoint(epoch=curr_epoch)
-                self._logger.info(
-                    "Checkpoint saved in {:.2f} seconds.".format(
-                        time.perf_counter() - start_save_checkpoint
+
+                # If self._save_last_epoch_only is true, only save checkpoint on the final epoch to save disk space
+                if not self._save_last_epoch_only or curr_epoch == self.total_epochs - 1:
+                    start_save_checkpoint = time.perf_counter()
+                    self._logger.info("Starting checkpoint save...")
+                    self.save_checkpoint(epoch=curr_epoch)
+                    log.info(
+                        "Checkpoint saved in {:.2f} seconds.".format(
+                            time.perf_counter() - start_save_checkpoint
+                        )
                     )
-                )
+                else:
+                    log.info(
+                        f"Skipping checkpoint save for epoch {curr_epoch + 1}..")
 
     def cleanup(self) -> None:
         self._metric_logger.close()
