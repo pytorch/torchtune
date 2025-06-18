@@ -302,7 +302,7 @@ Check out `tune --help` for all possible CLI commands and options. For more info
 torchtune supports finetuning on a variety of different datasets, including [instruct-style](https://pytorch.org/torchtune/main/basics/instruct_datasets.html), [chat-style](https://pytorch.org/torchtune/main/basics/chat_datasets.html), [preference datasets](https://pytorch.org/torchtune/main/basics/preference_datasets.html), and more. If you want to learn more about how to apply these components to finetune on your own custom dataset, please check out the provided links along with our [API docs](https://pytorch.org/torchtune/main/api_ref_datasets.html).
 
 ### Custom Devices
-torchtune supports finetuning on a variety of devices, including NVIDIA GPU, Intel XPU, AMD ROCm, Apple MPS, and Ascend NPUa. If you're interested in running recipes on a custom device, such as Intel XPU, follow the steps below.
+torchtune supports finetuning on a variety of devices, including NVIDIA GPU, Intel XPU, AMD ROCm, Apple MPS, and Ascend NPU. If you're interested in running recipes on a custom device, such as Intel XPU, follow the steps below.
 
 Step 1: Refer to the [Getting Started on Intel GPU guide](https://docs.pytorch.org/docs/stable/notes/get_start_xpu.html) to configure your environment.
 
