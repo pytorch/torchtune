@@ -182,15 +182,11 @@ class CheckpointClient:
                 )
 
         dcp_saver = self._get_dcp_checkpointer()
-        if not adapter_only:
-            dcp_saver.save_checkpoint(ckpt_dict, epoch=epoch, save_async=True)
-
-            if self._is_rank_zero:
-                log.info(
-                    f"Saving asynchronous checkpoint took {time.perf_counter() - cp_start:.2f} secs"
-                )
 
         if adapter_config is not None:
+            # save adapter weights first because it is faster
+            # so will block training for less time
+            # because you can only do async checkpointing one at a time
             adapter_start = time.perf_counter()
 
             save_path = dcp_saver.get_output_path(epoch=epoch)
@@ -212,6 +208,14 @@ class CheckpointClient:
             if self._is_rank_zero:
                 log.info(
                     f"Saving asynchronous checkpoint for adapter weights took {time.perf_counter() - adapter_start:.2f} secs"
+                )
+
+        if not adapter_only:
+            dcp_saver.save_checkpoint(ckpt_dict, epoch=epoch, save_async=True)
+
+            if self._is_rank_zero:
+                log.info(
+                    f"Saving asynchronous checkpoint took {time.perf_counter() - cp_start:.2f} secs"
                 )
 
     def _save_checkpoint_sync(
@@ -278,10 +282,10 @@ class CheckpointClient:
                 # This check can be removed once we fully migrate over to ``OptimizerInBackward``
                 if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[param] = (
-                            training.get_full_optimizer_state_dict(
-                                model, opt, self._is_rank_zero, device=self._device
-                            )
+                        optim_state_dict[
+                            param
+                        ] = training.get_full_optimizer_state_dict(
+                            model, opt, self._is_rank_zero, device=self._device
                         )
                 elif isinstance(optimizer, OptimizerInBackward):
                     optim_state_dict = optimizer.state_dict()
@@ -423,9 +427,9 @@ class CheckpointClient:
         if "param_groups" in optim_state_dict:
             for param_group in optim_state_dict["param_groups"]:
                 if param_group.get("initial_lr") is None:
-                    param_group["initial_lr"] = (
-                        0.0  # This will get overriden by the actual value in optimizer
-                    )
+                    param_group[
+                        "initial_lr"
+                    ] = 0.0  # This will get overriden by the actual value in optimizer
 
         checkpoint_dict.update(
             {
