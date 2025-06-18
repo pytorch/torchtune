@@ -143,6 +143,93 @@ class TestLoRADPODistributedRecipe:
             resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
+    @gpu_test(gpu_count=4)
+    @pytest.mark.integration_test
+    def test_training_state_on_resume_with_async_checkpointing(
+        self, tmpdir, monkeypatch, save_adapter_weights_only
+    ):
+        """
+        Same as above with async checkpointing enabled.
+        """
+
+        ckpt = "llama2_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+
+        # Config file needed for model conversion.
+        # Create a second copy for training resume
+        write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
+
+        # Train for two epochs
+        cmd_1 = f"""
+        tune run  --nnodes 1 --nproc_per_node 4 lora_dpo_distributed \
+            --config llama2/7B_lora_dpo \
+            output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
+            metric_logger.filename={log_file} \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
+            enable_async_checkpointing=True \
+        """.split()
+
+        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_1)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        expected_loss_values = get_loss_values_from_metric_logger(log_file)
+
+        resumed_log_dir = (tmpdir / "resumed/").mkdir()
+        resumed_log_file = gen_log_file_name(resumed_log_dir)
+
+        # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        cmd_2 = f"""
+        tune run  --nnodes 1 --nproc_per_node 4 lora_dpo_distributed \
+            --config llama2/7B_lora_dpo \
+            output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            resume_from_checkpoint=True \
+            metric_logger.filename={resumed_log_file} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
+            enable_async_checkpointing=True \
+        """.split()
+        cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
+        monkeypatch.setattr(sys, "argv", cmd_2)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # Second epoch only
+        resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
+
+        torch.testing.assert_close(
+            resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+        )
+
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
