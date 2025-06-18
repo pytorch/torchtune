@@ -134,7 +134,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        self._checkpoint_client = CheckpointClient(cfg)
         # Set up the backend for distributed training (NCCL, GLOO, etc.)
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
@@ -148,6 +147,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
         self._is_rank_zero = self.rank == 0
+
+        self._checkpoint_client = CheckpointClient(cfg)
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -296,7 +297,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         )
                     )
                 except Exception as e:
-                    log.warning(
+                    self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
 
