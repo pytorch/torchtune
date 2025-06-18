@@ -9,12 +9,12 @@ from typing import List, Optional, Tuple, Callable
 import torch
 from torch import nn
 
-from torchtune.modules import Fp32LayerNorm
 from torchtune.modules.transformer import _get_clones
 from torchtune.modules.model_fusion import register_fusion_module
+from torchtune.modules.rms_norm import RMSNorm
 
 
-class Qwen2_5_VisionRotaryPositionalEmbeddings(nn.Module):
+class Qwen2_5_VisionRotaryEmbedding(nn.Module):
     def __init__(self, dim: int, theta: float = 10000.0) -> None:
         super().__init__()
         self.dim = dim
@@ -56,7 +56,7 @@ class Qwen2_5_VisionRotaryPositionalEmbeddings(nn.Module):
 
 class Qwen2_5_VisionMLP(nn.Module):
     """
-    MLP for Qwen 2.5 Vision.
+    MLP for Qwen 2.5 Vision Transformer AND Decoder - bias is false in both
     """
 
     def __init__(
@@ -79,89 +79,96 @@ class Qwen2_5_VisionMLP(nn.Module):
         x_up, _ = self.up_proj(x)
         x_down, _ = self.down_proj(x_gate * x_up)
         return x_down
+    
 
-class Qwen2_5_VisionTransformer(nn.Module):
-    """
-    Vision transformer for Qwen 2.5 VL that processes images and videos using grid-based processing.
-    Matches HF's implementation while maintaining torchtune's performance optimizations.
-    """
-
+class Qwen2_5_VisionPatchEmbed(nn.Module):
     def __init__(
         self,
+        patch_size: int = 14,
+        temporal_patch_size: int = 2,
+        in_channels: int = 3,
+        embed_dim: int = 1152,
+    ) -> None:
+        super().__init__()
+        self.patch_size = patch_size
+        self.temporal_patch_size = temporal_patch_size
+        self.in_channels = in_channels
+        self.embed_dim = embed_dim
+
+        kernel_size = [temporal_patch_size, patch_size, patch_size]
+        self.proj = nn.Conv3d(in_channels, embed_dim, kernel_size=kernel_size, stride=kernel_size, bias=False)
+
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        target_dtype = self.proj.weight.dtype
+        hidden_states = hidden_states.view(
+            -1, self.in_channels, self.temporal_patch_size, self.patch_size, self.patch_size
+        )
+        hidden_states = self.proj(hidden_states.to(dtype=target_dtype)).view(-1, self.embed_dim)
+        return hidden_states
+
+class Qwen2_5_VLPatchMerger(nn.Module):
+    def __init__(self, dim: int, context_dim: int, spatial_merge_size: int = 2) -> None:
+        super().__init__()
+        self.hidden_size = context_dim * (spatial_merge_size**2)
+        self.ln_q = RMSNorm(context_dim, eps=1e-6)
+        self.mlp = nn.Sequential(
+            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.GELU(),
+            nn.Linear(self.hidden_size, dim),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.mlp(self.ln_q(x).view(-1, self.hidden_size))
+        return x
+    
+
+class Qwen2_5_VisionTransformer(nn.Module):
+    def __init__(self,
         patch_size: int,
         num_layers: int,
         embed_dim: int,
+        num_heads: int,
         layer: nn.Module,
         token_pos_embedding: nn.Module,
+        patch_embed: nn.Module,
+        patch_merger: nn.Module,
         full_att_block_indexes: List[int],
-        pre_tile_pos_embed: Optional[nn.Module] = None,
-        post_tile_pos_embed: Optional[nn.Module] = None,
-        in_channels: int = 3,
         spatial_merge_size: int = 2,
         window_size: int = 14,
-        temporal_patch_size: int = 2,
-    ) -> None:
+        ) -> None:
         super().__init__()
-
-        if patch_size <= 0:
-            raise ValueError("patch_size must be > 0")
-        if full_att_block_indexes and (len(full_att_block_indexes) > num_layers):
-            raise ValueError(
-                f"len(out_indices) must be <= num_layers. Got {full_att_block_indexes=} and {num_layers=}"
-            )
-
-        # Spatial merging configuration
         self.spatial_merge_size = spatial_merge_size
-        self.spatial_merge_unit = spatial_merge_size * spatial_merge_size
         self.patch_size = patch_size
+        self.fullatt_block_indexes = full_att_block_indexes
         self.window_size = window_size
-        self.temporal_patch_size = temporal_patch_size
+        self.spatial_merge_unit = self.spatial_merge_size * self.spatial_merge_size
 
-        self.full_att_block_indexes = full_att_block_indexes
-        self.embed_dim = embed_dim # TODO: remove if not used
+        self.patch_embed = patch_embed
+        # Qwen2_5_VisionPatchEmbed(
+        #     patch_size=patch_size,
+        #     temporal_patch_size=temporal_patch_size,
+        #     in_channels=in_channels,
+        #     embed_dim=embed_dim,
+        # )
 
-        # input modules
+        head_dim = embed_dim // num_heads
+        self.rotary_pos_emb = token_pos_embedding 
+        #Qwen2_5_VisionRotaryEmbedding(head_dim // 2)
+
         self.layers = _get_clones(layer, num_layers)
-        self.token_pos_embedding = token_pos_embedding
+         
+        self.merger = patch_merger
+        register_fusion_module(self.merger)
+        # Qwen2_5_VLPatchMerger(
+        #     dim=out_hidden_size,
+        #     context_dim=hidden_size,
+        #     spatial_merge_size=spatial_merge_size,
+        # )
 
-        # Initialize rotary position embeddings
-        # For vision transformers, we typically use head_dim // 2 for 2D positioning
-        head_dim = embed_dim // 16  # Assuming 16 heads as default, should be parameterized
-        # TODO: remove exact module for generalization
-        self.rotary_pos_emb = Qwen2_5_VisionRotaryPositionalEmbeddings(dim=head_dim // 2)
-
-        # 3D Convolution for patch embedding with temporal support - matches HF implementation
-        # Following torchtune's pattern of keeping conv inside the transformer
-        kernel_size = [temporal_patch_size, patch_size, patch_size]
-        self.conv = nn.Conv3d(
-            in_channels=in_channels,
-            out_channels=embed_dim,
-            kernel_size=kernel_size,
-            stride=kernel_size,
-            bias=False,
-        )
-
-
-    def rot_pos_emb(self, grid_thw: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate rotary position embeddings for spatial grid positions.
-        
-        This method computes position IDs for height and width dimensions,
-        taking into account spatial merging for efficient processing.
-        Matches HF's implementation exactly while using torchtune's caching.
-        
-        Args:
-            grid_thw (torch.Tensor): Tensor of shape [num_items, 3] containing
-                temporal, height, and width dimensions for each item.
-                
-        Returns:
-            torch.Tensor: Position embeddings tensor with shape [total_positions, embed_dim]
-        """
+    def rot_pos_emb(self, grid_thw):
         pos_ids = []
-        
         for t, h, w in grid_thw:
-            # Create height position IDs - matches HF exactly
-            hpos_ids = torch.arange(h, device=grid_thw.device).unsqueeze(1).expand(-1, w)
+            hpos_ids = torch.arange(h).unsqueeze(1).expand(-1, w)
             hpos_ids = hpos_ids.reshape(
                 h // self.spatial_merge_size,
                 self.spatial_merge_size,
@@ -171,8 +178,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
             hpos_ids = hpos_ids.permute(0, 2, 1, 3)
             hpos_ids = hpos_ids.flatten()
 
-            # Create width position IDs - matches HF exactly
-            wpos_ids = torch.arange(w, device=grid_thw.device).unsqueeze(0).expand(h, -1)
+            wpos_ids = torch.arange(w).unsqueeze(0).expand(h, -1)
             wpos_ids = wpos_ids.reshape(
                 h // self.spatial_merge_size,
                 self.spatial_merge_size,
@@ -181,181 +187,103 @@ class Qwen2_5_VisionTransformer(nn.Module):
             )
             wpos_ids = wpos_ids.permute(0, 2, 1, 3)
             wpos_ids = wpos_ids.flatten()
-            
-            # Stack and repeat for temporal dimension - matches HF exactly
             pos_ids.append(torch.stack([hpos_ids, wpos_ids], dim=-1).repeat(t, 1))
-        
-        # Concatenate all position IDs - matches HF exactly
         pos_ids = torch.cat(pos_ids, dim=0)
-        
-        # Get maximum grid size for computing rotary embeddings
         max_grid_size = grid_thw[:, 1:].max()
-        
-        # Use torchtune's cached rotary embedding computation
         rotary_pos_emb_full = self.rotary_pos_emb(max_grid_size)
-        
-        # Index into the full rotary embeddings and flatten - matches HF exactly
         rotary_pos_emb = rotary_pos_emb_full[pos_ids].flatten(1)
         return rotary_pos_emb
 
-    def forward(
-        self,
-        pixel_values: torch.Tensor,
-        grid_thw: torch.Tensor,
-    ) -> torch.Tensor:
+    def get_window_index(self, grid_thw):
+        window_index: list = []
+        cu_window_seqlens: list = [0]
+        window_index_id = 0
+        vit_merger_window_size = self.window_size // self.spatial_merge_size // self.patch_size
+
+        for grid_t, grid_h, grid_w in grid_thw:
+            llm_grid_h, llm_grid_w = (
+                grid_h // self.spatial_merge_size,
+                grid_w // self.spatial_merge_size,
+            )
+            index = torch.arange(grid_t * llm_grid_h * llm_grid_w).reshape(grid_t, llm_grid_h, llm_grid_w)
+            pad_h = vit_merger_window_size - llm_grid_h % vit_merger_window_size
+            pad_w = vit_merger_window_size - llm_grid_w % vit_merger_window_size
+            num_windows_h = (llm_grid_h + pad_h) // vit_merger_window_size
+            num_windows_w = (llm_grid_w + pad_w) // vit_merger_window_size
+            index_padded = nn.F.pad(index, (0, pad_w, 0, pad_h), "constant", -100)
+            index_padded = index_padded.reshape(
+                grid_t,
+                num_windows_h,
+                vit_merger_window_size,
+                num_windows_w,
+                vit_merger_window_size,
+            )
+            index_padded = index_padded.permute(0, 1, 3, 2, 4).reshape(
+                grid_t,
+                num_windows_h * num_windows_w,
+                vit_merger_window_size,
+                vit_merger_window_size,
+            )
+            seqlens = (index_padded != -100).sum([2, 3]).reshape(-1)
+            index_padded = index_padded.reshape(-1)
+            index_new = index_padded[index_padded != -100]
+            window_index.append(index_new + window_index_id)
+            cu_seqlens_tmp = seqlens.cumsum(0) * self.spatial_merge_unit + cu_window_seqlens[-1]
+            cu_window_seqlens.extend(cu_seqlens_tmp.tolist())
+            window_index_id += (grid_t * llm_grid_h * llm_grid_w).item()
+        window_index = torch.cat(window_index, dim=0)
+
+        return window_index, cu_window_seqlens
+
+    def forward(self, hidden_states: torch.Tensor, grid_thw: torch.Tensor) -> torch.Tensor:
         """
-        Process flattened patches using grid-based processing.
-        
         Args:
-            pixel_values (torch.Tensor): Flattened patches tensor of shape 
-                [bsz, num_patches, channels * temporal_patch_size * patch_size * patch_size]
-            grid_thw (torch.Tensor): Grid dimensions tensor of shape [num_items, 3] containing
-                temporal, height, and width dimensions for each item.
-                
+            hidden_states (`torch.Tensor` of shape `(seq_len, hidden_size)`):
+                The final hidden states of the model.
+            grid_thw (`torch.Tensor` of shape `(num_images_or_videos, 3)`):
+                The temporal, height and width of feature shape of each image in LLM.
+
         Returns:
-            torch.Tensor: Processed embeddings of shape [bsz, num_patches, embed_dim]
+            `torch.Tensor`: hidden_states.
         """
-        # Reshape flattened patches for 3D convolution
-        # From [num_patches, channels * temporal_patch_size * patch_size * patch_size]
-        # to [num_patches, channels, temporal_patch_size, patch_size, patch_size]
-        bsz, num_patches, _ = pixel_values.shape
-        channels = pixel_values.shape[1] // (self.temporal_patch_size * self.patch_size * self.patch_size)
-        
-        x = pixel_values.view(
-            bsz,
-            num_patches,
-            channels,
-            self.temporal_patch_size,
-            self.patch_size,
-            self.patch_size
-        )
-        
-        # Apply 3D convolution
-        target_dtype = self.conv.weight.dtype
-        x = self.conv(x.to(dtype=target_dtype))
-        
-        # Reshape to [bsz, num_patches, embed_dim]
-        x = x.view(-1, num_patches, self.embed_dim)
-        
-        # Calculate total sequence length from grid dimensions
-        total_t = grid_thw[:, 0].sum()
-        total_h = grid_thw[:, 1].sum() // self.spatial_merge_size
-        total_w = grid_thw[:, 2].sum() // self.spatial_merge_size
-        seq_len = total_t * total_h * total_w
-        
-        # Reshape to [bsz, seq_len, embed_dim]
-        x = x[:, :seq_len]
-        
-        
-        # Get rotary position embeddings
+        hidden_states = self.patch_embed(hidden_states)
         rotary_pos_emb = self.rot_pos_emb(grid_thw)
-        
-        # Process through transformer layers
-        for layer_idx, transformer_layer in enumerate(self.layers):
-            if layer_idx in self.full_att_block_indexes:
-                # TODO: Implement window attention logic
-                pass
-            x = transformer_layer(x, rotary_pos_emb)
-        
-        
-        return x
+        window_index, cu_window_seqlens = self.get_window_index(grid_thw)
+        cu_window_seqlens = torch.tensor(
+            cu_window_seqlens,
+            device=hidden_states.device,
+            dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+        )
+        cu_window_seqlens = torch.unique_consecutive(cu_window_seqlens)
 
+        seq_len, _ = hidden_states.size()
+        hidden_states = hidden_states.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
+        hidden_states = hidden_states[window_index, :, :]
+        hidden_states = hidden_states.reshape(seq_len, -1)
+        rotary_pos_emb = rotary_pos_emb.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
+        rotary_pos_emb = rotary_pos_emb[window_index, :, :]
+        rotary_pos_emb = rotary_pos_emb.reshape(seq_len, -1)
+        emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
+        position_embeddings = (emb.cos(), emb.sin())
 
+        cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
+            dim=0,
+            dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+        )
+        cu_seqlens = nn.F.pad(cu_seqlens, (1, 0), value=0)
 
+        for layer_num, blk in enumerate(self.layers):
+            if layer_num in self.fullatt_block_indexes:
+                cu_seqlens_now = cu_seqlens
+            else:
+                cu_seqlens_now = cu_window_seqlens
+            
+            hidden_states = blk(hidden_states, cu_seqlens=cu_seqlens_now, position_embeddings=position_embeddings)
 
+        hidden_states = self.merger(hidden_states)
+        reverse_indices = torch.argsort(window_index)
+        hidden_states = hidden_states[reverse_indices, :]
 
-class Qwen2_5VisionProjectionHead(nn.Module):
-    """Projection transformer to adapt the output of a
-    pretrained frozen encoder (CLIP) to a pretrained decoder model.
-    For example, ``nn.Sequential(CLIP(), Qwen2_5VisionProjectionHead())``.
+        return hidden_states
 
-    Note: this module assumes the CLS token embedding is added at the end
-    of the sequence.
-
-    Args:
-        output (nn.Module): output layer, typically an MLP.
-        pixel_shuffle_scaling_factor (float): scaling factor for pixel shuffle.
-    """
-
-    def __init__(
-        self,
-        output: nn.Module,
-    ) -> None:
-        super().__init__()
-        self.output = output
-
-
-    def forward(
-        self,
-        x: torch.Tensor,
-    ) -> torch.Tensor:
-        """
-        Args:
-            x (torch.Tensor): input tensor with shape [b, e, d]
-
-        Returns:
-            Tensor: output tensor of a sequence of embeddings [b, s, d * pixel_shuffle_factor ** 2]
-
-        Notation used for tensor shapes:
-            - b: batch size
-            - e: number of embeds per tile (e.g. CLS embed + patch embeds, etc.)
-            - s: sequence length computed by t * (e - 1) // (pixel_shuffle_factor ** 2)
-            - d: embed dim
-        """
-        # Remove cls token - assumes it is the last token in the sequence
-        x = x[:, :-1, :] # TODO: Remove?
-        bsz, embeds, dim = x.shape
-
-        h_patches = w_patches = int(embeds**0.5)
-        x = x.reshape(bsz, h_patches, w_patches, -1)
-        _, new_h_patches, new_w_patches, new_dim = x.shape
-        # shape: [bsz, embeds // factor ** 2, dim * factor ** 2)]
-        x = x.reshape(bsz, new_h_patches * new_w_patches, new_dim)
-        # apply output - shape [bsz, embeds // factor ** 2, output_dim]
-        x = self.output(x)
-
-        return x
-
-
-
-class Qwen2_5VisionEncoder(nn.Module):
-    """Vision encoder model for Qwen 2.5. This combines a pretrained
-    vision encoder with a learnable projection head. The projection head
-    is converted to a fusion module and supports fusion utils.
-
-    Args:
-        visual_encoder (nn.Module): Qwen2_5_VisionTransformer model
-        projection_head (nn.Module): ``projection_head`` that takes embeddings
-            with dimension ``encoder_dim`` as input and outputs embeddings of
-            size ``decoder_dim``. See :func:`torchtune.models.qwen2_5_vision.qwen2_5_vision_projection_head`
-            as an example.
-    """
-
-    def __init__(self, visual_encoder: nn.Module, projection_head: nn.Module) -> None:
-        super().__init__()
-        self.visual_encoder = visual_encoder
-        self.projection = projection_head
-        register_fusion_module(self.projection)
-
-    def forward(self, images: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            images (torch.Tensor): Image tensor with shape [b x c x w x h]
-
-        Returns:
-            Tensor: output tensor of a sequence of embeddings ``[b x s x d]``
-                where sequence length (``s``) is ``(num_imgs*num_tiles)+num_embeds``
-
-         Notation used for tensor shapes:
-            - b: batch size, equal to flatten(batch x images x tiles)
-            - c: number of image channels (e.g. rgb = 3)
-            - w: image width
-            - h: image height
-            - s: sequence length computed by i*t*clip_embeds_per_tile
-            - d: embed dim
-        """
-        #TODO: check dims
-        x, _ = self.visual_encoder(images[:, None, None])
-        x = self.projection(x.squeeze((1, 2)))
-        return x
 
