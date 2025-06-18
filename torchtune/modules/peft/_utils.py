@@ -10,7 +10,6 @@ from typing import Any, Generator, Literal, Optional, Protocol, runtime_checkabl
 import torch
 import torch.distributed as dist
 from torch import nn
-from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune.utils._logging import deprecate_parameter
 
 # Modules from MultiHeadAttention that LoRA can be applied to
@@ -366,6 +365,7 @@ def get_merged_lora_dist_ckpt(
                 lora_b_weight,
                 lora_a_weight,
             )
+            state_dict[f"{module}.weight"] += lora_weight
 
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
