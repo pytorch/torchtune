@@ -63,7 +63,9 @@ class TokenChoiceTopKRouter(nn.Module):
 
         # By default, sigmoid is performed in float32 to avoid loss explosion
         if self.softmax:
-            scores = nn.functional.softmax(scores, dim=1, dtype=torch.float32).to(x.dtype)
+            scores = nn.functional.softmax(scores, dim=1, dtype=torch.float32).to(
+                x.dtype
+            )
         else:
             scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
 

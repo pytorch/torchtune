@@ -69,9 +69,9 @@ def tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
                 input_layouts=(Shard(1), Shard(1)),
                 desired_input_layouts=(Replicate(), Replicate()),
             ),
-            #f"layers.{layer_id}.attn.q_norm": SequenceParallel(),
+            # f"layers.{layer_id}.attn.q_norm": SequenceParallel(),
             f"layers.{layer_id}.attn.q_proj": ColwiseParallel(),
-            #f"layers.{layer_id}.attn.k_norm": SequenceParallel(),
+            # f"layers.{layer_id}.attn.k_norm": SequenceParallel(),
             f"layers.{layer_id}.attn.k_proj": ColwiseParallel(),
             f"layers.{layer_id}.attn.v_proj": ColwiseParallel(),
             f"layers.{layer_id}.attn.output_proj": RowwiseParallel(
@@ -102,9 +102,7 @@ def tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
                     desired_input_layouts=(Replicate(),),
                 ),
                 f"layers.{layer_id}.mlp.w1": ColwiseParallel(),
-                f"layers.{layer_id}.mlp.w2": RowwiseParallel(
-                    output_layouts=Shard(1)
-                ),
+                f"layers.{layer_id}.mlp.w2": RowwiseParallel(output_layouts=Shard(1)),
                 f"layers.{layer_id}.mlp.w3": ColwiseParallel(),
             }
         layer_plan.update(mlp_plan)
@@ -160,9 +158,7 @@ def tp_inference_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     return plan
 
 
-def tp_plan(
-    model: nn.Module, inference: bool = False
-) -> dict[str, ParallelStyle]:
+def tp_plan(model: nn.Module, inference: bool = False) -> dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 
@@ -173,8 +169,4 @@ def tp_plan(
     Returns:
         dict[str, Any]: The tensor parallel plan for Llama3 model.
     """
-    return (
-        tp_inference_plan(model)
-        if inference
-        else tp_training_plan(model)
-    )
+    return tp_inference_plan(model) if inference else tp_training_plan(model)

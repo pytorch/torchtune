@@ -4,8 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
 import re
+
+import torch
 
 from torchtune.models.convert_weights import get_mapped_key
 
@@ -142,8 +143,8 @@ def get_mapped_key_moe(key: str, mapping_dict: dict[str, str]) -> str:
     the new key with the original layer number. Other numbers in the key are left unchanged.
 
     Args:
-        key: The original key from the state dictionary.
-        mapping_dict: A dictionary mapping generic keys (with '{}' as a placeholder
+        key (str): The original key from the state dictionary.
+        mapping_dict (dict[str, str]): A dictionary mapping generic keys (with '{}' as a placeholder
                       for the layer number) to new generic keys.
 
     Returns:
@@ -170,8 +171,6 @@ def get_mapped_key_moe(key: str, mapping_dict: dict[str, str]) -> str:
         ) from e
 
     return new_key
-
-
 
 
 def qwen3_moe_hf_to_tune(
@@ -267,7 +266,9 @@ def qwen3_moe_tune_to_hf(
         new_key = get_mapped_key_moe(key, inverted_mapping_dict)
         if "experts" in key:
             for i, tensor in enumerate(torch.unbind(value)):
-                converted_state_dict[str(i).join(new_key.rsplit("0", 1))] = tensor.T.contiguous()
+                converted_state_dict[
+                    str(i).join(new_key.rsplit("0", 1))
+                ] = tensor.T.contiguous()
         else:
             converted_state_dict[new_key] = value
         if QWEN3_TUNE_EMBEDDING_KEY in key and tie_word_embeddings:
