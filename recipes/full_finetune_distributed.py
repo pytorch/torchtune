@@ -701,7 +701,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model, enable_activation_offloading, activation_offloading_use_streams
         )
         # context parallel
-        self.optional_context_parallel_manager = training.get_context_parallel_manager(
+        self.context_parallel_manager = training.get_context_parallel_manager(
             enabled=self.cp_degree > 1,
             world_mesh=self.world_mesh,
             model=model,
@@ -944,7 +944,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 num_tokens += current_num_tokens
 
                 with self.train_context(
-                    self.optional_context_parallel_manager(list(batch.values()))
+                    self.context_parallel_manager(list(batch.values()))
                 ):
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
