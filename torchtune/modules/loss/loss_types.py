@@ -14,14 +14,6 @@ from torch import nn
 class SFTLoss(ABC):
     """Interface for loss functions in torchtune used in sft recipes."""
 
-    # makes subclasses with multiple inheritance including nn.Module play nicely
-    # https://github.com/pytorch/pytorch/pull/91819
-    call_super_init = True
-
-    def __init__(self, *, tp_enabled: bool = False):
-        super().__init__()
-        self.tp_enabled = tp_enabled
-
     def apply_compile_strategy(self, *args, **kwargs):
         """Compile the loss function for inference."""
         self.forward = torch.compile(self.forward, *args, **kwargs)
@@ -52,7 +44,7 @@ class SFTLoss(ABC):
         """
         return False
 
-    def patch_tp_plan(self, tp_plan) -> bool:
+    def patch_tp_plan(self, tp_plan) -> dict:
         """Whether the loss function supports loss parallel. Defaults to a noop."""
         return tp_plan
 

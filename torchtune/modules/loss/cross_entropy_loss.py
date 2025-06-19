@@ -38,7 +38,7 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         tp_enabled: bool = False,
         mask_ignored_tokens: bool = True,
     ):
-        super().__init__(tp_enabled=tp_enabled)
+        super().__init__()
         """
         Args:
             num_output_chunks (int): Number of chunks to split the output tensor into. Default is 8.
@@ -69,7 +69,7 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         model.skip_output_layer = True
         self.linear_projection = model.output
 
-    def patch_tp_plan(self, tp_plan) -> bool:
+    def patch_tp_plan(self, tp_plan) -> dict:
         if "output" not in tp_plan:
             raise KeyError("`tp_plan` requires `output` key")
 
