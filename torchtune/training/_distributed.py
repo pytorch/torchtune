@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Generator, Optional, Union
+from typing import Any, Callable, cast, Generator, Optional
 
 import torch
 import torch.distributed as dist
@@ -785,7 +785,7 @@ def _get_sdpa_context() -> (
     """
 
     @contextlib.contextmanager
-    def context(cp_context: Union[Generator[None, None, None], None] = None):
+    def context(cp_context: Optional[Generator[None, None, None]] = None):
         with contextlib.ExitStack() as stack:
             if cp_context is not None:
                 stack.enter_context(
@@ -883,7 +883,7 @@ def get_context_parallel_manager(
 
 def get_train_context(enable_loss_parallel: bool) -> Generator[None, None, None]:
     @contextlib.contextmanager
-    def context(cp_context: Generator[None, None, None] | None = None):
+    def context(cp_context: Optional[Generator[None, None, None]] = None):
         with contextlib.ExitStack() as stack:
             if enable_loss_parallel:
                 stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
