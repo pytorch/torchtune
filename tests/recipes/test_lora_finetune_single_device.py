@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil; print("✅ shutil is imported")
 import sys
 from pathlib import Path
 
