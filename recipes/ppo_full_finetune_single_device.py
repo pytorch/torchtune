@@ -6,6 +6,7 @@
 
 import contextlib
 import math
+import os
 import sys
 import time
 from functools import partial
@@ -1235,6 +1236,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
+    if cfg.get("enable_expandable_segments", True):
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     config.log_config(recipe_name="PPOFullFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = PPOFullFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)

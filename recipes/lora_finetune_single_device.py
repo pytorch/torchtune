@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -14,7 +15,6 @@ from warnings import warn
 import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
-
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -710,6 +710,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
+    if cfg.get("enable_expandable_segments", True):
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
