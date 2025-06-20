@@ -6,6 +6,9 @@
 
 __version__ = ""
 
+# Avoid memory fragmentation and increase of reserved memory growing over time
+if cfg.get("enable_expandable_segments", True):
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # Check at the top-level that torchao is installed.
 # This is better than doing it at every import site.
