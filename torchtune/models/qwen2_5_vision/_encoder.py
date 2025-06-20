@@ -15,44 +15,128 @@ from torchtune.modules.rms_norm import RMSNorm
 
 
 class Qwen2_5_VisionRotaryEmbedding(nn.Module):
-    def __init__(self, dim: int, theta: float = 10000.0) -> None:
+    """
+    This class implements Rotary Positional Embeddings (RoPE)
+    proposed in https://arxiv.org/abs/2104.09864.
+
+    Reference implementation (used for correctness verfication)
+    can be found here:
+    https://github.com/meta-llama/llama/blob/main/llama/model.py#L80
+
+    In this implementation we cache the embeddings for each position upto
+    ``max_seq_len`` by computing this during init.
+
+    Args:
+        dim (int): Embedding dimension. This is usually set to the dim of each
+            head in the attention module computed as ``embed_dim // num_heads``
+        max_seq_len (int): Maximum expected sequence length for the
+            model, if exceeded the cached freqs will be recomputed
+        base (int): The base for the geometric progression used to compute
+            the rotation angles
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        max_seq_len: int = 4096,
+        base: int = 10_000,
+        spatial_merge_unit: int = 2,
+    ) -> None:
         super().__init__()
         self.dim = dim
-        self.theta = theta
-        inv_freq = 1.0 / (theta
-                          **(torch.arange(0, dim, 2, dtype=torch.float) / dim))
-        self.register_buffer("inv_freq", inv_freq, persistent=False)
-        self._seq_len_cached = 0
-        self._freqs_cached = None
+        self.base = base
+        self.max_seq_len = max_seq_len
+        self.spatial_merge_unit = spatial_merge_unit # TODO: should this be an attr or just merge size
+        self.rope_init()
 
-    def build_rope_cache(self, seqlen: int) -> None:
-        if seqlen > self._seq_len_cached:
-            # Double the cache size to avoid frequent rebuilds
-            seqlen *= 2
-            self._seq_len_cached = seqlen
-            # Recompute inv_freq to ensure it's on the right device
-            self.inv_freq = 1.0 / (self.theta ** (torch.arange(
-                0, self.dim, 2, dtype=torch.float, device=self.inv_freq.device)
-                                                / self.dim))
-            seq = torch.arange(seqlen,
-                               device=self.inv_freq.device,
-                               dtype=self.inv_freq.dtype)
-            freqs = torch.outer(seq, self.inv_freq)
-            self._freqs_cached = freqs
+    def rope_init(self):
+        theta = 1.0 / (
+            self.base
+            ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
+        )
+        self.register_buffer("theta", theta, persistent=False)
+        self.build_rope_cache(self.max_seq_len)
 
-    def forward(self, seqlen: int) -> torch.Tensor:
+    def build_rope_cache(self, max_seq_len: int = 4096) -> None:
+        # Create position indexes `[0, 1, ..., max_seq_len - 1]`
+        seq_idx = torch.arange(
+            max_seq_len, dtype=self.theta.dtype, device=self.theta.device
+        )
+
+        # Outer product of theta and position index; output tensor has
+        # a shape of [max_seq_len, dim // 2]
+        idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
+
+        # cache includes both the cos and sin components and so the output shape is
+        # [max_seq_len, dim // 2, 2]
+        cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
+        self.register_buffer("cache", cache, persistent=False)
+
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None, window_index: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
-        Get rotary position embeddings for given sequence length.
-        
         Args:
-            seqlen (int): Sequence length
-            
-        Returns:
-            torch.Tensor: Frequencies tensor of shape [seqlen, dim//2]
-        """
-        self.build_rope_cache(seqlen)
-        return self._freqs_cached[:seqlen]
+            x (torch.Tensor): input tensor with shape
+                ``[b, s, n_h, h_d]``
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b, s].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
+            window_index (Optional[torch.Tensor]): Optional tensor which contains the window index
+                of each token. During training, this is used to indicate the window index
+                of each token when packed, shape [b, s]. # TODO: check if this is correct
 
+
+        Returns:
+            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
+
+        Notation used for tensor shapes:
+            - b: batch size
+            - s: sequence length
+            - n_h: num heads
+            - h_d: head dim
+        """
+        # input tensor has shape [b, s, n_h, h_d]
+        seq_len = x.size(1)
+
+        # extract the values based on whether input_pos is set or not
+        rope_cache = (
+            self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
+        )
+        # merge height and width into one dimension
+        rope_cache = rope_cache.flatten(1) # [s, h_d, 2]
+
+        # rearrange indices to match window index
+        rope_cache = rope_cache.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
+        rope_cache = rope_cache[window_index, :, :]
+        rope_cache = rope_cache.reshape(seq_len, -1)
+
+        # reshape input; the last dimension is used for computing the output.
+        # Cast to float to match the reference implementation
+        # tensor has shape [b, s, n_h, h_d // 2, 2]
+        xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
+
+        # reshape the cache for broadcasting
+        # tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,
+        # otherwise has shape [1, s, 1, h_d // 2, 2]
+        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
+
+        # tensor has shape [b, s, n_h, h_d // 2, 2]
+        x_out = torch.stack(
+            [
+                xshaped[..., 0] * rope_cache[..., 0]
+                - xshaped[..., 1] * rope_cache[..., 1],
+                xshaped[..., 1] * rope_cache[..., 0]
+                + xshaped[..., 0] * rope_cache[..., 1],
+            ],
+            -1,
+        )
+
+        # tensor has shape [b, s, n_h, h_d]
+        x_out = x_out.flatten(3)
+        return x_out.type_as(x)
 
 class Qwen2_5_VisionMLP(nn.Module):
     """
@@ -165,7 +249,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
         #     spatial_merge_size=spatial_merge_size,
         # )
 
-    def rot_pos_emb(self, grid_thw):
+    def get_rope_index(self, grid_thw):
         pos_ids = []
         for t, h, w in grid_thw:
             hpos_ids = torch.arange(h).unsqueeze(1).expand(-1, w)
@@ -189,10 +273,11 @@ class Qwen2_5_VisionTransformer(nn.Module):
             wpos_ids = wpos_ids.flatten()
             pos_ids.append(torch.stack([hpos_ids, wpos_ids], dim=-1).repeat(t, 1))
         pos_ids = torch.cat(pos_ids, dim=0)
-        max_grid_size = grid_thw[:, 1:].max()
-        rotary_pos_emb_full = self.rotary_pos_emb(max_grid_size)
-        rotary_pos_emb = rotary_pos_emb_full[pos_ids].flatten(1)
-        return rotary_pos_emb
+        return pos_ids
+        # max_grid_size = grid_thw[:, 1:].max()
+        # rotary_pos_emb_full = self.rotary_pos_emb(max_grid_size)
+        # rotary_pos_emb = rotary_pos_emb_full[pos_ids].flatten(1)
+        # return rotary_pos_emb
 
     def get_window_index(self, grid_thw):
         window_index: list = []
@@ -247,7 +332,8 @@ class Qwen2_5_VisionTransformer(nn.Module):
             `torch.Tensor`: hidden_states.
         """
         hidden_states = self.patch_embed(hidden_states)
-        rotary_pos_emb = self.rot_pos_emb(grid_thw)
+        rope_index = self.get_rope_index(grid_thw)
+        # rotary_pos_emb = self.rot_pos_emb(grid_thw) # already correct pos emb indicies
         window_index, cu_window_seqlens = self.get_window_index(grid_thw)
         cu_window_seqlens = torch.tensor(
             cu_window_seqlens,
@@ -260,11 +346,12 @@ class Qwen2_5_VisionTransformer(nn.Module):
         hidden_states = hidden_states.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
         hidden_states = hidden_states[window_index, :, :]
         hidden_states = hidden_states.reshape(seq_len, -1)
-        rotary_pos_emb = rotary_pos_emb.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
-        rotary_pos_emb = rotary_pos_emb[window_index, :, :]
-        rotary_pos_emb = rotary_pos_emb.reshape(seq_len, -1)
-        emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
-        position_embeddings = (emb.cos(), emb.sin())
+        # # TODO: port this into rotary pos emb module
+        # rotary_pos_emb = rotary_pos_emb.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
+        # rotary_pos_emb = rotary_pos_emb[window_index, :, :]
+        # rotary_pos_emb = rotary_pos_emb.reshape(seq_len, -1)
+        # emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
+        # position_embeddings = (emb.cos(), emb.sin())
 
         cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
             dim=0,
@@ -278,7 +365,13 @@ class Qwen2_5_VisionTransformer(nn.Module):
             else:
                 cu_seqlens_now = cu_window_seqlens
             
-            hidden_states = blk(hidden_states, cu_seqlens=cu_seqlens_now, position_embeddings=position_embeddings)
+            attention_mask = torch.full(
+                [1, seq_len, seq_len], # TODO: figure out these args torch.finfo(q.dtype).min, device=q.device, dtype=q.dtype
+            )
+            for i in range(1, len(cu_seqlens_now)):
+                attention_mask[..., cu_seqlens_now[i - 1] : cu_seqlens_now[i], cu_seqlens_now[i - 1] : cu_seqlens_now[i]] = 0
+
+            hidden_states = blk(hidden_states, input_pos=rope_index, mask=attention_mask)
 
         hidden_states = self.merger(hidden_states)
         reverse_indices = torch.argsort(window_index)
