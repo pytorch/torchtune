@@ -246,6 +246,7 @@ class Qwen2_5_VLImageTransform:
         return sample
 
 class Qwen2_5_VLTransform(ModelTokenizer, Transform):
+    # TODO: update docstring
     """
     Transform for Qwen 2.5 Vision model that handles both text tokenization and image processing.
 

@@ -1,134 +1,150 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 import torch.nn as nn
-from typing import Any, Optional
+from typing import Optional, Tuple
 
 
-class Qwen2_5_VLRotaryPositionalEmbeddings(nn.Module):
+def rotate_half(x):
+    """Rotates half the hidden dims of the input."""
+    x1 = x[..., : x.shape[-1] // 2]
+    x2 = x[..., x.shape[-1] // 2 :]
+    return torch.cat((-x2, x1), dim=-1)
+
+class Qwen2_5_VLRotaryEmbedding(nn.Module):
     """
-    This class implements two-dimensional Rotary Positional Embeddings (RoPE) for images
-    based on the axial frequency 2D RoPE described in https://arxiv.org/pdf/2403.13298.
-
-    The position embedding is simply applied to the x-axis and y-axis separately, encoding
-    the x and y position of each patch within every tile.. The embedding is applied to each
-    tile identically.
-
-    Note: This module assumes the CLS token embedding is appended at the end of the sequence.
-
-    Args:
-        patch_size (int): The size of each patch. Used to divide the tiles into patches.
-            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.
-        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
-            the size of the full input image. In this case, the function will consider your image as a single tile.
-        dim (int): Embedding dimension. Unlike :class:`~torchtune.modules.RotaryPositionalEmbeddings`, this is
-            usually set to the dim of each head in the attention module divided by 2, computed as
-            ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.
-        base (int): The base for the geometric progression used to compute
-            the rotation angles
-        append_cls_token (bool): Set to True if CLS token embedding is at the end of the sequence in the vision transformer,
-            False if is in the beginning of the sequence. RoPE is zeroed out for the CLS token. Default is True.
+    Multimodal Rotary Position Embedding for Qwen2.5-VL.
+    
+    This implements MRoPE which handles 3D position embeddings:
+    - Temporal dimension (for videos)
+    - Height dimension (spatial)  
+    - Width dimension (spatial)
+    
+    For text tokens, all three dimensions use the same position IDs, making it
+    equivalent to standard 1D RoPE.
     """
-
+    
     def __init__(
         self,
-        patch_size: int,
-        tile_size: int,
         dim: int,
-        base: int = 10_000,
-        append_cls_token: bool = True,
-    ) -> None:
-        super().__init__()
-        self.patch_grid_size = tile_size // patch_size
-        self.seq_len = self.patch_grid_size**2 + 1
-        self.dim = dim
-        self.base = base
-        self.append_cls_token = append_cls_token
-        self.rope_init()
-
-    def rope_init(self):
-        dim = self.dim // 2
-        theta = 1.0 / (
-            self.base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim)
-        )
-        self.register_buffer("theta", theta, persistent=False)
-        self.build_rope_cache()
-
-    def build_rope_cache(self) -> None:
-        # TODO replace with proper indicies
-        # Create position indices for each patch in the tile
-        patches_per_tile = self.patch_grid_size**2
-        patch_idx = torch.arange(
-            patches_per_tile, dtype=self.theta.dtype, device=self.theta.device
-        )        
-        patch_idx = torch.cat(
-            [
-                -1 * torch.ones(1, dtype=patch_idx.dtype, device=patch_idx.device),
-                patch_idx,
-            ]
-        )
-        # Encode x and y positions of each patch in the tile
-        patch_x_pos = patch_idx % self.patch_grid_size
-        patch_y_pos = patch_idx // self.patch_grid_size
-
-        # Outer product of theta and position index; output tensor has
-        # a shape of [patches_per_tile + 1, dim // 4]
-        x_theta = torch.einsum("i, j -> ij", patch_x_pos + 1, self.theta).float()
-        y_theta = torch.einsum("i, j -> ij", patch_y_pos + 1, self.theta).float()
-
-        # Shape: [patches_per_tile + 1, dim]
-        freqs = torch.cat([x_theta, y_theta], dim=-1)
-        # Zero out CLS token position frequencies
-        freqs = freqs.masked_fill(patch_idx.unsqueeze(-1) < 0, 0)
-
-        # cache includes both the cos and sin components and so the output shape is
-        # [patches_per_tile + 1, dim, 2]
-        cache = torch.stack([torch.cos(freqs), torch.sin(freqs)], dim=-1)
-        self.register_buffer("cache", cache, persistent=False)
-
-    def get_pos_indices(self):
-        pass
-
-    def forward(
-        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+        base: float = 1000000.0,
+        device: Optional[torch.device] = None,
+    ):
         """
         Args:
-            x (torch.Tensor): input tensor with shape ``[b, s, n_h, h_d]``
-            **kwargs (Any): additional keyword arguments. This is kept to match the forward signature of
-                :class:`~torchtune.modules.RotaryPositionalEmbeddings`.
-
-        Returns:
-            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
-
-        Notation used for tensor shapes:
-            - b: batch size
-            - s: sequence length
-            - n_h: num heads
-            - h_d: head dim
+            dim (int): Dimension of the embedding (head_dim).
+            base (float): Base for computing inverse frequencies.
+            device (torch.device): Device to place tensors on.
         """
-        bsz, _, n_h, h_d = x.shape
+        super().__init__()
+        self.dim = dim
+        self.base = base
+        
+        # Create inverse frequency tensor
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2, dtype=torch.float, device=device) / dim))
+        self.register_buffer("inv_freq", inv_freq, persistent=False)
 
-        # reshape input; the last dimension is used for computing the output.
-        # Split tile dimension from the sequence dimension
-        # Cast to float to match the reference implementation
-        # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
-        xshaped = x.float().reshape(bsz, -1, self.seq_len, n_h, h_d // 2, 2)
+    @torch.no_grad()
+    def forward(self, x: torch.Tensor, position_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Args:
+            x (torch.Tensor): Input tensor (used for device/dtype inference).
+            position_ids (torch.Tensor): Position IDs with shape (3, batch_size, seq_len)
+                                        where 3 represents [temporal, height, width].
+        
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (cos, sin) embeddings with shape 
+                                              (3, batch_size, seq_len, head_dim).
+        """
+        # Expand inv_freq to match position_ids structure
+        # Shape: (3, batch_size, head_dim // 2, 1)
+        inv_freq_expanded = self.inv_freq[None, None, :, None].float().expand(3, position_ids.shape[1], -1, 1)
+        
+        # Expand position_ids for matrix multiplication
+        # Shape: (3, batch_size, 1, seq_len)
+        position_ids_expanded = position_ids[:, :, None, :].float()
 
-        # reshape the cache for broadcasting
-        rope_cache = self.cache.view(1, 1, self.seq_len, 1, h_d // 2, 2)
+        # Compute frequencies: (3, batch_size, head_dim // 2, seq_len)
+        device_type = x.device.type if isinstance(x.device.type, str) and x.device.type != "mps" else "cpu"
+        with torch.autocast(device_type=device_type, enabled=False):  # Force float32
+            freqs = (inv_freq_expanded.float() @ position_ids_expanded.float()).transpose(2, 3)
+            # Duplicate freqs for cos/sin pairs: (3, batch_size, seq_len, head_dim)
+            emb = torch.cat((freqs, freqs), dim=-1)
+            cos = emb.cos()
+            sin = emb.sin()
 
-        # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
-        x_out = torch.stack(
-            [
-                xshaped[..., 0] * rope_cache[..., 0]
-                - xshaped[..., 1] * rope_cache[..., 1],
-                xshaped[..., 1] * rope_cache[..., 0]
-                + xshaped[..., 0] * rope_cache[..., 1],
-            ],
-            -1,
-        )
+        return cos.to(dtype=x.dtype), sin.to(dtype=x.dtype)
 
-        # Squash tile dimension back into sequence dimension - tensor has shape [b, s, n_h, h_d]
-        x_out = x_out.reshape(bsz, -1, n_h, h_d)
-        return x_out.type_as(x)
+
+class Qwen2_5_VLCompatibleRotaryEmbedding(nn.Module):
+    """
+    MultiHeadAttention-compatible version of Qwen2.5-VL's MRoPE.
     
-# TODO: make MultiModalPositionalEmbeddings for the decoder
+    Stateless implementation that computes MRoPE on-the-fly from 3D position_ids.
+    Works seamlessly with MultiHeadAttention's pos_embeddings interface.
+    """
+    
+    def __init__(
+        self,
+        dim: int,
+        mrope_section: list,
+        base: float = 1000000.0,
+        device: Optional[torch.device] = None,
+    ):
+        """
+        Args:
+            dim (int): Dimension of the embedding (head_dim).
+            mrope_section (list): Multimodal rope section [temporal_dim, height_dim, width_dim].
+            base (float): Base for computing inverse frequencies.
+            device (torch.device): Device to place tensors on.
+        """
+        super().__init__()
+        self.dim = dim
+        self.mrope_section = mrope_section
+        
+        # Create the underlying MRoPE module
+        self.rope = Qwen2_5_VLRotaryEmbedding(dim, base, device)
+    
+    def forward(self, x: torch.Tensor, input_pos: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Apply rotary embeddings to input tensor.
+        
+        Args:
+            x (torch.Tensor): Input tensor with shape [b, s, n_h, h_d] or [b, s, n_kv, h_d].
+            input_pos (Optional[torch.Tensor]): Position IDs. If 3D with shape [3, b, s], 
+                                              uses MRoPE. If 2D with shape [b, s], uses standard RoPE.
+        
+        Returns:
+            torch.Tensor: Tensor with rotary embeddings applied.
+        """
+        if input_pos is None:
+            return x
+            
+        # Handle 2D position_ids (fallback to standard RoPE behavior)
+        if input_pos.dim() == 2:  # [b, s]
+            # Convert to 3D by replicating across 3 dimensions
+            input_pos = input_pos.unsqueeze(0).expand(3, -1, -1)
+        
+        # Compute cos/sin using the underlying MRoPE
+        cos, sin = self.rope(x, input_pos)  # Both [3, b, s, h_d]
+        
+        # Apply mrope sectioning
+        mrope_section = [s * 2 for s in self.mrope_section]  # Double for cos/sin pairs
+        cos_parts = cos.split(mrope_section, dim=-1)
+        sin_parts = sin.split(mrope_section, dim=-1)
+        
+        # Recombine sections: [cos_temporal, cos_height, cos_width, cos_temporal, ...]
+        cos_sectioned = torch.cat([cos_parts[i % 3] for i in range(len(cos_parts))], dim=-1)
+        sin_sectioned = torch.cat([sin_parts[i % 3] for i in range(len(sin_parts))], dim=-1)
+        
+        # Average over spatial dimensions and reshape for broadcasting
+        cos_final = cos_sectioned.mean(0).unsqueeze(2)  # [b, s, 1, h_d]
+        sin_final = sin_sectioned.mean(0).unsqueeze(2)  # [b, s, 1, h_d]
+        
+        # Apply rotation
+        x_embed = (x * cos_final) + (rotate_half(x) * sin_final)
+        return x_embed
