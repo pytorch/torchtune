@@ -289,6 +289,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
                         self._model,
                         self.optimizer,
+                        single_device=True,
                     )
                 except Exception as e:
                     self._logger.warning(
