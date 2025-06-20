@@ -10,9 +10,7 @@ __version__ = ""
 import os
 
 # Avoid memory fragmentation and peak reserved memory increasing over time
-# To overwrite, set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:False
-if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # Check at the top-level that torchao is installed.
 # This is better than doing it at every import site.
