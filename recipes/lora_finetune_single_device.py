@@ -285,6 +285,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self._model,
                     self._optimizer,
                     self._adapter_config,
+                    single_device=True,
                 )
 
             if training.ADAPTER_KEY not in checkpoint_dict:

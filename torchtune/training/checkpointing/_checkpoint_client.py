@@ -405,6 +405,7 @@ class CheckpointClient:
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
+        single_device: bool = False,
     ) -> dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
@@ -451,11 +452,18 @@ class CheckpointClient:
                 }
             )
 
-            get_merged_lora_ckpt(
-                checkpoint_dict[training.MODEL_KEY],
-                adapter_config["r"],
-                adapter_config["lora_alpha"],
-            )
+            if single_device:
+                get_merged_lora_ckpt(
+                    checkpoint_dict[training.MODEL_KEY],
+                    adapter_config["r"],
+                    adapter_config["lora_alpha"],
+                )
+            else:
+                get_merged_lora_dist_ckpt(
+                    checkpoint_dict[training.MODEL_KEY],
+                    adapter_config["r"],
+                    adapter_config["lora_alpha"],
+                )
 
         adapter_only = False
         dcp_checkpointer = self._get_dcp_checkpointer()
