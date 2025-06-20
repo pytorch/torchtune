@@ -199,7 +199,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         suffix = ".safetensors"
         model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+            "model" + suffix
         )
         cmd_2 = f"""
         tune run full_finetune_single_device \
@@ -207,9 +207,8 @@ class TestFullFinetuneSingleDeviceRecipe:
             batch_size=8 \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_dir={tmpdir}/{epoch_folder_minus_one} \
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
@@ -325,8 +324,10 @@ class TestFullFinetuneSingleDeviceRecipe:
         step_folder_at_epoch_boundary = f"step_{int(step_folder.split('_')[-1]) - 2}"
         suffix = ".safetensors"
         model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+            "model" + suffix
         )
+        assert step_folder is not None, "No step folder found"
+        assert os.path.exists(os.path.join(tmpdir, step_folder_at_epoch_boundary, model_ckpt_fname)), "Checkpoint file does not exist"
 
         # 3. Resume training w/ the checkpoint from epoch boundary
         cmd_2 = f"""
@@ -335,9 +336,8 @@ class TestFullFinetuneSingleDeviceRecipe:
             batch_size=8 \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{os.path.join(step_folder_at_epoch_boundary, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_dir={tmpdir}/{step_folder_at_epoch_boundary} \
+            checkpointer.checkpoint_files=["{os.path.join(step_folder_at_epoch_boundary, model_ckpt_fname)}"]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \

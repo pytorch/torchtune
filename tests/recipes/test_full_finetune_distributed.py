@@ -347,6 +347,7 @@ class TestFullFinetuneDistributedRecipe:
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )
+
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
             --config {config} \
@@ -354,9 +355,8 @@ class TestFullFinetuneDistributedRecipe:
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_dir='{tmpdir}/{epoch_folder_minus_one}' \
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \

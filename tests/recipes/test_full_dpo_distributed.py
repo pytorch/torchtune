@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import runpy
 import shutil
 import sys
@@ -107,18 +108,30 @@ class TestFullDPODistributedRecipe:
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
+        def print_file_tree(start_path='.', indent=''):
+            for i, item in enumerate(sorted(os.listdir(start_path))):
+                path = os.path.join(start_path, item)
+                is_last = (i == len(os.listdir(start_path)) - 1)
+                pointer = '└── ' if is_last else '├── '
+                print(indent + pointer + item)
+                if os.path.isdir(path):
+                    extension = '    ' if is_last else '│   '
+                    print_file_tree(path, indent + extension)
+
+        print_file_tree(tmpdir)
+
         # Resume training
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            ref_checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
             ref_checkpointer.checkpoint_files=[{ckpt_path}]\
             ref_checkpointer.output_dir={tmpdir} \
             ref_checkpointer.model_type=LLAMA3 \
