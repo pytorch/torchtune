@@ -108,18 +108,6 @@ class TestFullDPODistributedRecipe:
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
-        def print_file_tree(start_path='.', indent=''):
-            for i, item in enumerate(sorted(os.listdir(start_path))):
-                path = os.path.join(start_path, item)
-                is_last = (i == len(os.listdir(start_path)) - 1)
-                pointer = '└── ' if is_last else '├── '
-                print(indent + pointer + item)
-                if os.path.isdir(path):
-                    extension = '    ' if is_last else '│   '
-                    print_file_tree(path, indent + extension)
-
-        print_file_tree(tmpdir)
-
         # Resume training
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
