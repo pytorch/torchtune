@@ -4,14 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Callable, Optional, Tuple
-import torch
+from typing import List, Callable
 from torch import nn
 
 from torchtune.models.qwen2_5_vision._encoder import (
     Qwen2_5_VisionPatchEmbed,
     Qwen2_5_VLPatchMerger,
-    Qwen2_5_VisionRotaryEmbedding,
     Qwen2_5_VisionMLP,
     Qwen2_5_VisionTransformer,
 )
@@ -23,6 +21,7 @@ from torchtune.modules import (
     TransformerDecoder,
 )
 from torchtune.models.qwen2_5_vision._positional_embeddings import (
+    Qwen2_5_VisionRotaryEmbedding,
     Qwen2_5_VLRotaryEmbedding,
     Qwen2_5_VLCompatibleRotaryEmbedding,
     apply_multimodal_rotary_pos_emb,
@@ -222,7 +221,6 @@ def qwen2_5_vision_encoder(
     out_hidden_size: int,
     patch_size: int,
     spatial_merge_size: int,
-    spatial_patch_size: int, # TODO: see where used
     window_size: int,
     fullatt_block_indexes: List[int],
     temporal_patch_size: int,
@@ -261,7 +259,7 @@ def qwen2_5_vision_encoder(
     head_dim = embed_dim // num_heads
 
     # TODO: change
-    rope = Qwen2_5_VisionRotaryEmbedding(head_dim // 2)
+    rope = Qwen2_5_VisionRotaryEmbedding(head_dim // 2, spatial_merge_unit=spatial_merge_size**2)
     attn_bias = True
 
     # transformer layer # TODO: check if need custom attn
@@ -278,7 +276,7 @@ def qwen2_5_vision_encoder(
         attn_dropout=0.0,
         is_causal=False,
     )
-    mlp = qwen2_5_vision_mlp( #TODO: check params
+    mlp = qwen2_5_vision_mlp(
         in_dim=embed_dim,
         hidden_dim=intermediate_size,
         out_dim=embed_dim,
@@ -307,17 +305,16 @@ def qwen2_5_vision_encoder(
         spatial_merge_size=spatial_merge_size,
     )
 
-    # TODO: position embeddings
-    token_pos_embedding = Qwen2_5_VisionRotaryEmbedding(head_dim // 2)
-
     return Qwen2_5_VisionTransformer(
         patch_size=patch_size,
+        num_layers=num_layers,
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        in_channels=in_channels,
         spatial_merge_size=spatial_merge_size,
         window_size=window_size,
         fullatt_block_indexes=fullatt_block_indexes,
-        num_layers=num_layers,
         layer=transformer_layer,
-        token_pos_embedding=token_pos_embedding,
         patch_embed=patch_embed,
         patch_merger=merger,
     )
