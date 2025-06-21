@@ -161,7 +161,10 @@ def decoder_only_tp_inference_plan(model: nn.Module) -> dict[str, ParallelStyle]
 
 
 def decoder_only_tp_plan(
-    model: nn.Module, inference: bool = False
+    model: nn.Module,
+    *,
+    inference: bool = False,
+    enable_fp8_training: bool = False,
 ) -> dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
@@ -169,10 +172,16 @@ def decoder_only_tp_plan(
     Args:
         model (nn.Module): Model to generate plan for (no-op)
         inference (bool): Whether running inference or not.
+        enable_fp8_training (bool): Whether to enable float8 training. Currently not supported for Llama4.
 
     Returns:
         dict[str, Any]: The tensor parallel plan for Llama3 model.
+
+    Raises:
+        ValueError: if FP8 training is enabled.
     """
+    if enable_fp8_training:
+        raise ValueError("FP8 training is not supported for Llama4")
     return (
         decoder_only_tp_inference_plan(model)
         if inference

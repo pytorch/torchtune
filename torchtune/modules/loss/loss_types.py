@@ -36,6 +36,18 @@ class SFTLoss(ABC):
         """
         pass
 
+    @property
+    def tp_requires_loss_parallel_ctx_manager(self) -> bool:
+        """
+        Whether to use the loss parallel context manager for loss parallelism.
+        https://docs.pytorch.org/docs/stable/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.loss_parallel
+        """
+        return False
+
+    def patch_tp_plan(self, tp_plan) -> dict:
+        """Whether the loss function supports loss parallel. Defaults to a noop."""
+        return tp_plan
+
 
 class RLLoss(ABC):
     """Interface for loss functions in torchtune used in RL recipes."""

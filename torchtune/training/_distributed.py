@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Generator, Optional, Union
+from typing import Any, Callable, cast, Generator, Optional
 
 import torch
 import torch.distributed as dist
@@ -785,7 +785,7 @@ def _get_sdpa_context() -> (
     """
 
     @contextlib.contextmanager
-    def context(cp_context: Union[Generator[None, None, None], None] = None):
+    def context(cp_context: Optional[Generator[None, None, None]] = None):
         with contextlib.ExitStack() as stack:
             if cp_context is not None:
                 stack.enter_context(
@@ -876,6 +876,22 @@ def get_context_parallel_manager(
         sdpa_context = _get_sdpa_context()
 
         with sdpa_context(cp_context):
+            yield
+
+    return context
+
+
+def get_train_context(enable_loss_parallel: bool) -> Generator[None, None, None]:
+    @contextlib.contextmanager
+    def context(cp_context: Optional[Generator[None, None, None]] = None):
+        with contextlib.ExitStack() as stack:
+            if enable_loss_parallel:
+                stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
+
+            # because we create a noop ctx manager, this is never None in actual recipes
+            # leave condition so this can be used separately
+            if cp_context is not None:
+                stack.enter_context(cp_context)
             yield
 
     return context

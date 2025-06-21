@@ -15,6 +15,7 @@ from torchtune.training._distributed import (
     get_distributed_backend,
     get_full_optimizer_state_dict,
     get_shard_conditions,
+    get_train_context,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
@@ -147,4 +148,5 @@ __all__ = [
     "disable_dropout",
     "DATALOADER_KEY",
     "get_context_parallel_manager",
+    "get_train_context",
 ]
