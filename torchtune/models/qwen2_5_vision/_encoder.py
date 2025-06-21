@@ -4,8 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Tuple, Callable
-
+from typing import List, Optional
 import torch
 from torch import nn
 
@@ -85,10 +84,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
     def __init__(self,
         patch_size: int,
         num_layers: int,
-        embed_dim: int,
-        num_heads: int,
         layer: nn.Module,
-        token_pos_embedding: nn.Module,
         patch_embed: nn.Module,
         patch_merger: nn.Module,
         full_att_block_indexes: List[int],
@@ -103,26 +99,10 @@ class Qwen2_5_VisionTransformer(nn.Module):
         self.spatial_merge_unit = self.spatial_merge_size * self.spatial_merge_size
 
         self.patch_embed = patch_embed
-        # Qwen2_5_VisionPatchEmbed(
-        #     patch_size=patch_size,
-        #     temporal_patch_size=temporal_patch_size,
-        #     in_channels=in_channels,
-        #     embed_dim=embed_dim,
-        # )
-
-        head_dim = embed_dim // num_heads
-        self.rotary_pos_emb = token_pos_embedding 
-        #Qwen2_5_VisionRotaryEmbedding(head_dim // 2)
-
         self.layers = _get_clones(layer, num_layers)
-         
         self.merger = patch_merger
         register_fusion_module(self.merger)
-        # Qwen2_5_VLPatchMerger(
-        #     dim=out_hidden_size,
-        #     context_dim=hidden_size,
-        #     spatial_merge_size=spatial_merge_size,
-        # )
+
 
     def get_rope_index(self, grid_thw):
         pos_ids = []
@@ -149,10 +129,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
             pos_ids.append(torch.stack([hpos_ids, wpos_ids], dim=-1).repeat(t, 1))
         pos_ids = torch.cat(pos_ids, dim=0)
         return pos_ids
-        # max_grid_size = grid_thw[:, 1:].max()
-        # rotary_pos_emb_full = self.rotary_pos_emb(max_grid_size)
-        # rotary_pos_emb = rotary_pos_emb_full[pos_ids].flatten(1)
-        # return rotary_pos_emb
 
     def get_window_index(self, grid_thw):
         window_index: list = []
@@ -208,7 +184,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
         """
         hidden_states = self.patch_embed(hidden_states)
         rope_index = self.get_rope_index(grid_thw)
-        # rotary_pos_emb = self.rot_pos_emb(grid_thw) # already correct pos emb indicies
         window_index, cu_window_seqlens = self.get_window_index(grid_thw)
         cu_window_seqlens = torch.tensor(
             cu_window_seqlens,
@@ -221,12 +196,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
         hidden_states = hidden_states.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
         hidden_states = hidden_states[window_index, :, :]
         hidden_states = hidden_states.reshape(seq_len, -1)
-        # # TODO: port this into rotary pos emb module
-        # rotary_pos_emb = rotary_pos_emb.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
-        # rotary_pos_emb = rotary_pos_emb[window_index, :, :]
-        # rotary_pos_emb = rotary_pos_emb.reshape(seq_len, -1)
-        # emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
-        # position_embeddings = (emb.cos(), emb.sin())
 
         cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
             dim=0,
