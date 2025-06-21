@@ -25,8 +25,8 @@ jobs:
   gpu_test:
     if: github.repository_owner == 'pytorch'
     runs-on: linux.g5.12xlarge.nvidia.gpu
-    env:
-      PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    # env:
+    #   PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
     strategy:
       fail-fast: false  # <--- ensure all matrix jobs run even if one fails
       matrix:
