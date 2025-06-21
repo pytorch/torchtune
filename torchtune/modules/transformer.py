@@ -580,6 +580,7 @@ class TransformerDecoder(nn.Module):
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
         input_embeds: Optional[torch.Tensor] = None,
+        **kwargs: dict,
     ) -> Union[torch.Tensor, list[torch.Tensor]]:
         """
         Args:
@@ -611,6 +612,7 @@ class TransformerDecoder(nn.Module):
                 This parameter is required during inference if caches have been setup. Default is None.
             input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
+            **kwargs (dict): Keyword arguments to pass to the transformer layers.
 
         Returns:
             Union[torch.Tensor, list[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
