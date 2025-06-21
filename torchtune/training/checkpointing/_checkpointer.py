@@ -193,6 +193,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             pattern=r"^step_(\d+)",
         )
 
+        # resume recipe_state ckpt
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
             checkpoint_dir=self._checkpoint_dir,
