@@ -195,6 +195,7 @@ def get_merged_lora_ckpt(
     state_dict: dict[str, Any],
     rank: int,
     alpha: float,
+    use_distributed_barriers: bool = False,
 ) -> dict[str, Any]:
     """
     Merge LoRA weights into the base model format for efficient inference.
@@ -208,18 +209,24 @@ def get_merged_lora_ckpt(
         state_dict (dict[str, Any]): State dict from a model.
         rank (int): The rank of LoRA matrices.
         alpha (float): The alpha value used for scaling LoRA decompositions.
+        use_distributed_barriers (bool): Whether to include a distributed barrier before operations.
+            This is useful when using distributed operations like distributed matrix multiplication, to keep
+            operations in sync across ranks. Default: False
 
     Returns:
         dict[str, Any]: The merged state dict.
     """
     lora_modules = _get_lora_modules(state_dict)
     lora_moe_modules = _get_lora_moe_modules(state_dict)
-    for module in lora_modules.union(lora_moe_modules):
+    for module in sorted(lora_modules.union(lora_moe_modules)):
         # TODO: we don't currently support DoRA for MoE layers
         if "experts" in module:
             for param in ["gate", "up", "down"]:
                 lora_a_weight = state_dict[f"{module}.lora_{param}_a"]
                 lora_b_weight = state_dict[f"{module}.lora_{param}_b"]
+
+                if use_distributed_barriers:
+                    dist.barrier()
                 state_dict[f"{module}.{param}_proj"] += (
                     (alpha / rank)
                     * lora_b_weight.transpose(1, 2)
@@ -237,8 +244,13 @@ def get_merged_lora_ckpt(
         if lora_magnitude is not None:
             base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
 
+            if use_distributed_barriers:
+                dist.barrier()
             lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
             merged_weight = base_weight + lora_weight
+
+            if use_distributed_barriers:
+                dist.barrier()
             weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
             mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
             merged_weight *= mag_norm_scale
@@ -247,6 +259,8 @@ def get_merged_lora_ckpt(
 
         # Otherwise it is just vanilla LoRA
         else:
+            if use_distributed_barriers:
+                dist.barrier()
             state_dict[f"{module}.weight"] += (
                 (alpha / rank) * lora_b_weight @ lora_a_weight
             )
@@ -254,123 +268,6 @@ def get_merged_lora_ckpt(
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
 
-    return state_dict
-
-
-@torch.no_grad
-def get_merged_lora_dist_ckpt(
-    state_dict: dict[str, Any],
-    rank: int,
-    alpha: float,
-) -> dict[str, Any]:
-    """
-    Merge LoRA weights into the base model format for efficient inference using distributed operations.
-    This function is designed for distributed training scenarios and uses distributed operations
-    like distributed matrix multiplication.
-    NOTE: This function modifies state_dict inplace. If you do not want to do that,
-    make a copy prior to calling this function.
-    NOTE: This does not work for NF4Tensors as they don't support the add and mul operations used here.
-    For every LoRA module in the state dict, this function will convert its
-    base weight then delete the LoRA-specific parameters.
-    Args:
-        state_dict (dict[str, Any]): State dict from a model.
-        rank (int): The rank of LoRA matrices.
-        alpha (float): The alpha value used for scaling LoRA decompositions.
-    Returns:
-        dict[str, Any]: The merged state dict.
-    """
-
-    lora_modules = _get_lora_modules(state_dict)
-    lora_moe_modules = _get_lora_moe_modules(state_dict)
-
-    # Create a simple module for matrix multiplication
-    class MatMulModule(torch.nn.Module):
-        def forward(self, x, y):
-            return (alpha / rank) * torch.matmul(x, y)
-
-    for module in sorted(lora_modules.union(lora_moe_modules)):
-        # TODO: we don't currently support DoRA for MoE layers
-        if "experts" in module:
-            for param in ["gate", "up", "down"]:
-                lora_a_weight = state_dict[f"{module}.lora_{param}_a"]
-                lora_b_weight = state_dict[f"{module}.lora_{param}_b"]
-
-                # Create a simple module for transpose operation
-                class TransposeModule(torch.nn.Module):
-                    def __init__(self, dim0, dim1):
-                        super().__init__()
-                        self.dim0 = dim0
-                        self.dim1 = dim1
-
-                    def forward(self, x):
-                        return torch.transpose(x, self.dim0, self.dim1)
-
-                # Parallelize transpose operations
-                transpose_module = TransposeModule(1, 2)
-                dist.barrier()
-                # Apply distributed transpose
-                transposed_b = transpose_module(lora_b_weight)
-                transposed_a = transpose_module(lora_a_weight)
-
-                mm_module = MatMulModule()
-                dist.barrier()
-                result = mm_module(transposed_b, transposed_a)
-
-                # Apply the result using out-of-place addition
-                proj_weight = state_dict[f"{module}.{param}_proj"]
-
-                dist.barrier()
-                transposed_result = transpose_module(result)
-
-                state_dict[f"{module}.{param}_proj"] = proj_weight + transposed_result
-
-                del state_dict[f"{module}.lora_{param}_a"]
-                del state_dict[f"{module}.lora_{param}_b"]
-            continue
-
-        lora_a_weight = state_dict[f"{module}.lora_a.weight"]
-        lora_b_weight = state_dict[f"{module}.lora_b.weight"]
-        lora_magnitude = state_dict.get(f"{module}.magnitude", None)
-
-        # If magnitude is present, calculate merged DoRA weight
-        if lora_magnitude is not None:
-            base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
-
-            mm_module = MatMulModule()
-            dist.barrier()
-            lora_weight = mm_module(lora_b_weight, lora_a_weight)
-
-            merged_weight = base_weight + lora_weight
-            dist.barrier()
-
-            # Create a simple module for norm calculation
-            class NormModule(torch.nn.Module):
-                def forward(self, x):
-                    return torch.linalg.norm(x, dim=1)
-
-            norm_module = NormModule()
-            dist.barrier()
-            weight_norm = norm_module(merged_weight)
-
-            mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
-            merged_weight *= mag_norm_scale
-            state_dict[f"{module}.weight"] = merged_weight
-            del state_dict[f"{module}.magnitude"]
-
-        # Otherwise it is just vanilla LoRA
-        else:
-            mm_module = MatMulModule()
-            dist.barrier()
-            lora_weight = mm_module(
-                lora_b_weight,
-                lora_a_weight,
-            )
-            state_dict[f"{module}.weight"] += lora_weight
-
-        del state_dict[f"{module}.lora_a.weight"]
-        del state_dict[f"{module}.lora_b.weight"]
-
-    dist.barrier()
     return state_dict
 
 
