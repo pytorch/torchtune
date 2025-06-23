@@ -293,7 +293,7 @@ flag to ``True``. The DistributedCheckpointer will be automatically used when th
 
     checkpointer:
         # checkpointer to use for final checkpoints
-        _component_: torchtune.training.FullModelMetaCheckpointer
+        _component_: torchtune.training.FullModelHFCheckpointer
 
     # Set to True to enable asynchronous distributed checkpointing for intermediate checkpoints
     enable_async_checkpointing: True
@@ -316,9 +316,8 @@ output directory.
 
 .. note::
 
-    While asynchronous checkpointing improves training throughput, it's important to note that the final
-    checkpoint at the end of training is always saved synchronously to ensure all data is properly persisted
-    in a safetensors or torch.save format before the training job completes.
+    The final checkpoint at the end of training is always saved synchronously to ensure all
+    data is properly persisted in safetensors or torch.save format before the training job completes.
 
 |
 
