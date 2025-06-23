@@ -6,7 +6,9 @@
 
 import json
 
-from typing import Any, Optional, Mapping
+from typing import Any, Mapping, Optional
+
+from warnings import warn
 
 import jinja2
 from jinja2 import StrictUndefined
@@ -60,7 +62,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self._infer_bos_eos_tokens()
         self._infer_should_add_bos_eos()
 
-    def _get_token_from_config(self, config: dict[str, Any], key: str) -> str:
+    def _get_token_from_config(self, config: dict[str, Any], key: str) -> Optional[str]:
         """
         HF BOS/EOS tokens are either stored as e.g. {'bos_token': 5}
         or {'bos_token': {'content': 5, ...}}. This utility handles both.
@@ -68,11 +70,13 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         token = config.get(key)
         if isinstance(token, dict):
             if "content" not in token:
-                raise ValueError(f"Could not parse {key} from config")
+                warn(f"Could not parse {key} from config")
+                return None
             token = token["content"]
         else:
             if not isinstance(token, str):
-                raise ValueError(f"Could not parse {key} from config")
+                warn(f"Could not parse {key} from config")
+                return None
         return token
 
     def _infer_bos_eos_tokens(self):
@@ -90,11 +94,12 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self.eos_token = "<eos>"
 
         if self.config:
-            try:
+            if self._get_token_from_config(self.config, "bos_token"):
                 self.bos_token = self._get_token_from_config(self.config, "bos_token")
+
+            if self._get_token_from_config(self.config, "eos_token"):
                 self.eos_token = self._get_token_from_config(self.config, "eos_token")
-            except ValueError:
-                pass
+
             if self.bos_token is not None:
                 self.bos_id = self.tokenizer.token_to_id(self.bos_token)
             if self.eos_token is not None:
@@ -218,6 +223,8 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         tokenizer_config_json_path (Optional[str]): Path to tokenizer_config.json file. Default: None
         generation_config_path (Optional[str]): Path to generation_config.json file.
             Default: None
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
         truncation_type (str): type of truncation to apply, either "left" or "right".
             Default is "right".
     """
@@ -336,7 +343,9 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
         return tokenized_messages, mask
 
-    def __call__(self, sample: Mapping[str, Any], inference: bool = False) -> Mapping[str, Any]:
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
         """
         Apply ``tokenize_messages`` to the "messages" field in the sample.
         """

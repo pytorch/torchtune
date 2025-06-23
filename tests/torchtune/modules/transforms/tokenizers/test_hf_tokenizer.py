@@ -148,6 +148,9 @@ GEMMA_TOKENIZER_CONFIG_PATH = ASSETS / "tokenizer_config_gemma.json"
 GEMMA_GENERATION_CONFIG_PATH = ASSETS / "generation_config_gemma.json"
 GEMMA_TOKENIZER_PATH = ASSETS / "tokenizer_gemma_cropped.json"
 
+QWEN2_5_TOKENIZER_CONFIG_PATH = ASSETS / "qwen2_5-tokenizer/tokenizer_config.json"
+QWEN2_5_TOKENIZER_PATH = ASSETS / "qwen2_5-tokenizer/tokenizer_cropped.json"
+
 
 class TestHuggingFaceModelTokenizer:
     """
@@ -163,24 +166,60 @@ class TestHuggingFaceModelTokenizer:
         )
 
     @pytest.fixture
+    def tool_call_tokenizer(self):
+        return HuggingFaceModelTokenizer(
+            tokenizer_json_path=str(QWEN2_5_TOKENIZER_PATH),
+            tokenizer_config_json_path=str(QWEN2_5_TOKENIZER_CONFIG_PATH),
+            generation_config_path=None,
+        )
+
+    @pytest.fixture
     def messages(self):
         return [
             Message(
                 role="user",
                 content="hello there",
                 masked=False,
+                tool_calls=[],
             ),
             Message(
                 role="assistant",
                 content="hi",
                 masked=False,
+                tool_calls=[],
             ),
             Message(
                 role="user",
                 content="whatsup?",
                 masked=False,
+                tool_calls=[],
             ),
         ]
+
+    @pytest.fixture
+    def tool_call_messages(self):
+        messages = [
+            Message(
+                role="user",
+                content="I maintain that it is the suffering of being unable to love.",
+                masked=True,
+                eot=True,
+                tool_calls=False,
+            ),
+            Message(
+                role="assistant",
+                content="What is hell? ",
+                masked=True,
+                eot=True,
+                tool_calls=[
+                    {
+                        "name": "get_current_temperature",
+                        "arguments": '{"location": "Hell 9th Circle, Cocytus", "unit": "celsius"}',
+                    }
+                ],
+            ),
+        ]
+        return messages
 
     def test_no_mask(self, model_tokenizer, messages):
         tokens, mask = model_tokenizer.tokenize_messages(messages)
@@ -246,3 +285,101 @@ class TestHuggingFaceModelTokenizer:
         ]
 
         assert mask[:-4] == [True] * 8 + [False] * 14
+
+    def test_with_tools(self, tool_call_tokenizer, tool_call_messages):
+        tokens, mask = tool_call_tokenizer.tokenize_messages(tool_call_messages)
+
+        assert tokens == [
+            151644,
+            8948,
+            198,
+            2610,
+            525,
+            1207,
+            16948,
+            11,
+            3465,
+            553,
+            54364,
+            14817,
+            13,
+            1446,
+            525,
+            264,
+            10950,
+            17847,
+            13,
+            151645,
+            198,
+            151644,
+            872,
+            198,
+            40,
+            10306,
+            429,
+            432,
+            374,
+            279,
+            15691,
+            315,
+            1660,
+            11889,
+            311,
+            2948,
+            13,
+            151645,
+            198,
+            151644,
+            77091,
+            198,
+            3838,
+            374,
+            14780,
+            30,
+            715,
+            151657,
+            198,
+            4913,
+            606,
+            788,
+            330,
+            455,
+            11080,
+            53525,
+            497,
+            330,
+            16370,
+            788,
+            54734,
+            2527,
+            11693,
+            7245,
+            80294,
+            220,
+            24,
+            339,
+            21224,
+            11,
+            76388,
+            16415,
+            355,
+            16215,
+            7245,
+            3843,
+            11693,
+            7245,
+            66,
+            40247,
+            2105,
+            9863,
+            532,
+            151658,
+            151645,
+            198,
+            151644,
+            77091,
+            198,
+            151645,
+        ]
+
+        assert mask == [True] * 90
