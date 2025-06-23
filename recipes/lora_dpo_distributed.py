@@ -138,9 +138,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
-            cfg.device,
-            offload_ops_to_cpu=self.fsdp_cpu_offload
-            or self._enable_async_checkpointing,
+            cfg.device, offload_ops_to_cpu=True
         )
         init_process_group(self.distributed_backend)
 
