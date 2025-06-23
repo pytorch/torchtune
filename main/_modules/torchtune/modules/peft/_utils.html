@@ -457,6 +457,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">runtime_checkable</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecate_parameter</span>
 
@@ -643,6 +644,7 @@
     <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">use_distributed_barriers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merge LoRA weights into the base model format for efficient inference.</span>
@@ -656,18 +658,24 @@
 <span class="sd">        state_dict (dict[str, Any]): State dict from a model.</span>
 <span class="sd">        rank (int): The rank of LoRA matrices.</span>
 <span class="sd">        alpha (float): The alpha value used for scaling LoRA decompositions.</span>
+<span class="sd">        use_distributed_barriers (bool): Whether to include a distributed barrier before operations.</span>
+<span class="sd">            This is useful when using distributed operations like distributed matrix multiplication, to keep</span>
+<span class="sd">            operations in sync across ranks. Default: False</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict[str, Any]: The merged state dict.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">_get_lora_modules</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
     <span class="n">lora_moe_modules</span> <span class="o">=</span> <span class="n">_get_lora_moe_modules</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">lora_modules</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">lora_moe_modules</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lora_modules</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">lora_moe_modules</span><span class="p">)):</span>
         <span class="c1"># TODO: we don&#39;t currently support DoRA for MoE layers</span>
         <span class="k">if</span> <span class="s2">&quot;experts&quot;</span> <span class="ow">in</span> <span class="n">module</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;gate&quot;</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">]:</span>
                 <span class="n">lora_a_weight</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">_a&quot;</span><span class="p">]</span>
                 <span class="n">lora_b_weight</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">_b&quot;</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">use_distributed_barriers</span><span class="p">:</span>
+                    <span class="n">dist</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
                 <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">_proj&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
                     <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span><span class="p">)</span>
                     <span class="o">*</span> <span class="n">lora_b_weight</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -685,8 +693,13 @@
         <span class="k">if</span> <span class="n">lora_magnitude</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">base_weight</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.weight&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">lora_a_weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
+            <span class="k">if</span> <span class="n">use_distributed_barriers</span><span class="p">:</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
             <span class="n">lora_weight</span> <span class="o">=</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="n">lora_b_weight</span> <span class="o">@</span> <span class="n">lora_a_weight</span>
             <span class="n">merged_weight</span> <span class="o">=</span> <span class="n">base_weight</span> <span class="o">+</span> <span class="n">lora_weight</span>
+
+            <span class="k">if</span> <span class="n">use_distributed_barriers</span><span class="p">:</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
             <span class="n">weight_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">base_weight</span> <span class="o">+</span> <span class="n">lora_weight</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">mag_norm_scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">lora_magnitude</span> <span class="o">/</span> <span class="n">weight_norm</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">merged_weight</span> <span class="o">*=</span> <span class="n">mag_norm_scale</span>
@@ -695,6 +708,8 @@
 
         <span class="c1"># Otherwise it is just vanilla LoRA</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">use_distributed_barriers</span><span class="p">:</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
             <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.weight&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
                 <span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="n">lora_b_weight</span> <span class="o">@</span> <span class="n">lora_a_weight</span>
             <span class="p">)</span>
