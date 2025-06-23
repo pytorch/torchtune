@@ -153,10 +153,8 @@ def apply_multimodal_rotary_pos_emb(q, k, cos, sin, mrope_section, unsqueeze_dim
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: The rotated query and key tensors.
     """
-    # Double the mrope_section for cos/sin pairs
-    mrope_section = [x * 2 for x in mrope_section]
+    mrope_section = mrope_section * 2
     
-    # Split cos/sin into temporal, height, width sections and recombine
     cos_parts = cos.split(mrope_section, dim=-1)
     sin_parts = sin.split(mrope_section, dim=-1)
     
@@ -170,8 +168,7 @@ def apply_multimodal_rotary_pos_emb(q, k, cos, sin, mrope_section, unsqueeze_dim
 
 class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
     """
-    This class implements Multimodal Rotary Positional Embeddings (MRoPE) for Qwen2.5-VL
-    based on the implementation in https://arxiv.org/abs/2409.12191.
+    This class implements Multimodal Rotary Positional Embeddings (MRoPE) for Qwen2.5-VL.
 
     MRoPE extends standard RoPE to handle 3D position embeddings:
     - Temporal dimension (for videos)
@@ -325,7 +322,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
 
         # Concatenate rotated sections back together
         x_out = torch.cat([x_temporal_rotated, x_height_rotated, x_width_rotated], dim=-1)
-        return x_out
+        return x_ou
 
     def _apply_rotation_to_section(self, x_section: torch.Tensor, rope_cache: torch.Tensor) -> torch.Tensor:
         """Apply rotation to a specific section of the embedding."""
