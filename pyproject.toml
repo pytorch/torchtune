@@ -108,7 +108,7 @@ check-return-types = 'False'
 exclude = 'tests/torchtune/models/(\w+)/scripts/|recipes/|torchtune/modules/_export'
 
 [tool.pytest.ini_options]
-addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]
+addopts = ["--showlocals", "--import-mode=prepend"]
 # --showlocals will show local variables in tracebacks
 # --import-mode=prepend will add the root (the parent dir of torchtune/, tests/, recipes/)
 # to `sys.path` when invoking pytest, allowing us to treat `tests` as a package within the tests.

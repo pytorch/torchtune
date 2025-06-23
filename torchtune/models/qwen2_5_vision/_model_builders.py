@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
-from torchtune.models.qwen2._component_builders import qwen2
+from torchtune.models.qwen2_5._model_builders import qwen2_5_7b_base, qwen2_5_7b_instruct
 from torchtune.models.qwen2_5._tokenizer import QWEN2_5_SPECIAL_TOKENS, Qwen2_5Tokenizer
 from torchtune.models.qwen2_5_vision._encoder import Qwen2_5_VisionTransformer
 from torchtune.modules import TransformerDecoder
@@ -16,10 +16,9 @@ from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 
 """
 Model builders build specific instantiations using component builders. For example
-the qwen2_5_7b model builder uses the qwen2 component builder to create the
-Qwen2.5 7B model.
+the qwen2_5_vl_7b_base model builder uses the qwen2_5_7b_base component builder to create the
+Qwen2.5-VL 7B model with vision capabilities.
 """
-
 
 
 def qwen2_5_vl_7b_base(
@@ -30,30 +29,33 @@ def qwen2_5_vl_7b_base(
     image_size: int = 336,
 ) -> EarlyFusionModel:
     """
-    Builder for creating a Qwen2.5 7B base model with vision.
+    Builder for creating a Qwen2.5-VL 7B base model with vision capabilities.
+    
+    This combines:
+    - Qwen2.5 7B base language model as the decoder backbone
+    - Vision transformer encoder for processing images
+    - Early fusion architecture for multimodal understanding
+    
+    Args:
+        decoder_trainable (bool): Whether the language model decoder should be trainable. Default: True
+        encoder_trainable (bool): Whether the vision encoder should be trainable. Default: False
+        fusion_trainable (bool): Whether the fusion layers should be trainable. Default: True
+        image_size (int): Input image size for the vision encoder. Default: 336
+        
+    Returns:
+        EarlyFusionModel: Qwen2.5-VL 7B model instance
     """
 
-    decoder = qwen2(
-        vocab_size=152064,
-        num_layers=28,
-        num_heads=28,
-        num_kv_heads=4,
-        embed_dim=3584,
-        intermediate_dim=18944,
-        max_seq_len=32768,
-        attn_dropout=0.0,
-        norm_eps=1e-6,
-        rope_base=1000000.0,
-    )
+    decoder = qwen2_5_7b_base()
 
-    # TODO: FINALIZE ARGS
+    # TODO: FINALIZE VISION ENCODER ARGS - This will be completed by the vision team
     encoder = Qwen2_5_VisionTransformer(
         patch_size=14,
         tile_size=image_size,
         num_layers=32,
         embed_dim=1280,
-        layer=...,
-        token_pos_embedding=...,
+        layer=...,  # To be completed by vision encoder implementation
+        token_pos_embedding=...,  # To be completed by vision encoder implementation
         pre_tile_pos_embed=None,
         post_tile_pos_embed=None,
         cls_projection=None,
@@ -63,10 +65,10 @@ def qwen2_5_vl_7b_base(
     )
 
     return EarlyFusionModel(
-        decoder = decoder,
-        encoder = {"vision": encoder},
+        decoder=decoder,
+        encoder={"vision": encoder},
         encoder_tokens={
-            "vision": QWEN2_5_SPECIAL_TOKENS["<|patch|>"], #TODO: do we need to introduce a new token?
+            "vision": QWEN2_5_SPECIAL_TOKENS["<|vision_pad|>"],  # Use the proper vision token
         },
         encoders_trainable={
             "vision": encoder_trainable,
@@ -74,5 +76,3 @@ def qwen2_5_vl_7b_base(
         decoder_trainable=decoder_trainable,
         fusion_trainable=fusion_trainable,
     )
-
-

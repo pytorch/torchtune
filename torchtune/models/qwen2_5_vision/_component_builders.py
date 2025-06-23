@@ -21,9 +21,7 @@ from torchtune.modules import (
     TransformerDecoder,
 )
 from torchtune.models.qwen2_5_vision._positional_embeddings import (
-    Qwen2_5_VisionRotaryEmbedding,
-    Qwen2_5_VLRotaryEmbedding,
-    Qwen2_5_VLCompatibleRotaryEmbedding,
+    Qwen25VLRotaryPositionalEmbeddings,
     apply_multimodal_rotary_pos_emb,
 )
 
@@ -51,10 +49,10 @@ def qwen2_5_vl_text_attention_with_standard_mha(
     attn_dropout: float = 0.0,
 ) -> MultiHeadAttention:
     """
-    Alternative builder using standard MultiHeadAttention with compatible MRoPE.
+    Builder for standard MultiHeadAttention with Qwen2.5-VL's multimodal RoPE (MRoPE).
     
-    This demonstrates that we can reuse the standard MultiHeadAttention by creating
-    a compatible positional embedding module that handles the multimodal RoPE logic.
+    This creates a standard MultiHeadAttention module with MRoPE positional embeddings
+    that can handle both 2D and 3D position encodings for vision-language sequences.
     
     Args:
         embed_dim (int): Embedding dimension 
@@ -67,17 +65,17 @@ def qwen2_5_vl_text_attention_with_standard_mha(
         attn_dropout (float): Attention dropout rate
         
     Returns:
-        MultiHeadAttention: Standard attention module with compatible multimodal RoPE
+        MultiHeadAttention: Standard attention module with multimodal RoPE
         
     Note:
-        When using this attention module, you must call 
-        `attention.pos_embeddings.update_position_embeddings(x, position_ids)` 
-        before the forward pass to set the 3D position embeddings.
+        Pass 3D position_ids with shape [3, batch_size, seq_len] as input_pos
+        to enable multimodal position encoding.
     """
-    rope = Qwen2_5_VLCompatibleRotaryEmbedding(
+    rope = Qwen25VLRotaryPositionalEmbeddings(
         dim=head_dim,
         mrope_section=mrope_section,
         base=rope_theta,
+        max_seq_len=max_seq_len,
     )
 
     # TODO: figure out where/how to pass in position_ids for MRoPE

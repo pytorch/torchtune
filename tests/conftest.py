@@ -47,6 +47,12 @@ def pytest_configure(config):
     # This means that we need to manually override the values of run_integration and run_slow_integration
     # whenever either set of tests is passed via the -m option.
 
+    # Handle missing run_integration and run_slow_integration options
+    if not hasattr(config.option, 'run_integration'):
+        config.option.run_integration = None
+    if not hasattr(config.option, 'run_slow_integration'):
+        config.option.run_slow_integration = None
+
     if config.option.markexpr == "integration_test":
         config.option.run_integration = True
         run_regression_tests = False
