@@ -225,7 +225,7 @@ class OffloadActivations(saved_tensors_hooks):
 
             maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
             if modified:
-                gpu_tensor = maybe_gpu_tensor.to("xpu" if torch.xpu.is_available() else "cuda", non_blocking=True)
+                gpu_tensor = maybe_gpu_tensor.to(torch.accelerator.current_accelerator(), non_blocking=True)
                 maybe_gpu_tensor = gpu_tensor
 
             # clear tensor from tracking
@@ -279,14 +279,9 @@ class OffloadActivations(saved_tensors_hooks):
                     brought_back_from_cpu = False
                 else:
                     # Kick off the process to bring tensors back
-                    if torch.xpu.is_available():
-                        with torch.xpu.stream(self.s1):
-                            gpu_tensor = maybe_gpu_tensor.to("xpu", non_blocking=True)
-                            maybe_gpu_tensor = gpu_tensor
-                    else:
-                        with torch.cuda.stream(self.s1):
-                            gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
-                            maybe_gpu_tensor = gpu_tensor
+                    with torch.xpu.stream(self.s1) if torch.xpu.is_available() else torch.cuda.stream(self.s1):
+                        gpu_tensor = maybe_gpu_tensor.to(torch.accelerator.current_accelerator(), non_blocking=True)
+                        maybe_gpu_tensor = gpu_tensor
 
                     # Tell comp stream to wait for the info to be loaded before executing
                     self.s0.wait_stream(self.s1)
