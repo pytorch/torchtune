@@ -249,6 +249,19 @@ class CheckpointClient:
         optim_state_dict = {}
 
         if is_not_distributed_checkpointer and not single_device:
+            # this logic is needed because staging an async checkpoint needs cpu
+            # which is also used here to save a sync checkpoint that causes issues when
+            # occurring concurrently. We should wait for async checkpoint to clear
+            # before saving a sync checkpoint that requires cpu gathering.
+            if self._get_dcp_checkpointer()._checkpoint_future is not None:
+                time_start_waiting = time.perf_counter()
+                self._get_dcp_checkpointer()._checkpoint_future.result()
+                if self._is_rank_zero:
+                    log.info(
+                        "Waiting for async checkpoint to finish, to save sync checkpoint ",
+                        f"took {time.perf_counter() - time_start_waiting:.2f} secs",
+                    )
+
             # To prevent GPU memory from spiking during checkpoint save,
             # we consolidate the full model and optim state dicts on CPU for rank 0
             model_state_dict = training.gather_cpu_state_dict(
