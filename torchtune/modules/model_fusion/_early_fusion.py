@@ -202,7 +202,7 @@ class EarlyFusionModel(nn.Module):
 
     def forward(
         self,
-        tokens: torch.Tensor,
+        tokens: torch.Tensor, # NOTE: tokens is the input_ids; it will have turned non-text into special tokens
         *,
         mask: Optional[torch.Tensor] = None,
         encoder_input: Optional[dict[str, dict[str, Any]]] = None,
