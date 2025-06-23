@@ -152,7 +152,7 @@ def qwen2_5_vision_encoder(
     patch_size: int,
     spatial_merge_size: int,
     window_size: int,
-    fullatt_block_indexes: List[int],
+    full_att_block_indexes: List[int],
     temporal_patch_size: int,
 ) -> Qwen2_5_VisionTransformer:
     """
@@ -213,13 +213,10 @@ def qwen2_5_vision_encoder(
     return Qwen2_5_VisionTransformer(
         patch_size=patch_size,
         num_layers=num_layers,
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        in_channels=in_channels,
-        spatial_merge_size=spatial_merge_size,
-        window_size=window_size,
-        fullatt_block_indexes=fullatt_block_indexes,
         layer=transformer_layer,
         patch_embed=patch_embed,
         patch_merger=merger,
+        full_att_block_indexes=full_att_block_indexes,
+        spatial_merge_size=spatial_merge_size,
+        window_size=window_size,
     )
