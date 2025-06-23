@@ -107,7 +107,11 @@ def qwen2_5_vl_text_decoder(
             is_causal=True,
         )
 
-        mlp = qwen2_5_vl_text_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        mlp = FeedForward(
+            gate_proj=nn.Linear(embed_dim, intermediate_dim, bias=True),
+            down_proj=nn.Linear(intermediate_dim, embed_dim, bias=True),
+            up_proj=nn.Linear(embed_dim, intermediate_dim, bias=True),
+        )
 
         layer = TransformerSelfAttentionLayer(
             attn=self_attn,
@@ -218,27 +222,4 @@ def qwen2_5_vision_encoder(
         layer=transformer_layer,
         patch_embed=patch_embed,
         patch_merger=merger,
-    )
-
-def qwen2_5_vl_text_mlp(dim: int, hidden_dim: int) -> FeedForward:
-    """
-    Build the MLP layer associated with the Qwen2.5 VL model.
-    """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False)
-    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
-
-def qwen2_5_vision_mlp(
-    in_dim: int,
-    hidden_dim: int,
-    out_dim: int,
-    activation: Callable = nn.SiLU,
-    mlp_bias: bool = True,
-) -> Qwen2_5_VisionMLP:
-    gate_proj = nn.Linear(in_dim, hidden_dim, bias=mlp_bias)
-    down_proj = nn.Linear(hidden_dim, out_dim, bias=mlp_bias)
-    up_proj = nn.Linear(hidden_dim, out_dim, bias=mlp_bias)
-    return Qwen2_5_VisionMLP(
-        gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj, activation=activation
     )
