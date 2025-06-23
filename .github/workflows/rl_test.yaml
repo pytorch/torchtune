@@ -59,7 +59,7 @@ jobs:
         if: ${{ matrix.torch-version == 'stable' }}
         run: python -m pip install torch torchvision torchao
       - name: Install recipe-specific dependencies
-        run: python -m pip install lm-eval>=0.4.5
+        run: python -m pip install lm-eval==0.4.8
       - name: Install the torchtune library with dev options
         run: python -m pip install -e ".[dev]"
       - name: Install the torchtune libary with async_rl options
