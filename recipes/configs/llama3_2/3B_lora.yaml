@@ -77,7 +77,7 @@ loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
 # Training
-epochs: 2
+epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8  # Use to increase effective batch size
 clip_grad_norm: null

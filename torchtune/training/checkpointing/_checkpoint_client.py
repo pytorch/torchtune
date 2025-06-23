@@ -365,6 +365,7 @@ class CheckpointClient:
         checkpointer user has configured.
         """
         intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
+
         if intermediate_checkpoint and self._enable_async_checkpointing:
             self._save_checkpoint_async(
                 model,
