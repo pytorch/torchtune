@@ -17,7 +17,7 @@ def deepseek_v3_6B_64e():
         num_layers=16,
         num_heads=32,
         embed_dim=2048,
-        max_seq_len=32768,
+        max_seq_len=163840,
         mlp_hidden_dim=5632,
         rope_base=10000,
         norm_eps=1e-6,
@@ -43,3 +43,32 @@ def deepseek_v3_6B_64e():
         mscale=1.0,
         mscale_all_dim=1.0,
     )
+
+
+def moonlight_16B_64e():
+    return deepseek_v3(
+        vocab_size=163840,
+        num_layers=27,
+        num_heads=16,
+        embed_dim=2048,
+        max_seq_len=8192,
+        mlp_hidden_dim=11264,
+        rope_base=50000,
+        norm_eps=1e-5,
+        moe_every_n_layers=1,
+        first_moe_layer=1,
+        moe_hidden_dim=1408,
+        num_experts=64,
+        num_shared_experts=2,
+        experts_per_token=6,
+        num_groups=1,
+        topk_groups=1,
+        norm_topk_prob=True,
+        routed_scaling_factor=2.446,
+        q_lora_rank=None,
+        kv_lora_rank=512,
+        qk_rope_head_dim=64,
+        qk_nope_head_dim=128,
+        v_head_dim=128,
+    )
+
