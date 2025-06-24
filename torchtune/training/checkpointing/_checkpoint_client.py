@@ -138,6 +138,7 @@ class CheckpointClient:
         adapter_only: bool,
         *,
         dir_prefix: str,
+        single_device: bool,
     ) -> None:
         """
         Checkpoint the training state asynchronously as a distributed checkpoint. Saving
@@ -178,6 +179,7 @@ class CheckpointClient:
                 ckpt_dict[training.MODEL_KEY],
                 adapter_config["r"],
                 adapter_config["lora_alpha"],
+                use_distributed_barriers=not single_device,
             )
 
         dcp_saver = self._get_dcp_checkpointer()
@@ -195,6 +197,9 @@ class CheckpointClient:
                 )
 
         if adapter_config is not None:
+            # save adapter weights first because it is faster
+            # so will block training for less time
+            # because you can only do async checkpointing one at a time
             adapter_start = time.perf_counter()
 
             dcp_saver.save_checkpoint(
@@ -223,6 +228,14 @@ class CheckpointClient:
             if self._is_rank_zero:
                 log.info(
                     f"Saving asynchronous checkpoint for adapter weights took {time.perf_counter() - adapter_start:.2f} secs"
+                )
+
+        if not adapter_only:
+            dcp_saver.save_checkpoint(ckpt_dict, epoch=epoch, save_async=True)
+
+            if self._is_rank_zero:
+                log.info(
+                    f"Saving asynchronous checkpoint took {time.perf_counter() - cp_start:.2f} secs"
                 )
 
     def _save_checkpoint_sync(
@@ -428,6 +441,7 @@ class CheckpointClient:
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
         dataloader: Optional[torchdata.stateful_dataloader.StatefulDataLoader] = None,
+        single_device: bool = False,
     ) -> dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
@@ -483,6 +497,7 @@ class CheckpointClient:
                 checkpoint_dict[training.MODEL_KEY],
                 adapter_config["r"],
                 adapter_config["lora_alpha"],
+                use_distributed_barriers=not single_device,
             )
 
         adapter_only = False

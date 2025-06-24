@@ -8,6 +8,7 @@ import contextlib
 from typing import Any, Generator, Literal, Optional, Protocol, runtime_checkable, Union
 
 import torch
+import torch.distributed as dist
 from torch import nn
 from torchtune.utils._logging import deprecate_parameter
 
@@ -194,6 +195,7 @@ def get_merged_lora_ckpt(
     state_dict: dict[str, Any],
     rank: int,
     alpha: float,
+    use_distributed_barriers: bool = False,
 ) -> dict[str, Any]:
     """
     Merge LoRA weights into the base model format for efficient inference.
@@ -207,18 +209,24 @@ def get_merged_lora_ckpt(
         state_dict (dict[str, Any]): State dict from a model.
         rank (int): The rank of LoRA matrices.
         alpha (float): The alpha value used for scaling LoRA decompositions.
+        use_distributed_barriers (bool): Whether to include a distributed barrier before operations.
+            This is useful when using distributed operations like distributed matrix multiplication, to keep
+            operations in sync across ranks. Default: False
 
     Returns:
         dict[str, Any]: The merged state dict.
     """
     lora_modules = _get_lora_modules(state_dict)
     lora_moe_modules = _get_lora_moe_modules(state_dict)
-    for module in lora_modules.union(lora_moe_modules):
+    for module in sorted(lora_modules.union(lora_moe_modules)):
         # TODO: we don't currently support DoRA for MoE layers
         if "experts" in module:
             for param in ["gate", "up", "down"]:
                 lora_a_weight = state_dict[f"{module}.lora_{param}_a"]
                 lora_b_weight = state_dict[f"{module}.lora_{param}_b"]
+
+                if use_distributed_barriers:
+                    dist.barrier()
                 state_dict[f"{module}.{param}_proj"] += (
                     (alpha / rank)
                     * lora_b_weight.transpose(1, 2)
@@ -236,8 +244,13 @@ def get_merged_lora_ckpt(
         if lora_magnitude is not None:
             base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
 
+            if use_distributed_barriers:
+                dist.barrier()
             lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
             merged_weight = base_weight + lora_weight
+
+            if use_distributed_barriers:
+                dist.barrier()
             weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
             mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
             merged_weight *= mag_norm_scale
@@ -246,6 +259,8 @@ def get_merged_lora_ckpt(
 
         # Otherwise it is just vanilla LoRA
         else:
+            if use_distributed_barriers:
+                dist.barrier()
             state_dict[f"{module}.weight"] += (
                 (alpha / rank) * lora_b_weight @ lora_a_weight
             )
