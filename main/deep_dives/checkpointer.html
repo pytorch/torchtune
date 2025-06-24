@@ -707,6 +707,53 @@ for testing or for loading quantized models for generation.</p>
 <div class="line"><br /></div>
 </div>
 </section>
+<section id="distributedcheckpointer">
+<h3><code class="xref py py-class docutils literal notranslate"><span class="pre">DistributedCheckpointer</span></code><a class="headerlink" href="#distributedcheckpointer" title="Permalink to this heading">¶</a></h3>
+<p>This checkpointer reads and writes checkpoints in a distributed format using Pytorch Distributed Checkpointing (DCP).
+The output format is DCP’s default format, which saves the state dict across all ranks, as seperate files for each rank. This differs
+from the other checkpointer implementations, which consolidate to rank-0 and then save the state dict as full tensors.
+The distributed checkpointer is enabled when enabling asynchronous checkpointing during training and uses DCP’s async_save API.
+Async distributed checkpointing is only used for intermediate checkpoints.</p>
+<p>When asynchronous checkpointing is enabled, intermediate checkpoints are saved using the DistributedCheckpointer
+without blocking the training process. This is particularly useful for large models where saving checkpoints
+can take significant time.</p>
+<p><strong>Key Features:</strong></p>
+<ul class="simple">
+<li><p><strong>Asynchronous Saving</strong>: Allows training to continue while checkpoints are being saved in the background</p></li>
+<li><p><strong>Distributed-Aware</strong>: Designed to work seamlessly in multi-GPU and multi-node training setups</p></li>
+</ul>
+<p><strong>Configuration Example:</strong></p>
+<p>To enable asynchronous checkpointing in your training config, you need to set the <code class="docutils literal notranslate"><span class="pre">enable_async_checkpointing</span></code>
+flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. The DistributedCheckpointer will be automatically used when this flag is enabled.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># checkpointer to use for final checkpoints</span>
+<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
+
+<span class="c1"># Set to True to enable asynchronous distributed checkpointing for intermediate checkpoints</span>
+<span class="nt">enable_async_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<p><strong>Resuming Training with DistributedCheckpointer:</strong></p>
+<p>If your training was interrupted and you had async checkpointing enabled, you can resume from the latest
+distributed checkpoint by setting both <code class="docutils literal notranslate"><span class="pre">resume_from_checkpoint</span></code> and <code class="docutils literal notranslate"><span class="pre">enable_async_checkpointing</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set to True to resume from checkpoint</span>
+<span class="nt">resume_from_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+
+<span class="c1"># Set to True to enable asynchronous checkpointing</span>
+<span class="nt">enable_async_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<p>The DistributedCheckpointer will automatically locate and load the latest intermediate checkpoint from the
+output directory.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The final checkpoint at the end of training is always saved synchronously to ensure all
+data is properly persisted in safetensors or torch.save format before the training job completes.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
 </section>
 <section id="checkpoint-output">
 <h2>Checkpoint Output<a class="headerlink" href="#checkpoint-output" title="Permalink to this heading">¶</a></h2>
@@ -989,6 +1036,7 @@ associated utilities in torchtune. Happy tuning!</p>
 <li><a class="reference internal" href="#hfcheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">HFCheckpointer</span></code></a></li>
 <li><a class="reference internal" href="#metacheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaCheckpointer</span></code></a></li>
 <li><a class="reference internal" href="#torchtunecheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchTuneCheckpointer</span></code></a></li>
+<li><a class="reference internal" href="#distributedcheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DistributedCheckpointer</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#checkpoint-output">Checkpoint Output</a></li>
