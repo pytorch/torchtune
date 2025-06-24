@@ -420,6 +420,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
         enable_dcp: bool = False,
+        consolidated_output_path_dcp: Optional[str] = None,
     ) -> None:
         self._should_load_recipe_state = should_load_recipe_state
         if resume_from_checkpoint:
@@ -432,6 +433,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir = checkpoint_dir
         self._model_type = ModelType[model_type]
         self._enable_dcp = enable_dcp
+        self._consolidated_output_path_dcp = consolidated_output_path_dcp
+
         self._fs, _ = url_to_fs(self._checkpoint_dir)
         self._output_dir = output_dir
 
@@ -815,14 +818,20 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 for fqn, filename in self._weight_map.items():
                     index = int(filename.split("-")[1])
                     fqn_to_file_index_mapping[fqn] = index
+
+                no_dist = True if self._consolidated_output_path_dcp else False
                 storage_writer = HuggingFaceStorageWriter(
                     path=os.path.join(self._output_dir, f"epoch_{epoch}"),
                     fqn_to_index_mapping=fqn_to_file_index_mapping,
+                    save_sharded=not no_dist,
+                    num_threads=10,
+                    consolidated_output_path=self._consolidated_output_path_dcp,
+                    num_threads_for_consolidation=10,
                 )
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
                     storage_writer=storage_writer,
-                    no_dist=True,
+                    no_dist=no_dist,
                 )
             else:
                 # split the state_dict into separate dicts, one for each output checkpoint file
@@ -1516,4 +1525,17 @@ class DistributedCheckpointer(_CheckpointerInterface):
             logger,
             msg="The full model checkpoint, including all the weights and configurations, has been saved successfully "
             "by the DistributedCheckpointer. You can now use this checkpoint for further training.",
+        )
+
+    def save_hugging_face_checkpoint(
+        self, state_dict: dict[str, Any], consolidated_output_path: str
+    ) -> None:
+        save(
+            state_dict=state_dict,
+            storage_writer=HuggingFaceStorageWriter(
+                self._output_dir,
+                thread_count=16,
+                consolidated_output_path=consolidated_output_path,
+            ),
+            process_group=self._process_group,
         )
