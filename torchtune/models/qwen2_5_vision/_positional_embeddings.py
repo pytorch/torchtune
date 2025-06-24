@@ -170,8 +170,6 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         base: float = 1000000.0,
     ) -> None:
         super().__init__()
-        if sum(mrope_section) != dim:
-            raise ValueError(f"mrope_section {mrope_section} must sum to dim {dim}")
         
         self.dim = dim
         self.mrope_section = mrope_section

@@ -81,7 +81,7 @@ def qwen2_5_vl_text_decoder(
         >>> # For multimodal usage, pass 3D position_ids as input_pos
         >>> output = decoder(tokens, input_pos=position_ids_3d)  # position_ids_3d: [3, b, s]
     """
-    head_dim = embed_dim // num_heads
+    head_dim = embed_dim // num_heads 
 
     rope = Qwen25VLRotaryPositionalEmbeddings(
             dim=head_dim,
@@ -100,7 +100,7 @@ def qwen2_5_vl_text_decoder(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True), 
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
@@ -108,9 +108,10 @@ def qwen2_5_vl_text_decoder(
         )
 
         mlp = FeedForward(
-            gate_proj=nn.Linear(embed_dim, intermediate_dim, bias=True),
-            down_proj=nn.Linear(intermediate_dim, embed_dim, bias=True),
-            up_proj=nn.Linear(embed_dim, intermediate_dim, bias=True),
+            gate_proj=nn.Linear(embed_dim, intermediate_dim, bias=False),
+            up_proj=nn.Linear(embed_dim, intermediate_dim, bias=False),
+            down_proj=nn.Linear(intermediate_dim, embed_dim, bias=False),
+            activation=nn.SiLU(),
         )
 
         layer = TransformerSelfAttentionLayer(
