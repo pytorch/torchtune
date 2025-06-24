@@ -3,9 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
-
-from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
+import torch.nn as nn
 
 from torchtune.models.qwen2_5_vision import (
     qwen2_5_vl_text_decoder,
@@ -25,7 +23,7 @@ Qwen2.5-VL 7B model with vision capabilities.
 """
 
 
-def qwen2_5_vl_7b_base(
+def qwen2_5_vl_7b(
     *,
     decoder_trainable: bool = False,
     encoder_trainable: bool = False,
@@ -70,10 +68,10 @@ def qwen2_5_vl_7b_base(
     encoder = qwen2_5_vision_encoder(
         embed_dim=1280,
         num_layers=32,
-        activation="silu",
+        activation=nn.SiLU,
         intermediate_size=3420,
         num_heads=16,
-        in_chans=3,
+        in_channels=3,
         out_hidden_size=3584,
         patch_size=14,
         spatial_merge_size=2,

@@ -13,23 +13,25 @@ from torchtune.models.qwen2._convert_weights import _FROM_HF as _FROM_HF_QWEN2
 
 # state dict key mappings from HF's format to torchtune's format
 _FROM_HF = {
-    "visual.blocks.{}.attn.proj.bias": "visual.layers.{}.attn.output_proj.bias",
-    "visual.blocks.{}.attn.proj.weight": "visual.layers.{}.attn.output_proj.weight",
-    "visual.blocks.{}.attn.qkv.bias": "visual.layers.{}.attn.q_proj.bias",
-    "visual.blocks.{}.attn.qkv.weight": "visual.layers.{}.attn.q_proj.weight",
-    "visual.blocks.{}.mlp.down_proj.bias": "visual.layers.{}.mlp.w2.bias",
-    "visual.blocks.{}.mlp.down_proj.weight": "visual.layers.{}.mlp.w2.weight",
-    "visual.blocks.{}.mlp.gate_proj.bias": "visual.layers.{}.mlp.w1.bias",
-    "visual.blocks.{}.mlp.gate_proj.weight": "visual.layers.{}.mlp.w1.weight",
-    "visual.blocks.{}.mlp.up_proj.bias": "visual.layers.{}.mlp.w3.bias",
-    "visual.blocks.{}.mlp.up_proj.weight": "visual.layers.{}.mlp.w3.weight",
-    "visual.blocks.{}.norm1.weight": "visual.layers.{}.sa_norm.scale",
-    "visual.blocks.{}.norm2.weight": "visual.layers.{}.mlp_norm.scale",
-    "visual.merger.ln_q.weight": "visual.merger.ln_q.scale",
-    "visual.merger.mlp.{}.bias": "visual.merger.mlp.{}.bias",
-    "visual.merger.mlp.{}.weight": "visual.merger.mlp.{}.weight",
-    "visual.patch_embed.proj.weight": "visual.patch_embed.proj.weight"
+    "visual.blocks.{}.attn.proj.bias": "encoders.image.layers.{}.attn.output_proj.bias",
+    "visual.blocks.{}.attn.proj.weight": "encoders.image.layers.{}.attn.output_proj.weight",
+    "visual.blocks.{}.attn.qkv.bias": "encoders.image.layers.{}.attn.q_proj.bias",
+    "visual.blocks.{}.attn.qkv.weight": "encoders.image.layers.{}.attn.q_proj.weight",
+    "visual.blocks.{}.mlp.down_proj.bias": "encoders.image.layers.{}.mlp.w2.bias",
+    "visual.blocks.{}.mlp.down_proj.weight": "encoders.image.layers.{}.mlp.w2.weight",
+    "visual.blocks.{}.mlp.gate_proj.bias": "encoders.image.layers.{}.mlp.w1.bias",
+    "visual.blocks.{}.mlp.gate_proj.weight": "encoders.image.layers.{}.mlp.w1.weight",
+    "visual.blocks.{}.mlp.up_proj.bias": "encoders.image.layers.{}.mlp.w3.bias",
+    "visual.blocks.{}.mlp.up_proj.weight": "encoders.image.layers.{}.mlp.w3.weight",
+    "visual.blocks.{}.norm1.weight": "encoders.image.layers.{}.sa_norm.scale",
+    "visual.blocks.{}.norm2.weight": "encoders.image.layers.{}.mlp_norm.scale",
+    "visual.merger.ln_q.weight": "encoders.image.merger.ln_q.scale",
+    "visual.merger.mlp.{}.bias": "encoders.image.merger.mlp.{}.bias",
+    "visual.merger.mlp.{}.weight": "encoders.image.merger.mlp.{}.weight",
+    "visual.patch_embed.proj.weight": "encoders.image.patch_embed.proj.weight"
 }
+# replace "model" with "language_model"
+_FROM_HF_QWEN2 = {k.replace("model.", "language_model."): "decoder." + str(v) for k, v in _FROM_HF_QWEN2.items()}
 
 _FROM_HF.update(_FROM_HF_QWEN2)
 
@@ -63,6 +65,7 @@ def qwen2_5_vl_hf_to_tune(
     converted_state_dict = {}
 
     for key, value in state_dict.items():
+        new_key = get_mapped_key(key, _FROM_HF)
         if "qkv" in key:
             (
                 q,
@@ -79,7 +82,6 @@ def qwen2_5_vl_hf_to_tune(
         elif "rotary_emb.inv_freq" in key:  # Skip loading the position embeddings
             continue
         else:
-            new_key = get_mapped_key(key, _FROM_HF)
             converted_state_dict[new_key] = value
     return converted_state_dict
 
