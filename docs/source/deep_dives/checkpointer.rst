@@ -267,7 +267,7 @@ for testing or for loading quantized models for generation.
 |
 
 :class:`DistributedCheckpointer <torchtune.training.DistributedCheckpointer>`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This checkpointer reads and writes checkpoints in a distributed format using Pytorch Distributed Checkpointing (DCP).
 The output format is DCP's default format, which saves the state dict across all ranks, as seperate files for each rank. This differs
