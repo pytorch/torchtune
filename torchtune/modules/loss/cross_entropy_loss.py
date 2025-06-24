@@ -143,3 +143,113 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
             return total_loss
         else:
             return total_loss / total_elements
+
+
+class LigerLinearCrossEntropy(nn.Module, SFTLoss):
+    """Memory efficient Cross-entropy loss that uses fused CUDA kernels to compute the loss.
+    Combines the linear projection with the cross-entropy calculation for better performance
+    and memory efficiency. This is an approximation of CrossEntropyLoss and may have small
+    numerical differences compared to the standard implementation. This is a wrapper around
+    `LigerFusedLinearCrossEntropyFunction` from the `liger_kernel` package.
+
+    Args:
+        ignore_index (int): Index to ignore in the target tensor. Default is -100.
+
+    Raises:
+        ImportError: If liger_kernel is not installed
+
+    Note:
+        This loss requires `liger_kernel` and `triton` to be installed:
+        `pip install triton liger_kernel`
+
+    Linear cross entropy is computed in a single fused operation. You need to skip the final
+    projection layer in your model and pass it to the loss instead. You can setup the loss
+    with the model as shown below.
+
+    >>> model = Transformer(...)
+    >>> loss = LigerLinearCrossEntropy(...)
+    >>> loss.set_model_output(model)
+    >>> loss.apply_compile_strategy()
+    """
+
+    def __init__(self, ignore_index: int = -100):
+        super().__init__()
+        try:
+            from liger_kernel.ops.fused_linear_cross_entropy import (
+                LigerFusedLinearCrossEntropyFunction,
+            )
+
+            self.fused_linear_ce = LigerFusedLinearCrossEntropyFunction
+        except ImportError as err:
+            raise ImportError(
+                "liger_kernel is required for LigerLinearCrossEntropy but not installed. "
+                "Please install it before using this loss function."
+            ) from err
+        self.linear_projection = None
+        self.ignore_index = ignore_index
+
+    def set_model_output(self, model: nn.Module) -> None:
+        """Modify model output to match the expected input for the loss function.
+
+        Args:
+            model (nn.Module): The model whose output layer will be used for the loss computation.
+
+        Raises:
+            ValueError: If model.output doesn't have required weight and bias parameters
+        """
+        model.skip_output_layer = True
+        self.linear_projection = model.output
+
+        # Validate the projection layer has required parameters
+        if not hasattr(self.linear_projection, "weight"):
+            raise ValueError(
+                "Model output layer must have a weight parameter for LigerLinearCrossEntropy"
+            )
+
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Triton kernels are already JIT-compiled so no additional compilation needed."""
+        return self
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> torch.Tensor:
+        """Compute the fused linear cross entropy loss.
+
+        Args:
+            hidden_states (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
+            targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
+
+        Returns:
+            torch.Tensor: The computed loss value
+
+        Raises:
+            RuntimeError: If set_model_output() was not called before forward
+        """
+        if self.linear_projection is None:
+            raise RuntimeError("Must call set_model_output() before forward()")
+
+        if isinstance(hidden_states, DTensor):
+            hidden_states = hidden_states.full_tensor()
+
+        hidden_states = hidden_states.flatten(0, 1)  # [batch_size*seq_len, emb_dim]
+        targets = targets.flatten()  # [batch_size*seq_len]
+
+        w = self.linear_projection.weight
+        if isinstance(w, DTensor):
+            w = w.full_tensor()
+
+        b = getattr(self.linear_projection, "bias", None)
+        if b is not None and isinstance(b, DTensor):
+            b = b.full_tensor()
+
+        loss, _ = self.fused_linear_ce.apply(
+            hidden_states,
+            w,
+            targets,
+            b,
+            None,  # ce_weight
+            self.ignore_index,
+        )
+        return loss

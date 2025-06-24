@@ -35,6 +35,7 @@ dependencies = [
 
     # Multimodal
     "Pillow>=9.4.0",
+
 ]
 dynamic = ["version"]
 
@@ -61,6 +62,9 @@ dev = [
     "urllib3<2.0.0",
     "wandb",
     "expecttest",
+
+    # Liger Kernels
+    "liger-kernel ; platform_system != 'Windows'"
 ]
 async_rl = [
     # We will update this to a stable release soon!
