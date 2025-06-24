@@ -77,7 +77,7 @@ def qwen2_5_vl_7b(
         spatial_merge_size=2,
         # spatial_patch_size=14,
         window_size=112,
-        fullatt_block_indexes=[7, 15, 23, 31],
+        full_att_block_indexes=[7, 15, 23, 31],
         temporal_patch_size=2,
         # tokens_per_second=2 # NOTE: needed for get_rope_index
     )
