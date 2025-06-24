@@ -55,7 +55,6 @@ class TestLoRAFinetuneDistributedRecipe:
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
-            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
             "llama3": [11.9839, 11.9691, 11.9617, 11.9383],
         }
         return loss_values_map[model_type]
@@ -74,13 +73,13 @@ class TestLoRAFinetuneDistributedRecipe:
         tmpdir,
         monkeypatch,
     ):
-        ckpt = "llama2_tune"
+        ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config llama2/7B_lora \
+            --config llama3/8B_lora \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
@@ -90,22 +89,22 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
             metric_logger.filename={log_file} \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             reshard_after_forward={reshard_after_forward} \
             enable_activation_checkpointing=False \
             enable_activation_offloading=False \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama3_lora"]
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values("llama2")
+        expected_loss_values = self._fetch_expected_loss_values("llama3")
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
@@ -115,9 +114,7 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, save_adapter_weights_only",
         [
-            ("llama2/7B_lora", "llama2", "hf", False),
             ("llama3/8B_lora", "llama3", "tune", False),
-            ("llama2/7B_lora", "llama2", "hf", True),
         ],
     )
     def test_training_state_on_resume(
@@ -218,9 +215,7 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, save_adapter_weights_only",
         [
-            ("llama2/7B_lora", "llama2", "hf", False),
             ("llama3/8B_lora", "llama3", "tune", False),
-            ("llama2/7B_lora", "llama2", "hf", True),
         ],
     )
     def test_training_state_on_resume_with_async_checkpointing(
@@ -320,7 +315,6 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "recipe_config, model_type, ckpt_type, use_dora",
         [
-            ("llama2/7B_lora", "llama2", "tune", True),
             ("llama3/8B_lora", "llama3", "tune", False),
         ],
     )

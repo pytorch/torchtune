@@ -929,11 +929,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop."""
 
-        if self.compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward."
-                "Expect a relatively slow first iteration."
-            )
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()

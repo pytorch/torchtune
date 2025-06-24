@@ -333,6 +333,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # For now, default to saving at epoch boundaries
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         if (
             self._resume_from_checkpoint
@@ -521,7 +524,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataloader.load_state_dict(dataloader_state_dict)
         return dataloader
 
-    def save_checkpoint(self, *, epoch: int, step: int, fast_save: bool) -> None:
+    def save_checkpoint(self, *, epoch: int, step: int, full_tensors: bool) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
@@ -529,7 +532,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Since we might save at an epoch boundary, we need to increment the epoch counter
         if step % self._steps_per_epoch == 0:
             epoch += 1
-            self.epochs_run += 1
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self.optimizer,
@@ -544,7 +546,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             epoch=epoch,
             single_device=True,
-            fast_save=fast_save,
+            full_tensors=full_tensors,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -587,7 +590,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_count = 0
 
             # Continue looping until we reach max steps or exhaust the dataset
-            while inner_step_count < self.max_steps_per_epoch:
+            while inner_step_count < self._steps_per_epoch:
                 # Try to get the next batch, break if we've reached the end of the dataset
                 try:
                     batch = next(dataloader_iter)
@@ -621,7 +624,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if (batch_count + 1) % self._gradient_accumulation_steps == 0:
                     grad_norm = None
                     if not self.optimizer_in_bwd:
-                        training.scale_grads(self._model, 1.0 / num_tokens)
+                        training.scale_grads_(
+                            self._model.parameters(), 1.0 / num_tokens
+                        )
                         if self._clip_grad_norm:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(), float(self._clip_grad_norm)
@@ -661,7 +666,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # Save checkpoint if specified by user
                     if self.global_step % self.save_every_n_steps == 0:
                         self.save_checkpoint(
-                            epoch=curr_epoch, step=self.global_step, fast_save=True
+                            epoch=curr_epoch, step=self.global_step, full_tensors=False
                         )
 
                     running_loss, num_tokens = 0.0, 0
@@ -686,7 +691,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._profiler.stop()
         # Save final checkpoint
-        self.save_checkpoint(epoch=curr_epoch, step=self.global_step, fast_save=False)
+        self.save_checkpoint(epoch=curr_epoch, step=self.global_step, full_tensors=True)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

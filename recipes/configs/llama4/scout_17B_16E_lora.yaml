@@ -45,17 +45,25 @@ checkpointer:
 save_adapter_weights_only: True # use this for faster checkpoint save
 resume_from_checkpoint: False
 
-# Dataset
+# Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
+  split: train[:95%]
 seed: null
 shuffle: True
 
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: ${batch_size}
+
 # Training arguments
 epochs: 1
+batch_size: 2
 max_steps_per_epoch: null
-batch_size: 1
 gradient_accumulation_steps: 1 # Use to increase effective batch size
 optimizer:
   _component_: torch.optim.AdamW

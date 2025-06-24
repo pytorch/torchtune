@@ -46,6 +46,7 @@ class TrainingProgress:
     steps_run: Optional[int] = None
     total_training_steps: Optional[int] = None
     dataloader_state_dict: Optional[dict[str, Any]] = None
+    val_dataloader_state_dict: Optional[dict[str, Any]] = None
 
     def state_dict(self) -> dict[str, object]:
         return {
@@ -56,6 +57,7 @@ class TrainingProgress:
             "steps_run": self.steps_run,
             "total_training_steps": self.total_training_steps,
             training.DATALOADER_KEY: self.dataloader_state_dict,
+            training.VAL_DATALOADER_KEY: self.val_dataloader_state_dict,
         }
 
 
@@ -67,16 +69,20 @@ class CheckpointClient:
 
     Args:
         cfg (DictConfig): Configuration object used to instantiate the recipe.
+        checkpointer (Optional[Any]): Checkpointer used to save and load checkpoints.
+                                      Used if we want to override the default checkpointer.
+                                      eg. teacher checkpointer config
     """
 
     def __init__(
         self,
         cfg: DictConfig,
+        checkpointer: Optional[Any] = None,
     ) -> None:
         self._cfg = cfg
 
         # _checkpointer is the user configured checkpointer
-        self._checkpointer = None
+        self._checkpointer = checkpointer
 
         # DistributedCheckpointer is used for asynchronous checkpointing, if enabled.
         self._dcp_checkpointer = None
@@ -130,6 +136,8 @@ class CheckpointClient:
         epoch: int,
         adapter_config: Optional[dict[str, Any]],
         adapter_only: bool,
+        *,
+        dir_prefix: str,
     ) -> None:
         """
         Checkpoint the training state asynchronously as a distributed checkpoint. Saving
@@ -179,6 +187,7 @@ class CheckpointClient:
                 epoch=epoch,
                 save_async=True,
                 step=training_progress.steps_run,
+                dir_prefix=dir_prefix,
             )
             if self._is_rank_zero:
                 log.info(
@@ -194,6 +203,7 @@ class CheckpointClient:
                 save_async=True,
                 adapter_only=True,
                 step=training_progress.steps_run,
+                dir_prefix=dir_prefix,
             )
 
             if adapter_only:
@@ -225,6 +235,8 @@ class CheckpointClient:
         adapter_only: bool,
         single_device: bool,
         intermediate_checkpoint: bool,
+        *,
+        dir_prefix: str,
     ) -> None:
         """
         Checkpoint the training state synchronously.
@@ -332,6 +344,7 @@ class CheckpointClient:
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=adapter_only,
                 step=training_progress.steps_run,
+                dir_prefix=dir_prefix,
             )
 
             if self._is_rank_zero:
@@ -358,7 +371,8 @@ class CheckpointClient:
         adapter_only: bool = False,
         single_device: bool = False,
         *,
-        fast_save: Optional[bool] = None,
+        full_tensors: bool = True,
+        dir_prefix: str = "epoch",
     ) -> None:
         """
         Checkpoint the training state.
@@ -377,9 +391,8 @@ class CheckpointClient:
             )
         except TypeError:
             intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
-        if fast_save is None:
-            fast_save = intermediate_checkpoint
-        if fast_save and self._enable_async_checkpointing:
+
+        if not full_tensors and self._enable_async_checkpointing:
             self._save_checkpoint_async(
                 model,
                 optimizer,
@@ -387,6 +400,7 @@ class CheckpointClient:
                 epoch,
                 adapter_config,
                 adapter_only,
+                dir_prefix=dir_prefix,
             )
         else:
             self._save_checkpoint_sync(
@@ -398,6 +412,7 @@ class CheckpointClient:
                 adapter_only,
                 single_device,
                 intermediate_checkpoint,
+                dir_prefix=dir_prefix,
             )
 
     def load_base_checkpoint(self) -> dict[str, Any]:

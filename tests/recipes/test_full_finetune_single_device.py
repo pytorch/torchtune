@@ -8,6 +8,7 @@ import os
 import re
 
 import runpy
+import shutil
 
 import sys
 from pathlib import Path
@@ -32,11 +33,7 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
-from torchtune.training.checkpointing._utils import (
-    get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
-    SHARD_FNAME,
-)
+from torchtune.training.checkpointing._utils import get_largest_iter_folder
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -56,13 +53,10 @@ class TestFullFinetuneSingleDeviceRecipe:
             "log_every_n_steps=1",
         ] + dummy_alpaca_dataset_config()
 
-    def _fetch_expected_loss_values(self, model_type):
-        loss_values_map = {
-            "llama2": [10.5201, 10.5217, 10.4945, 10.5136],
-            "llama3": [11.9839, 11.9684, 11.9596, 11.9366],
-        }
+    def _fetch_expected_loss_values(self, model_ckpt):
+        loss_values_map = {"llama3_hf_138m": [11.8934, 11.9444, 11.8903, 11.8915]}
 
-        return loss_values_map[model_type]
+        return loss_values_map[model_ckpt]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
@@ -71,10 +65,9 @@ class TestFullFinetuneSingleDeviceRecipe:
         [(8, 1, True), (2, 4, False)],
     )
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type",
+        "config, model_ckpt",
         [
-            ("llama2/7B_full_low_memory", "llama2", "meta"),
-            ("llama3/8B_full_single_device", "llama3", "tune"),
+            ("llama3/8B_full_single_device", "llama3_hf_138m"),
         ],
     )
     @gpu_test(gpu_count=1)
@@ -85,16 +78,12 @@ class TestFullFinetuneSingleDeviceRecipe:
         gradient_accumulation_steps,
         optimizer_in_bwd,
         config,
-        model_type,
-        ckpt_type,
+        model_ckpt,
         tmpdir,
         monkeypatch,
     ):
-        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
-        ckpt = model_type + "_" + ckpt_type
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
-        ckpt_dir = ckpt_path.parent
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
@@ -103,18 +92,16 @@ class TestFullFinetuneSingleDeviceRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
-            checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS[model_type]
+        model_config = MODEL_TEST_CONFIGS[model_ckpt]
         cmd = cmd + self._get_test_config_overrides() + model_config
         # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
         # wrong grad_norm, so we only test one of them each time. But loss values
@@ -133,7 +120,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             torch._dynamo.reset()
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values(model_type)
+        expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
 
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
@@ -245,29 +232,24 @@ class TestFullFinetuneSingleDeviceRecipe:
     def test_checkpointing_with_steps(
         self, tmpdir, monkeypatch, keep_last_n_checkpoints, save_every_n_steps
     ):
-        ckpt = "llama2_hf"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
-        log_file = gen_log_file_name(tmpdir)
-        write_hf_ckpt_config(tmpdir)
+        model_type = "llama3_hf_138m"
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_type])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
+        model_config = MODEL_TEST_CONFIGS[model_type]
 
         # Train for two epochs (anywhere from 2 -> 4 ckpts)
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
-            batch_size=8 \
+            --config llama3/8B_full_single_device  \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
             checkpointer.keep_last_n_checkpoints={keep_last_n_checkpoints} \
             save_every_n_steps={save_every_n_steps} \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
         """.split()
-        model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit, match=""):
@@ -296,35 +278,39 @@ class TestFullFinetuneSingleDeviceRecipe:
     # test does not work without using shutil in order to remove the last directory (otherwise HF checkpointer looks for latest directory that does not have recipe_state.pt)
     # requires recipe_checkpoint to be specified even though that should be deprecated ?
     @pytest.mark.integration_test
-    def test_checkpointing_with_steps_and_resume(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("use_steps", [True, False])
+    @gpu_test(gpu_count=1)
+    def test_training_state_on_resume(self, tmpdir, use_steps, monkeypatch):
         """We want to be sure that now we use steps, we can resume correctly from a checkpoint.
         Once we fully transition to steps, we can remove the test above."""
         # 0. Set up variables
-        ckpt = "llama2_hf"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
+        model_type = "llama3_hf_138m"
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_type])
+        model_config = MODEL_TEST_CONFIGS[model_type]
+        tokenizer_path = TOKENIZER_PATHS[model_type]
         log_file = gen_log_file_name(tmpdir)
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
 
         # 1. Train for two epochs, keep 2 checkpoints
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
             checkpointer.keep_last_n_checkpoints=2 \
-            save_every_n_steps=2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
+            optimizer_in_bwd=False \
         """.split()
-        model_config = MODEL_TEST_CONFIGS["llama2"]
+        if use_steps:
+            cmd_1.append("save_every_n_steps=2")
+            final_ckpt_dir = "step_4"
+        else:
+            final_ckpt_dir = "epoch_2"
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -344,7 +330,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # 3. Resume training w/ the checkpoint from epoch boundary
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
@@ -357,6 +343,8 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
+            optimizer_in_bwd=False \
+            save_every_n_steps=1 \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -364,55 +352,81 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # 4. Make sure loss values match the expected values
-        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
+        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+        )
+
+        # 5. Resume from a specific checkpoint
+        cmd_3 = f"""
+        tune run full_finetune_single_device \
+            --config llama3/8B_full_single_device \
+            batch_size=8 \
+            output_dir={tmpdir} \
+            checkpointer.checkpoint_dir={tmpdir}/step_3 \
+            checkpointer.checkpoint_files=[model.safetensors] \
+            checkpointer.output_dir={tmpdir} \
+            tokenizer.path={tokenizer_path} \
+            tokenizer.prompt_template=null \
+            resume_from_checkpoint=True \
+            metric_logger.filename={log_file} \
+            optimizer_in_bwd=False \
+            save_every_n_steps=1 \
+        """.split()
+
+        cmd_3 = cmd_3 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_3)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # 6. Make sure loss values match the expected values
+        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
+        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
+    @pytest.mark.parametrize("model_type", ["llama3_hf_138m"])
+    @pytest.mark.parametrize("use_steps", [True, False])
     def test_training_state_on_resume_with_async_checkpointing(
-        self, tmpdir, monkeypatch
+        self, tmpdir, monkeypatch, model_type, use_steps
     ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
-            - Train a model for 2 epochs
-            - Resume training after epoch 1
+            - Train a model for 2 epochs (or 4 steps)
+            - Resume training after epoch 1 (or step 2)
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
-
-        ckpt = "llama2_hf"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
-        first_log_file = gen_log_file_name(tmpdir, suffix="first")
-
-        # Config file needed for model conversion.
-        # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_type])
+        model_config = MODEL_TEST_CONFIGS[model_type]
+        tokenizer_path = TOKENIZER_PATHS[model_type]
+        log_file = gen_log_file_name(tmpdir)
 
         # Train for two epochs
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
             enable_async_checkpointing=True\
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            metric_logger.filename={first_log_file} \
+            metric_logger.filename={log_file} \
             optimizer_in_bwd=False \
-            save_every_n_steps=2 \
         """.split()
+        if use_steps:
+            cmd_1.append("save_every_n_steps=2")
+            final_ckpt_dir = "step_4"
+        else:
+            final_ckpt_dir = "epoch_2"
 
-        model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -420,36 +434,31 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Sanity check that the loss values are expected for the initial run
-        expected_loss_values = self._fetch_expected_loss_values("llama2")
-        loss_values = get_loss_values_from_metric_logger(first_log_file)
+        expected_loss_values = self._fetch_expected_loss_values(model_type)
+        loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
         # delete latest checkpoint dir to make sure we are resuming from the right one
-        import shutil
-
-        shutil.rmtree(os.path.join(tmpdir, "step_4"))
+        shutil.rmtree(os.path.join(tmpdir, final_ckpt_dir))
 
         # Resume training
         log_file = gen_log_file_name(tmpdir, suffix="resume")
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config llama3/8B_full_single_device \
             batch_size=8 \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
             enable_async_checkpointing=True\
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
             optimizer_in_bwd=False \
-            save_every_n_steps=2 \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -458,7 +467,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
+        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(

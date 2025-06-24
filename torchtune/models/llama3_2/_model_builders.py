@@ -15,12 +15,14 @@ Model builders build specific instantiations using component builders. For examp
 the llama3_2_1b model builder uses the llama3_2 component builder to create the
 Llama3.2 1B model.
 """
+
+
 def llama3_2_1b(
     tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.
-    
+
     Args:
         tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
@@ -41,6 +43,8 @@ def llama3_2_1b(
         scale_factor=32,
         tie_word_embeddings=tie_word_embeddings,
     )
+
+
 def llama3_2_3b(
     tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
@@ -67,6 +71,8 @@ def llama3_2_3b(
         scale_factor=32,
         tie_word_embeddings=tie_word_embeddings,
     )
+
+
 def lora_llama3_2_1b(
     lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
@@ -83,7 +89,7 @@ def lora_llama3_2_1b(
     The Llama3.2 defaults are the same as in :func:`~torchtune.models.llama3_2.llama3_2_1b`,
     while LoRA default params are based on
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
-    
+
     Args:
         lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
@@ -125,6 +131,8 @@ def lora_llama3_2_1b(
         quantize_base=quantize_base,
         tie_word_embeddings=tie_word_embeddings,
     )
+
+
 def lora_llama3_2_3b(
     lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
@@ -161,7 +169,6 @@ def lora_llama3_2_3b(
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 3B model with LoRA applied
     """
-           
     return lora_llama3_2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
@@ -184,6 +191,8 @@ def lora_llama3_2_3b(
         quantize_base=quantize_base,
         tie_word_embeddings=tie_word_embeddings,
     )
+
+
 qlora_llama3_2_1b = partial(lora_llama3_2_1b, quantize_base=True)
 qlora_llama3_2_1b.__doc__ = """
 Builder for creating a Llama3.2 1B model with QLoRA enabled. Base model weights in linear layers

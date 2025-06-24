@@ -439,6 +439,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
             )
 
+        if recipe_checkpoint != "recipe_state.pt":
+            # I don't want to log warning for None, b/c that's been the default for a long time
+            if recipe_checkpoint is not None:
+                logger.warning(
+                    "recipe_checkpoint is deprecated. torchtune will always save the recipe state under "
+                    "output_dir / epoch_x (or step_x). If you are trying to resume from a specific checkpoint, then "
+                    "you can pass in checkpoint_dir=PATH/epoch_x (or step_x). We will then load PATH/epoch_1/recipe_state.pt"
+                )
+            recipe_checkpoint = "recipe_state.pt"
+
         # Create fsspec filesystem for the checkpoint directory
         self._input_fs, _ = url_to_fs(checkpoint_dir)
 
@@ -473,22 +483,35 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         if self._should_load_recipe_state:
             assert output_dir is not None
-            most_recent_checkpoint = get_most_recent_checkpoint(dir=Path(output_dir))
-            if most_recent_checkpoint is None:
-                raise ValueError(
-                    "Recipe state cannot be loaded because no checkpoints were found in the output directory."
+            if "step" in self._checkpoint_dir or "epoch" in self._checkpoint_dir:
+                # If there's a step or epoch in the name, we assume it's loading from a predetermined ckpt
+                checkpoint_dir_to_load_from = self._checkpoint_dir
+            else:
+                most_recent_checkpoint = get_most_recent_checkpoint(
+                    dir=Path(output_dir)
                 )
-            self._recipe_checkpoint = most_recent_checkpoint / recipe_checkpoint
-            assert (
-                self._recipe_checkpoint.exists()
-            ), f"{recipe_checkpoint} not found in {most_recent_checkpoint}"
-            self._adapter_checkpoint = most_recent_checkpoint / adapter_checkpoint
+                if most_recent_checkpoint is None:
+                    raise ValueError(
+                        "Recipe state cannot be loaded because no checkpoints were found in the output directory."
+                    )
+                checkpoint_dir_to_load_from = most_recent_checkpoint
+
+            self._recipe_checkpoint = os.path.join(
+                checkpoint_dir_to_load_from, recipe_checkpoint
+            )
+            assert os.path.exists(
+                self._recipe_checkpoint
+            ), f"{recipe_checkpoint} not found in {checkpoint_dir_to_load_from}"
+
+            self._adapter_checkpoint = os.path.join(
+                checkpoint_dir_to_load_from, adapter_checkpoint
+            )
             self._checkpoint_paths = get_model_checkpoint_path(
                 checkpoint_files=checkpoint_files,
                 checkpoint_dir=checkpoint_dir,
-                output_dir=most_recent_checkpoint,
+                output_dir=checkpoint_dir_to_load_from,
                 should_load_recipe_state=True,
-                has_adapter_checkpoint=self._adapter_checkpoint.exists(),
+                has_adapter_checkpoint=os.path.exists(self._adapter_checkpoint),
             )
         else:
             assert output_dir is not None
@@ -682,7 +705,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if self._should_load_recipe_state:
-            if self._adapter_checkpoint.exists():
+            if os.path.exists(self._adapter_checkpoint):
                 adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
                 converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
             recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
@@ -732,6 +755,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         *,
         step: Optional[int] = None,
         max_shard_size: str = MAX_SHARD_SIZE,
+        dir_prefix: str = "epoch",
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -747,19 +771,31 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
-            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
+            step (Optional[int]): Step number. Used to create the checkpoint file name if ``dir_prefix`` is 'step'.
             max_shard_size (str): Maximum shard size for the checkpoint files. Default is '5GB'.
+            dir_prefix (str): Prefix for the checkpoint directory. Default is 'epoch'.
 
         Raises:
-            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
+            ValueError:
+                If ``adapter_only`` is True and adapter checkpoint not found in state_dict.
+                If ``output_dir`` is not specified.
+                If ``dir_prefix`` is 'step' but ``step`` is None.
+                If ``dir_prefix`` is not 'epoch' or 'step'.
         """
-        # Prefer to use step, not epoch
-        if step is not None:
+        if dir_prefix == "epoch":
+            ckpt_save_dirname = f"epoch_{epoch}"
+            ckpt_pattern = r"^epoch_(\d+)"
+        elif dir_prefix == "step":
+            if step is None:
+                raise ValueError(
+                    "Step number must be provided when dir_prefix is 'step'."
+                )
             ckpt_save_dirname = f"step_{step}"
             ckpt_pattern = r"^step_(\d+)"
         else:
-            ckpt_save_dirname = f"epoch_{epoch}"
-            ckpt_pattern = r"^epoch_(\d+)"
+            raise ValueError(
+                f"Invalid dir_prefix: {dir_prefix}. Expected 'epoch' or 'step'."
+            )
 
         if self._output_dir is None:
             raise ValueError(
@@ -854,6 +890,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=self._config.get("head_dim", None),
                 )
 
+            # Here we actually save the model weights
             if self._enable_dcp:
                 self._save_checkpoint_with_dcp_hf(
                     state_dict, output_path=ckpt_output_dir
@@ -1335,6 +1372,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         adapter_only: bool = False,
         *,
         step: Optional[int] = None,
+        dir_prefix: str = "epoch",
     ) -> None:
         """
         Save a distributed checkpoint to storage.
@@ -1348,12 +1386,23 @@ class DistributedCheckpointer(_CheckpointerInterface):
             save_async (bool): If True, save the checkpoint asynchronously
             adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.
             step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
+            dir_prefix (str): Prefix to use for the checkpoint directory name. Defaults to "epoch".
+
+        Raises:
+            ValueError:
+                If ``dir_prefix`` is 'step' and ``step`` is None.
+                If ``dir_prefix`` is not one of 'epoch' or 'step'.
         """
-        # Prefer to use step, not epoch
-        if step is not None:
+        if dir_prefix == "epoch":
+            ckpt_save_dirname = f"epoch_{epoch}"
+        elif dir_prefix == "step":
+            if step is None:
+                raise ValueError("Step number is required when dir_prefix is 'step'.")
             ckpt_save_dirname = f"step_{step}"
         else:
-            ckpt_save_dirname = f"epoch_{epoch}"
+            raise ValueError(
+                f"Invalid dir_prefix: {dir_prefix}. Must be one of 'epoch' or 'step'."
+            )
 
         checkpoint_path = os.path.join(self._output_dir, ckpt_save_dirname)
         if adapter_only:
@@ -1398,7 +1447,6 @@ class DistributedCheckpointer(_CheckpointerInterface):
                     thread_count=16,
                     single_file_per_rank=False,
                     sync_files=False,
-                    cache_staged_state_dict=True,
                 ),
                 process_group=self._process_group,
             )
@@ -1426,3 +1474,5 @@ class DistributedCheckpointer(_CheckpointerInterface):
                 ),
                 process_group=self._process_group,
             )
+
+        # TODO: prune old checkpoints

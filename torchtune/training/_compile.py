@@ -43,7 +43,9 @@ def compile_model(
         model = model.decoder
     # Per-layer compilation by default
     if verbose:
-        log.info("Compiling model layers with torch.compile...")
+        log.info(
+            "Compiling model layers with torch.compile. Expect a relatively slower first step."
+        )
     for m in reversed(list(model.modules())):
         if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
             m, TransformerCrossAttentionLayer

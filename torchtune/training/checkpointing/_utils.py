@@ -75,6 +75,7 @@ RNG_KEY = "rng_state"
 
 # key used for dataloader state
 DATALOADER_KEY = "dataloader"
+VAL_DATALOADER_KEY = "val_dataloader"
 
 
 class ModelType(Enum):
@@ -455,9 +456,7 @@ def get_recipe_checkpoint_path(
     if recipe_checkpoint:
         recipe_checkpoint_path = os.path.join(output_dir, recipe_checkpoint)
     else:
-        recipe_checkpoint_path = os.path.join(
-            checkpoint_dir, "recipe_state.pt"
-        )
+        recipe_checkpoint_path = os.path.join(checkpoint_dir, "recipe_state.pt")
 
     fs, _ = url_to_fs(recipe_checkpoint_path)
 
