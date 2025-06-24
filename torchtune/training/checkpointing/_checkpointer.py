@@ -824,9 +824,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     path=os.path.join(self._output_dir, f"epoch_{epoch}"),
                     fqn_to_index_mapping=fqn_to_file_index_mapping,
                     save_sharded=not no_dist,
-                    num_threads=10,
+                    thread_count=10,
                     consolidated_output_path=self._consolidated_output_path_dcp,
-                    num_threads_for_consolidation=10,
+                    thread_count_consolidation=10,
                 )
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
