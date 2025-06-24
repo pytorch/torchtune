@@ -218,26 +218,11 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # 2. Find the checkpoint at the end of the first epoch
-        # step_folder = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
-        # step_folder_at_epoch_boundary = f"step_{int(step_folder.split('_')[-1]) - 2}"
         suffix = ".safetensors"
         model_ckpt_fname = (
             "model" + suffix
         )
-        # assert step_folder is not None, "No step folder found"
         assert os.path.exists(os.path.join(tmpdir, prev_ckpt_dir, model_ckpt_fname)), "Checkpoint file does not exist"
-
-        def print_file_tree(start_path='.', indent=''):
-            for i, item in enumerate(sorted(os.listdir(start_path))):
-                path = os.path.join(start_path, item)
-                is_last = (i == len(os.listdir(start_path)) - 1)
-                pointer = '└── ' if is_last else '├── '
-                print(indent + pointer + item)
-                if os.path.isdir(path):
-                    extension = '    ' if is_last else '│   '
-                    print_file_tree(path, indent + extension)
-
-        print_file_tree(tmpdir)
 
         shutil.rmtree(tmpdir / final_ckpt_dir)
 
