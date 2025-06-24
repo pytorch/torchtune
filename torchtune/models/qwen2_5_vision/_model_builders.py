@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 import torch.nn as nn
 
-from torchtune.models.qwen2_5_vision import (
+from torchtune.models.qwen2_5_vision._component_builders import (
     qwen2_5_vl_text_decoder,
     qwen2_5_vision_encoder,
 )
@@ -53,7 +53,7 @@ def qwen2_5_vl_7b(
     decoder = qwen2_5_vl_text_decoder(
         vocab_size=152064, # TODO: check if this value from hf/config.json is correct; paper says 151646
         num_layers=28,
-        num_heads=4, 
+        num_kv_heads=4, 
         embed_dim=3584,
         intermediate_dim=18944,
         max_seq_len=32768,
