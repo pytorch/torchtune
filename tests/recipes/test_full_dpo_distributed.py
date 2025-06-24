@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import runpy
 import shutil
 import sys
@@ -111,12 +112,12 @@ class TestFullDPODistributedRecipe:
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_to_resume_from}]\
+            checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            ref_checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
             ref_checkpointer.checkpoint_files=[{ckpt_path}]\
             ref_checkpointer.output_dir={tmpdir} \
             ref_checkpointer.model_type=LLAMA3 \

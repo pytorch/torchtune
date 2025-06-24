@@ -343,7 +343,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(
-                self._output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
+                self._output_dir, f"epoch_{epoch}", "recipe_state.pt"
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
