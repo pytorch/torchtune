@@ -413,6 +413,7 @@ class CheckpointClient:
                 epoch,
                 adapter_config,
                 adapter_only,
+                single_device=single_device,
                 dir_prefix=dir_prefix,
             )
         else:
