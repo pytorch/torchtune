@@ -95,12 +95,14 @@ def base_llama_tp_plan(
     return BASE_LLAMA_TP_INFERENCE_PLAN if inference else BASE_LLAMA_TP_TRAINING_PLAN
 
 
-# TODO: expose this once tested
-def _fp8_llama_tp_plan() -> dict[str, ParallelStyle]:
+def fp8_llama_tp_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     """
     Return the tensor parallel plan for Llama3 model that uses float8 for all-gather for both
     rowwise and colwise computation, currently only compatible with float8 fine-tuning with
     "tensorwise" scaling. This tensor parallel plan is shared between 3.1, 3.2, and 3.3 models.
+
+    Args:
+        model (nn.Module): Model to generate plan for (no-op)
 
     Returns:
         dict[str, Any]: The float8-enabled tensor parallel plan for Llama3 model.
