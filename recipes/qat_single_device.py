@@ -58,7 +58,7 @@ class QATRecipeSingleDevice(FTRecipeInterface):
           models or batch sizes but may increase training time.
 
         - Activation Offloading: Controlled using the ``enable_activation_offloading``
-          flag (requires ``enable_activation_checkpointing=True`` and CUDA device).
+          flag (requires ``enable_activation_checkpointing=True`` and CUDA or XPU device).
           Activations are moved to CPU memory during the forward pass and brought back to GPU
           during the backward pass, further reducing GPU memory usage. This can impact
           training speed but allows for larger models/batches.
@@ -101,7 +101,7 @@ class QATRecipeSingleDevice(FTRecipeInterface):
         ValueError: If the specified ``quantizer`` is not in a QAT mode.
         RuntimeError: If ``optimizer_in_bwd`` is True and ``clip_grad_norm`` is enabled.
         RuntimeError: If ``optimizer_in_bwd`` is True and ``gradient_accumulation_steps`` > 1.
-        RuntimeError: If ``enable_activation_offloading`` is True and the device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and the device is not CUDA or XPU.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator for training.
         KeyError: If resuming from a checkpoint and the checkpoint dictionary is missing required recipe state keys.
@@ -157,9 +157,9 @@ class QATRecipeSingleDevice(FTRecipeInterface):
             "enable_activation_offloading", False
         )
         if self._enable_activation_offloading:
-            if self._device.type != "cuda":
+            if self._device.type != "cuda" and self._device.type != "xpu":
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
+                    "enable_activation_offloading should only be True when training on CUDA or XPU"
                 )
             if not self._enable_activation_checkpointing:
                 raise RuntimeError(
