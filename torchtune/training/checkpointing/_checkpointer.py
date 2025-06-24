@@ -813,25 +813,35 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if self._enable_dcp:
                 from torch.distributed.checkpoint import HuggingFaceStorageWriter
 
+                if self._consolidated_output_path_dcp:
+                    self._fs.mkdirs(self._consolidated_output_path_dcp, exist_ok=True)
+
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
                 for fqn, filename in self._weight_map.items():
                     index = int(filename.split("-")[1])
                     fqn_to_file_index_mapping[fqn] = index
 
-                no_dist = True if self._consolidated_output_path_dcp else False
+                dist = True if self._consolidated_output_path_dcp else False
                 storage_writer = HuggingFaceStorageWriter(
                     path=os.path.join(self._output_dir, f"epoch_{epoch}"),
                     fqn_to_index_mapping=fqn_to_file_index_mapping,
-                    save_sharded=not no_dist,
+                    save_sharded=dist,
                     thread_count=10,
                     consolidated_output_path=self._consolidated_output_path_dcp,
                     thread_count_consolidation=10,
                 )
+                print(
+                    "sizing again ",
+                    state_dict[training.MODEL_KEY]["model.embed_tokens.weight"].size(),
+                    state_dict[training.MODEL_KEY]["model.embed_tokens.weight"]
+                    .to_local()
+                    .size(),
+                )
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
                     storage_writer=storage_writer,
-                    no_dist=no_dist,
+                    no_dist=not dist,
                 )
             else:
                 # split the state_dict into separate dicts, one for each output checkpoint file
