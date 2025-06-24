@@ -16,6 +16,8 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
+import shutil
+
 from tests.recipes.utils import (
     CKPT_COMPONENT_MAP,
     dummy_alpaca_dataset_config,
@@ -143,6 +145,10 @@ class TestFullFinetuneSingleDeviceRecipe:
         [True, False],
     )
     @gpu_test(gpu_count=1)
+    # test does not work without using shutil in order to remove the last directory (otherwise HF checkpointer looks for latest directory that does not have recipe_state.pt)
+    # also creates step directories when the test was initially designed to use epoch directories
+    # checkpointer_client is sending a step param that causes it to default to steps
+    # requires recipe_checkpoint to be specified even though that should be deprecated ?
     def test_training_state_on_resume(self, tmpdir, monkeypatch, optimizer_in_bwd):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -193,10 +199,11 @@ class TestFullFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+        shutil.rmtree(tmpdir / "step_4")
+
         # Resume training
         log_file = gen_log_file_name(tmpdir, suffix="resume")
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        step_folder = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
         suffix = ".safetensors"
         model_ckpt_fname = (
             "model" + suffix
@@ -207,10 +214,11 @@ class TestFullFinetuneSingleDeviceRecipe:
             batch_size=8 \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={tmpdir}/{epoch_folder_minus_one} \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.checkpoint_dir={tmpdir}/{step_folder} \
+            checkpointer.checkpoint_files=['{os.path.join(tmpdir, step_folder, model_ckpt_fname)}']\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
+            checkpointer.recipe_checkpoint="recipe_state.pt" \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
@@ -285,6 +293,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         step = int(regex_to_match.match(most_recent_checkpoint).group(1))
         assert step == 4  # 2 epochs * 2 steps per epoch
 
+    # test does not work without using shutil in order to remove the last directory (otherwise HF checkpointer looks for latest directory that does not have recipe_state.pt)
+    # requires recipe_checkpoint to be specified even though that should be deprecated ?
     @pytest.mark.integration_test
     def test_checkpointing_with_steps_and_resume(self, tmpdir, monkeypatch):
         """We want to be sure that now we use steps, we can resume correctly from a checkpoint.
@@ -329,6 +339,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         assert step_folder is not None, "No step folder found"
         assert os.path.exists(os.path.join(tmpdir, step_folder_at_epoch_boundary, model_ckpt_fname)), "Checkpoint file does not exist"
 
+        shutil.rmtree(tmpdir / "step_4")
+
         # 3. Resume training w/ the checkpoint from epoch boundary
         cmd_2 = f"""
         tune run full_finetune_single_device \
@@ -337,8 +349,9 @@ class TestFullFinetuneSingleDeviceRecipe:
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir}/{step_folder_at_epoch_boundary} \
-            checkpointer.checkpoint_files=["{os.path.join(step_folder_at_epoch_boundary, model_ckpt_fname)}"]\
+            checkpointer.checkpoint_files=["{os.path.join(tmpdir, step_folder_at_epoch_boundary, model_ckpt_fname)}"]\
             checkpointer.output_dir={tmpdir} \
+            checkpointer.recipe_checkpoint="recipe_state.pt"
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
