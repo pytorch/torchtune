@@ -119,10 +119,9 @@ class TestLoRADPODistributedRecipe:
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_dir={os.path.join(tmpdir, epoch_folder_minus_one)} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
