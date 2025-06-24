@@ -88,14 +88,17 @@ class OffloadActivations(saved_tensors_hooks):
         self.virtual_memory_safe_pct = (
             60  # we should not exceed this percentage of memory
         )
-        if torch.xpu.is_available():
-            self.s0 = torch.xpu.current_stream()
+        # comp stream
+        if torch.accelerator.is_available():
+            self.s0 = torch.accelerator.current_stream()
         else:
-            self.s0 = torch.cuda.default_stream()  # comp stream
+            raise RuntimeError(
+                "enable_activation_offloading should only be True when training on CUDA or XPU"
+            )
 
         # for streaming
         if self.use_streams:
-            self.s1 = torch.xpu.Stream() if torch.xpu.is_available() else torch.cuda.Stream() # comms stream
+            self.s1 = torch.Stream() # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:
                 raise ValueError(
@@ -149,7 +152,7 @@ class OffloadActivations(saved_tensors_hooks):
             # only offload hefty bois if they're activations on CUDA (our heuristic
             # for that is to check if they're not params or buffers)!
             if (
-                activation.is_cuda or activation.is_xpu
+                activation.device.type == torch.accelerator.current_accelerator().type
                 and num_bytes >= self.min_tensor_size_bytes
                 and (
                     not isinstance(activation, torch.nn.Parameter)
@@ -174,7 +177,7 @@ class OffloadActivations(saved_tensors_hooks):
                     self.s1.wait_stream(self.s0)
 
                 stream = self.s1 if self.use_streams else self.s0
-                with torch.xpu.stream(stream) if torch.xpu.is_available() else torch.cuda.stream(stream):
+                with stream:
                     try:
                         cpu_tensor = torch.empty_like(
                             activation, pin_memory=self.use_pin_memory, device="cpu"
@@ -279,7 +282,7 @@ class OffloadActivations(saved_tensors_hooks):
                     brought_back_from_cpu = False
                 else:
                     # Kick off the process to bring tensors back
-                    with torch.xpu.stream(self.s1) if torch.xpu.is_available() else torch.cuda.stream(self.s1):
+                    with self.s1:
                         gpu_tensor = maybe_gpu_tensor.to(torch.accelerator.current_accelerator(), non_blocking=True)
                         maybe_gpu_tensor = gpu_tensor
 

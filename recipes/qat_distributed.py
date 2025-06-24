@@ -130,7 +130,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         ValueError: If ``compile`` is set to True.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
-        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA or XPU.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
@@ -254,9 +254,9 @@ class QATRecipeDistributed(FTRecipeInterface):
                 )
             )
         if self._enable_activation_offloading:
-            if device_type != "cuda":
+            if device_type != "cuda" and device_type != "xpu":
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
+                    "enable_activation_offloading should only be True when training on CUDA or XPU"
                 )
             if not self._enable_activation_checkpointing:
                 raise RuntimeError(
