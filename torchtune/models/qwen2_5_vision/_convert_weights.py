@@ -30,8 +30,7 @@ _FROM_HF = {
     "visual.merger.mlp.{}.weight": "encoders.image.merger.mlp.{}.weight",
     "visual.patch_embed.proj.weight": "encoders.image.patch_embed.proj.weight"
 }
-# replace "model" with "language_model"
-_FROM_HF_QWEN2 = {k.replace("model.", "language_model."): "decoder." + str(v) for k, v in _FROM_HF_QWEN2.items()}
+_FROM_HF_QWEN2 = {k: "decoder." + str(v) for k, v in _FROM_HF_QWEN2.items()}
 
 _FROM_HF.update(_FROM_HF_QWEN2)
 
