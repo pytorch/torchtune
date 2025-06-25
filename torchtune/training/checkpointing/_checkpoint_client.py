@@ -255,7 +255,6 @@ class CheckpointClient:
         model_state_dict = {}
         optim_state_dict = {}
 
-
         if not is_distributed_checkpointer and not single_device:
             # this logic is needed because staging an async checkpoint needs cpu
             # which is also used here to save a sync checkpoint that causes issues when
