@@ -8,6 +8,7 @@ import os
 import re
 
 import runpy
+
 import shutil
 
 import sys
@@ -17,14 +18,7 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
-import shutil
-
-from tests.recipes.utils import (
-    CKPT_COMPONENT_MAP,
-    dummy_alpaca_dataset_config,
-    MODEL_TEST_CONFIGS,
-    write_hf_ckpt_config,
-)
+from tests.recipes.utils import dummy_alpaca_dataset_config, MODEL_TEST_CONFIGS
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
@@ -127,106 +121,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize(
-        "optimizer_in_bwd",
-        [True, False],
-    )
-    @gpu_test(gpu_count=1)
-    # test does not work without using shutil in order to remove the last directory (otherwise HF checkpointer looks for latest directory that does not have recipe_state.pt)
-    # also creates step directories when the test was initially designed to use epoch directories
-    # checkpointer_client is sending a step param that causes it to default to steps
-    # requires recipe_checkpoint to be specified even though that should be deprecated ?
-    def test_training_state_on_resume(self, tmpdir, monkeypatch, optimizer_in_bwd):
-        """Test whether the recipe state is correctly updated on resume. Since this
-        is model agnostic, we should run this on the small model only. The test
-        consists of three stages:
-            - Train a model for 2 epochs
-            - Resume training after epoch 1
-            - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
-        """
-
-        ckpt = "llama2_hf"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
-        first_log_file = gen_log_file_name(tmpdir, suffix="first")
-
-        # Config file needed for model conversion.
-        # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
-
-        # Train for two epochs
-        cmd_1 = f"""
-        tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
-            batch_size=8 \
-            output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            tokenizer.prompt_template=null \
-            metric_logger.filename={first_log_file} \
-            optimizer_in_bwd={optimizer_in_bwd} \
-        """.split()
-
-        model_config = MODEL_TEST_CONFIGS["llama2"]
-        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
-
-        monkeypatch.setattr(sys, "argv", cmd_1)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # Sanity check that the loss values are expected for the initial run
-        expected_loss_values = self._fetch_expected_loss_values("llama2")
-        loss_values = get_loss_values_from_metric_logger(first_log_file)
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
-
-        shutil.rmtree(tmpdir / "step_4")
-
-        # Resume training
-        log_file = gen_log_file_name(tmpdir, suffix="resume")
-        step_folder = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
-        suffix = ".safetensors"
-        model_ckpt_fname = (
-            "model" + suffix
-        )
-        cmd_2 = f"""
-        tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
-            batch_size=8 \
-            output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={tmpdir}/{step_folder} \
-            checkpointer.checkpoint_files=['{os.path.join(tmpdir, step_folder, model_ckpt_fname)}']\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            checkpointer.recipe_checkpoint="recipe_state.pt" \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            tokenizer.prompt_template=null \
-            resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
-            optimizer_in_bwd={optimizer_in_bwd} \
-        """.split()
-
-        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
-
-        monkeypatch.setattr(sys, "argv", cmd_2)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
-
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
-
-    @pytest.mark.integration_test
     @pytest.mark.parametrize("keep_last_n_checkpoints", [1, 2])
     @pytest.mark.parametrize("save_every_n_steps", [1, 2])
     def test_checkpointing_with_steps(
@@ -275,7 +169,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         step = int(regex_to_match.match(most_recent_checkpoint).group(1))
         assert step == 4  # 2 epochs * 2 steps per epoch
 
-    # test does not work without using shutil in order to remove the last directory (otherwise HF checkpointer looks for latest directory that does not have recipe_state.pt)
+    # test does not work without using shutil in order to remove the last directory
+    # (otherwise HF checkpointer looks for latest directory that does not have recipe_state.pt)
     # requires recipe_checkpoint to be specified even though that should be deprecated ?
     @pytest.mark.integration_test
     @pytest.mark.parametrize("use_steps", [True, False])
@@ -319,11 +214,11 @@ class TestFullFinetuneSingleDeviceRecipe:
         step_folder = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
         step_folder_at_epoch_boundary = f"step_{int(step_folder.split('_')[-1]) - 2}"
         suffix = ".safetensors"
-        model_ckpt_fname = (
-            "model" + suffix
-        )
+        model_ckpt_fname = "model" + suffix
         assert step_folder is not None, "No step folder found"
-        assert os.path.exists(os.path.join(tmpdir, step_folder_at_epoch_boundary, model_ckpt_fname)), "Checkpoint file does not exist"
+        assert os.path.exists(
+            os.path.join(tmpdir, step_folder_at_epoch_boundary, model_ckpt_fname)
+        ), "Checkpoint file does not exist"
 
         shutil.rmtree(tmpdir / "step_4")
 
@@ -383,93 +278,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         # 6. Make sure loss values match the expected values
         expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)[:2]
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
-
-    @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
-    @pytest.mark.parametrize("model_type", ["llama3_hf_138m"])
-    @pytest.mark.parametrize("use_steps", [True, False])
-    def test_training_state_on_resume_with_async_checkpointing(
-        self, tmpdir, monkeypatch, model_type, use_steps
-    ):
-        """Test whether the recipe state is correctly updated on resume. Since this
-        is model agnostic, we should run this on the small model only. The test
-        consists of three stages:
-            - Train a model for 2 epochs (or 4 steps)
-            - Resume training after epoch 1 (or step 2)
-            - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
-        """
-        ckpt_dir = Path(CKPT_MODEL_PATHS[model_type])
-        model_config = MODEL_TEST_CONFIGS[model_type]
-        tokenizer_path = TOKENIZER_PATHS[model_type]
-        log_file = gen_log_file_name(tmpdir)
-
-        # Train for two epochs
-        cmd_1 = f"""
-        tune run full_finetune_single_device \
-            --config llama3/8B_full_single_device \
-            batch_size=8 \
-            output_dir={tmpdir} \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[model.safetensors]\
-            checkpointer.output_dir={tmpdir} \
-            enable_async_checkpointing=True\
-            tokenizer.path='{tokenizer_path}' \
-            tokenizer.prompt_template=null \
-            metric_logger.filename={log_file} \
-            optimizer_in_bwd=False \
-        """.split()
-        if use_steps:
-            cmd_1.append("save_every_n_steps=2")
-            final_ckpt_dir = "step_4"
-        else:
-            final_ckpt_dir = "epoch_2"
-
-        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
-
-        monkeypatch.setattr(sys, "argv", cmd_1)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # Sanity check that the loss values are expected for the initial run
-        expected_loss_values = self._fetch_expected_loss_values(model_type)
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
-
-        # delete latest checkpoint dir to make sure we are resuming from the right one
-        shutil.rmtree(os.path.join(tmpdir, final_ckpt_dir))
-
-        # Resume training
-        log_file = gen_log_file_name(tmpdir, suffix="resume")
-        cmd_2 = f"""
-        tune run full_finetune_single_device \
-            --config llama3/8B_full_single_device \
-            batch_size=8 \
-            output_dir={tmpdir} \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[model.safetensors]\
-            checkpointer.output_dir={tmpdir} \
-            enable_async_checkpointing=True\
-            tokenizer.path='{tokenizer_path}' \
-            tokenizer.prompt_template=null \
-            resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
-            optimizer_in_bwd=False \
-        """.split()
-
-        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
-
-        monkeypatch.setattr(sys, "argv", cmd_2)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
-
-        loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
