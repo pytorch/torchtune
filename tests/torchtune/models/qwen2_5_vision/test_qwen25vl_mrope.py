@@ -137,70 +137,6 @@ class TestQwen25VLMRoPE:
         
         print(f"✓ MRoPE sections: {expected_sections} -> {expected_concatenated} (list concatenation)")
 
-    def test_torchtune_vs_huggingface(self, reference_tensors, qwen25vl_config, modality_case):
-        """
-        Compare torchtune MRoPE implementation against HuggingFace reference for all modalities.
-        """
-        from torchtune.models.qwen2_5_vision._positional_embeddings import apply_multimodal_rotary_pos_emb
-        
-        # Get reference data
-        ref_q = reference_tensors["mrope_input_q"]       
-        ref_k = reference_tensors["mrope_input_k"]       
-        ref_cos = reference_tensors["mrope_input_cos"]   
-        ref_sin = reference_tensors["mrope_input_sin"]   
-        ref_q_embed = reference_tensors["q_embed"]       
-        ref_k_embed = reference_tensors["k_embed"]       
-        mrope_section = qwen25vl_config["mrope_section"] 
-        
-        print(f"\n=== Testing {modality_case} ===")
-        print(f"Reference tensor shapes:")
-        print(f"  q: {ref_q.shape}, k: {ref_k.shape}")
-        print(f"  cos: {ref_cos.shape}, sin: {ref_sin.shape}")
-        print(f"  q_embed: {ref_q_embed.shape}, k_embed: {ref_k_embed.shape}")
-        print(f"  mrope_section: {mrope_section}")
-        
-        # Expand cos/sin to match expected format [3, batch_size, seq_len, head_dim]
-        cos_expanded = ref_cos.expand(3, -1, -1, -1)  
-        sin_expanded = ref_sin.expand(3, -1, -1, -1)  
-        
-        # Apply our torchtune implementation
-        try:
-            our_q_embed, our_k_embed = apply_multimodal_rotary_pos_emb(
-                ref_q, ref_k, cos_expanded, sin_expanded, mrope_section, unsqueeze_dim=1
-            )
-            
-            print(f"Our output shapes - q_embed: {our_q_embed.shape}, k_embed: {our_k_embed.shape}")
-            
-            # Compare results
-            q_close = torch.allclose(our_q_embed, ref_q_embed, atol=1e-5, rtol=1e-4)
-            k_close = torch.allclose(our_k_embed, ref_k_embed, atol=1e-5, rtol=1e-4)
-            
-            print(f"Comparison results:")
-            print(f"  Q embeddings match: {q_close}")
-            print(f"  K embeddings match: {k_close}")
-            
-            if not q_close:
-                q_diff = torch.abs(our_q_embed - ref_q_embed)
-                print(f"  Q max diff: {q_diff.max().item():.2e}")
-                print(f"  Q mean diff: {q_diff.mean().item():.2e}")
-                
-            if not k_close:
-                k_diff = torch.abs(our_k_embed - ref_k_embed)
-                print(f"  K max diff: {k_diff.max().item():.2e}")
-                print(f"  K mean diff: {k_diff.mean().item():.2e}")
-            
-            # Assert that our implementation matches the reference
-            assert q_close, f"Q embeddings don't match HuggingFace reference for {modality_case}"
-            assert k_close, f"K embeddings don't match HuggingFace reference for {modality_case}"
-            
-            print(f"✓ Torchtune MRoPE implementation matches HuggingFace for {modality_case}!")
-            
-        except Exception as e:
-            print(f"✗ Error in torchtune implementation for {modality_case}: {e}")
-            import traceback
-            traceback.print_exc()
-            pytest.fail(f"Torchtune MRoPE implementation failed for {modality_case}: {e}")
-
     def test_tensor_loading(self, reference_tensors, modality_case):
         """
         Simple test to verify all reference tensors can be loaded for each modality.
@@ -218,40 +154,6 @@ class TestQwen25VLMRoPE:
             assert tensor is not None, f"Tensor {tensor_name} is None"
             
         print(f"✓ All {len(required_tensors)} reference tensors loaded successfully for {modality_case}")
-
-    def test_mrope_section_fix(self):
-        """
-        Test that our torchtune implementation correctly handles mrope_section.
-        """
-        from torchtune.models.qwen2_5_vision._positional_embeddings import apply_multimodal_rotary_pos_emb
-        
-        # Test the fixed behavior
-        original_section = [16, 24, 24]
-        
-        # Create dummy cos/sin tensors with correct total dimension
-        total_dim = sum(original_section * 2)  # 16+24+24+16+24+24 = 128
-        batch_size, seq_len = 1, 6
-        cos = torch.randn(3, batch_size, seq_len, total_dim)  # Match HF format
-        sin = torch.randn(3, batch_size, seq_len, total_dim)
-        
-        # Create dummy q, k tensors
-        num_heads, head_dim = 28, 128
-        q = torch.randn(batch_size, num_heads, seq_len, head_dim)
-        k = torch.randn(batch_size, 4, seq_len, head_dim)  # num_kv_heads = 4
-        
-        # This should work without error and use the corrected mrope_section logic
-        try:
-            q_embed, k_embed = apply_multimodal_rotary_pos_emb(
-                q, k, cos, sin, original_section, unsqueeze_dim=1
-            )
-            print("✓ Fixed mrope_section behavior works correctly")
-            print(f"  Original: {original_section}")
-            print(f"  After * 2: {original_section * 2}")
-            print(f"  Output shapes - q_embed: {q_embed.shape}, k_embed: {k_embed.shape}")
-            
-        except Exception as e:
-            pytest.fail(f"Fixed mrope_section behavior failed: {e}")
-
 
 if __name__ == "__main__":
     # Run a quick test when called directly

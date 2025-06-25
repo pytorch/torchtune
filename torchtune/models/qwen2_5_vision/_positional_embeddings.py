@@ -165,14 +165,16 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
     def __init__(
         self,
         dim: int,
-        mrope_section: List[int] = [16, 24, 24],
+        mrope_section: List[int],
         max_seq_len: int = 32768,
         base: float = 1000000.0,
     ) -> None:
         super().__init__()
         
         self.dim = dim
-        self.mrope_section = mrope_section
+        # In HuggingFace implementation, mrope_section is doubled for the full head dimension
+        # [16, 24, 24] becomes [16, 24, 24, 16, 24, 24] which sums to 128 for head_dim=128
+        self.mrope_section = mrope_section * 2
         self.base = base
         self.max_seq_len = max_seq_len
         self.rope_init()
@@ -279,19 +281,28 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         """Apply MRoPE rotation to different sections of the embedding dimension."""
         b, s, n_h, h_d = x.shape
         
-        # Split input into sections corresponding to temporal, height, width
-        temporal_dim, height_dim, width_dim = self.mrope_section
-        x_temporal = x[..., :temporal_dim]                    # [b, s, n_h, temporal_dim]
-        x_height = x[..., temporal_dim:temporal_dim+height_dim]  # [b, s, n_h, height_dim]
-        x_width = x[..., temporal_dim+height_dim:]            # [b, s, n_h, width_dim]
+        # The mrope_section is doubled: [16, 24, 24, 16, 24, 24]
+        # We need to split into 6 sections and apply rotations in pairs
+        temporal_dim = self.mrope_section[0]  # 16
+        height_dim = self.mrope_section[1]    # 24  
+        width_dim = self.mrope_section[2]     # 24
+        
+        # Split into 6 sections
+        sections = []
+        start_idx = 0
+        for dim in self.mrope_section:
+            sections.append(x[..., start_idx:start_idx+dim])
+            start_idx += dim
+            
+        # Apply rotations to corresponding pairs
+        # Sections 0,3 get temporal rotation; 1,4 get height; 2,5 get width
+        rotated_sections = []
+        for i, section in enumerate(sections):
+            rope_cache = [temporal_rope, height_rope, width_rope][i % 3]
+            rotated_sections.append(self._apply_rotation_to_section(section, rope_cache))
 
-        # Apply rotation to each section
-        x_temporal_rotated = self._apply_rotation_to_section(x_temporal, temporal_rope)
-        x_height_rotated = self._apply_rotation_to_section(x_height, height_rope)  
-        x_width_rotated = self._apply_rotation_to_section(x_width, width_rope)
-
-        # Concatenate rotated sections back together
-        x_out = torch.cat([x_temporal_rotated, x_height_rotated, x_width_rotated], dim=-1)
+        # Concatenate all rotated sections back together
+        x_out = torch.cat(rotated_sections, dim=-1)
         return x_out
 
     def _apply_rotation_to_section(self, x_section: torch.Tensor, rope_cache: torch.Tensor) -> torch.Tensor:

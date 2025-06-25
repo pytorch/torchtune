@@ -187,7 +187,7 @@ def qwen2_5_vision_encoder(
         gate_proj=nn.Linear(embed_dim, intermediate_size, bias=True),
         down_proj=nn.Linear(intermediate_size, embed_dim, bias=True),
         up_proj=nn.Linear(embed_dim, intermediate_size, bias=True),
-        activation=activation(),
+        activation=activation,
     )
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
