@@ -28,6 +28,7 @@ from torchtune.modules.peft import (
 from torchtune.training.checkpointing._checkpointer import DistributedCheckpointer
 from torchtune.training.checkpointing._utils import get_most_recent_checkpoint
 from torchtune.training.memory import OptimizerInBackwardWrapper
+from torchtune.data import MetricsAggregator
 
 log = utils.get_logger("DEBUG")
 import torchdata
@@ -47,6 +48,7 @@ class TrainingProgress:
     total_training_steps: Optional[int] = None
     dataloader_state_dict: Optional[dict[str, Any]] = None
     val_dataloader_state_dict: Optional[dict[str, Any]] = None
+    metrics_aggregator_state_dict: Optional[dict[str, Any]] = None
 
     def state_dict(self) -> dict[str, object]:
         return {
@@ -58,6 +60,7 @@ class TrainingProgress:
             "total_training_steps": self.total_training_steps,
             training.DATALOADER_KEY: self.dataloader_state_dict,
             training.VAL_DATALOADER_KEY: self.val_dataloader_state_dict,
+            "metrics_aggregator_state_dict": self.metrics_aggregator_state_dict,
         }
 
 
@@ -442,6 +445,7 @@ class CheckpointClient:
         adapter_config: Optional[dict[str, Any]] = None,
         dataloader: Optional[torchdata.stateful_dataloader.StatefulDataLoader] = None,
         single_device: bool = False,
+        metrics_aggregator: Optional[MetricsAggregator] = None,
     ) -> dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
@@ -459,6 +463,7 @@ class CheckpointClient:
         checkpoint_dict: dict[str, Any] = {}
         model_state_dict = model.state_dict()
         optim_state_dict = optimizer.state_dict()
+        metrics_aggregator_state_dict = metrics_aggregator.state_dict() if metrics_aggregator else {}
 
         # Hack to properly initialize the learning rate scheduler
         # TODO: Find a better way to do this, possibly by including the following
@@ -481,6 +486,7 @@ class CheckpointClient:
                 "steps_run": 0,
                 "total_training_steps": 0,
                 training.DATALOADER_KEY: dataloader.state_dict() if dataloader else {},
+                "metrics_aggregator_state_dict": metrics_aggregator_state_dict,
             }
         )
 

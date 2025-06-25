@@ -32,11 +32,23 @@ from torchtune.data._prompt_templates import (
     QuestionAnswerTemplate,
     SummarizeTemplate,
 )
+from torchtune.data._metrics import (
+    AggregationType,
+    Metric,
+    MetricTransform,
+    StandardMetricTransform,
+)
 from torchtune.data._utils import format_content_with_images, load_image, truncate
+from torchtune.data._aggregator import MetricsAggregator
 
 __all__ = [
+    "AggregationType",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
+    "Metric",
+    "MetricsAggregator",
+    "MetricTransform",
+    "StandardMetricTransform",
     "SummarizeTemplate",
     "OpenAIToMessages",
     "ShareGPTToMessages",

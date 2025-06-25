@@ -26,21 +26,28 @@ tokenizer:
   path: /tmp/Llama-3.2-3B-Instruct/original/tokenizer.model
   max_seq_len: null
 
-# Dataset and Sampler
-dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
-  packed: False  # True increases speed
-  split: train[:95%]
-seed: null
-shuffle: True
-batch_size: 4
+# Dataloader
+dataloader:
+  batch_size: 4
+  # num_workers and pin_memory can be added here if needed
 
-# Validation
-run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
-dataset_val:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
-  split: train[95%:]
-batch_size_val: ${batch_size}
+# Dataset - now a list to support multiple weighted sources
+dataset:
+  - _component_: torchtune.datasets.slimorca_iterable_dataset
+    shuffle_buffer_size: 1000
+    weight: 0.8
+  - _component_: torchtune.datasets.alpaca_iterable_dataset
+    shuffle_buffer_size: 1000
+    weight: 0.2
+
+# Packing (TBD by follow up PR)
+# packing:
+#   _component_: torchtune.datasets.packing.SFTPacking
+#   max_seq_len: 8192
+
+seed: null
+
+# Validation not supported yet with iterable datasets
 
 # Model Arguments
 model:
@@ -65,10 +72,11 @@ optimizer:
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
-# Training
-epochs: 1
-max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase effective batch size
+# Training - now step-based
+num_training_steps: 100 # Total number of training steps to run
+save_every_n_steps: 200 # Save a checkpoint every N steps. Using 200 to avoid ckpt.
+gradient_accumulation_steps: 1
+dataset_metrics_log_freq: 10 # Log dataset-specific metrics every N steps
 
 # Environment
 device: cuda

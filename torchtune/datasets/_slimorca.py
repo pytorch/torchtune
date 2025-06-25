@@ -7,9 +7,11 @@
 from typing import Any, Callable, Optional, Union
 
 from torchtune.data import ShareGPTToMessages
+from torchtune.data._metrics import StandardMetricTransform
+from torchtune.datasets._hf_iterable import HfIterableDataset
 from torchtune.datasets._packed import PackedDataset
 
-from torchtune.datasets._sft import SFTDataset
+from torchtune.datasets._sft import SFTDataset, sft_iterable_dataset
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
@@ -94,3 +96,68 @@ def slimorca_dataset(
             )
         return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
     return ds
+
+
+def slimorca_iterable_dataset(
+    model_transform: ModelTokenizer,
+    *,
+    source: str = "Open-Orca/SlimOrca-Dedup",
+    column_map: Optional[dict[str, str]] = None,
+    train_on_input: bool = False,
+    new_system_prompt: Optional[str] = None,
+    shuffle_buffer_size: Optional[int] = 1000,
+    seed: int = 42,
+    num_shards_per_rank: int = 64,
+    dataset_name: Optional[str] = None,
+    filter_fn: Optional[Callable] = None,
+    filter_kwargs: Optional[dict[str, Any]] = None,
+    **load_dataset_kwargs: dict[str, Any],
+) -> HfIterableDataset:
+    """
+    Support for SlimOrca-style conversational datasets using iterable approach.
+
+    This creates an infinite iterable dataset that automatically shards and shuffles data,
+    making it suitable for step-based training without explicit epoch boundaries.
+
+    Args:
+        model_transform (ModelTokenizer): Model tokenizer used to tokenize the messages.
+        source (str): path to dataset repository on Hugging Face. Default is "Open-Orca/SlimOrca-Dedup". 
+        column_map (Optional[dict[str, str]]): mapping from expected "conversations" column
+            to actual column name in dataset. If None, uses default "conversations".
+        train_on_input (bool): Whether to train on input or mask it. Default is False.
+        new_system_prompt (Optional[str]): If specified, prepend system message to every sample.
+        shuffle_buffer_size (Optional[int]): Size of shuffle buffer. If None or 0, no shuffling.
+        seed (int): Seed for shuffling. Default is 42.
+        num_shards_per_rank (int): Target number of shards per worker. Default is 64.
+        dataset_name (Optional[str]): Name for metrics. If None, auto-generated from source.
+        filter_fn (Optional[Callable]): Filter function to apply to dataset.
+        filter_kwargs (Optional[dict[str, Any]]): Kwargs for filter function.
+        **load_dataset_kwargs: Additional kwargs for load_dataset.
+
+    Returns:
+        HfIterableDataset: Configured iterable dataset
+
+    Example:
+        >>> from torchtune.datasets import slimorca_iterable_dataset  
+        >>> ds = slimorca_iterable_dataset(shuffle_buffer_size=1000)
+        >>> for sample in ds:
+        >>>     print(sample["tokens"][:10])  # First 10 tokens
+    """
+    message_transform = ShareGPTToMessages(
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
+    )
+    
+    return sft_iterable_dataset(
+        source=source,  
+        message_transform=message_transform,
+        model_transform=model_transform,
+        shuffle_buffer_size=shuffle_buffer_size,
+        seed=seed,
+        num_shards_per_rank=num_shards_per_rank,
+        dataset_name=dataset_name,
+        filter_fn=filter_fn,
+        filter_kwargs=filter_kwargs,
+        **load_dataset_kwargs,
+    )

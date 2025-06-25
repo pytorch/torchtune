@@ -9,9 +9,11 @@ from functools import partial
 from typing import Any, Callable, Optional, Union
 
 from torchtune.data._messages import AlpacaToMessages
+from torchtune.data._metrics import StandardMetricTransform
 
+from torchtune.datasets._hf_iterable import HfIterableDataset
 from torchtune.datasets._packed import PackedDataset
-from torchtune.datasets._sft import SFTDataset
+from torchtune.datasets._sft import SFTDataset, sft_iterable_dataset
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
@@ -101,3 +103,64 @@ Builder for a variant of Alpaca-style datasets with the cleaned version of the
 original Alpaca dataset, `yahma/alpaca-cleaned <https://huggingface.co/datasets/yahma/alpaca-cleaned>`_.
 See the dataset page and :func:`~torchtune.datasets.alpaca_dataset` for more details.
 """
+
+
+def alpaca_iterable_dataset(
+    model_transform: ModelTokenizer,
+    *,
+    source: str = "tatsu-lab/alpaca",
+    column_map: Optional[dict[str, str]] = None,
+    train_on_input: bool = True,
+    shuffle_buffer_size: Optional[int] = 1000,
+    seed: int = 42,
+    dataset_name: Optional[str] = None,
+    filter_fn: Optional[Callable] = None,
+    split: str = "train",
+    **load_dataset_kwargs: dict[str, Any],
+) -> HfIterableDataset:
+    """
+    Support for iterable version of Alpaca-style datasets.
+
+    This returns an infinite iterable dataset that supports checkpointing
+    and metrics tracking, designed for step-based training.
+
+    Args:
+        model_transform (ModelTokenizer): Model tokenizer used to tokenize the messages.
+        source (str): path to dataset repository on Hugging Face. Default is ``tatsu-lab/alpaca``.
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns in the message transform
+            :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. Keys should be
+            "instruction", "input", and "output" and values should be the actual column names.
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
+        shuffle_buffer_size (Optional[int]): Size of the shuffle buffer. If None or 0, no shuffling is done.
+        seed (int): Seed for shuffling.
+        dataset_name (Optional[str]): Name of the dataset for metrics tracking. If None, auto-generated.
+        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing.
+        split (str): ``split`` argument for ``datasets.load_dataset``. Default is "train".
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+
+    Returns:
+        HfIterableDataset: iterable dataset configured with source data and transforms
+
+    Example:
+        >>> from torchdata.stateful_dataloader import StatefulDataLoader
+        >>> alpaca_ds = alpaca_iterable_dataset(tokenizer=tokenizer)
+        >>> dataloader = StatefulDataLoader(alpaca_ds, batch_size=8)
+        >>> for batch in dataloader:
+        >>>     print(f"Batch size: {len(batch)}")
+        >>> Batch size: 8
+    """
+    message_transform = AlpacaToMessages(
+        train_on_input=train_on_input, column_map=column_map
+    )
+    
+    return sft_iterable_dataset(
+        message_transform=message_transform,
+        model_transform=model_transform,
+        shuffle_buffer_size=shuffle_buffer_size,
+        seed=seed,
+        dataset_name=dataset_name,
+        filter_fn=filter_fn,
+        split=split,
+        path=source,
+        **load_dataset_kwargs,
+    )
