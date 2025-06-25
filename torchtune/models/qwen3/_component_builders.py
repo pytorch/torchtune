@@ -347,13 +347,11 @@ def lora_qwen3_moe(
         if apply_lora_to_mlp:
             mlp = lora_qwen3_moe_mlp(
                 dim=embed_dim,
-                hidden_dim=intermediate_dim,
+                hidden_dim=moe_intermediate_size,
                 num_experts=num_experts,
                 experts_per_token=num_experts_per_tok,
                 lora_rank=lora_rank,
                 lora_alpha=lora_alpha,
-                quantize_base=quantize_base,
-                use_dora=use_dora,
                 lora_dropout=lora_dropout,
             )
         else:
