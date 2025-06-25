@@ -403,8 +403,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             the receipe state from a previous run. Default is False
         enable_dcp (bool): If True, the checkpointer will load the checkpoint file using dcp checkpointing apis.
             This is currently an experimental feature.
-        consolidated_output_path_dcp (Optional[str]): If enable_dcp is True, this is the path where
-            the consolidated safetensors checkpoint will be saved.
+        intermediate_hf_dir_dcp (Optional[str]): If enable_dcp is True, then the presence of this arg indicates that checkpoints
+            are to be saved without rank-0 checkpointing. This is the path where the shards of safetensors files will be saved,
+            before being consolidated to the output_dir.
 
     Raises:
         ValueError: If ther checkpoint_dir and output_dir are not on the same filesystem
@@ -422,7 +423,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
         enable_dcp: bool = False,
-        consolidated_output_path_dcp: Optional[str] = None,
+        intermediate_hf_dir_dcp: Optional[str] = None,
     ) -> None:
         self._should_load_recipe_state = should_load_recipe_state
         if resume_from_checkpoint:
@@ -435,7 +436,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir = checkpoint_dir
         self._model_type = ModelType[model_type]
         self._enable_dcp = enable_dcp
-        self._consolidated_output_path_dcp = consolidated_output_path_dcp
+        self._intermediate_hf_dir_dcp = intermediate_hf_dir_dcp
 
         self._fs, _ = url_to_fs(self._checkpoint_dir)
         self._output_dir = output_dir
@@ -816,8 +817,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if self._enable_dcp:
                 from torch.distributed.checkpoint import HuggingFaceStorageWriter
 
-                if self._consolidated_output_path_dcp:
-                    self._fs.mkdirs(self._consolidated_output_path_dcp, exist_ok=True)
+                if self._intermediate_hf_dir_dcp:
+                    self._fs.mkdirs(self._intermediate_hf_dir_dcp, exist_ok=True)
 
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
@@ -825,12 +826,22 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     index = int(filename.split("-")[1])
                     fqn_to_file_index_mapping[fqn] = index
 
-                dist = True if self._consolidated_output_path_dcp else False
+                dist = True if self._intermediate_hf_dir_dcp else False
+                save_path = (
+                    os.path.join(self._intermediate_hf_dir_dcp, f"epoch_{epoch}")
+                    if self._intermediate_hf_dir_dcp
+                    else os.path.join(self._output_dir, f"epoch_{epoch}")
+                )
+                consolidated_output_path = (
+                    os.path.join(self._output_dir, f"epoch_{epoch}")
+                    if self._intermediate_hf_dir_dcp
+                    else None
+                )
                 storage_writer = HuggingFaceStorageWriter(
-                    path=os.path.join(self._output_dir, "epoch_1"),
+                    path=save_path,
                     save_sharded=dist,
                     thread_count=10,
-                    consolidated_output_path=self._consolidated_output_path_dcp,
+                    consolidated_output_path=consolidated_output_path,
                     thread_count_consolidation=10,
                 )
                 save(

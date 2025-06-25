@@ -240,7 +240,7 @@ class CheckpointClient:
         ) or (
             isinstance(checkpointer, FullModelHFCheckpointer)
             and checkpointer._enable_dcp
-            and checkpointer._consolidated_output_path_dcp is not None
+            and checkpointer._intermediate_hf_dir_dcp is not None
         )
 
         # final dict passed onto the checkpointer
@@ -326,15 +326,6 @@ class CheckpointClient:
                 {
                     training.MODEL_KEY: model_state_dict,
                 }
-            )
-            for k in checkpoint_dict[training.MODEL_KEY].keys():
-                print("keys", k)
-                break
-            print(
-                "overall shape ",
-                checkpoint_dict["model"]["tok_embeddings.weight"].size(),
-                "local shape ",
-                checkpoint_dict["model"]["tok_embeddings.weight"].to_local().size(),
             )
 
             self._get_checkpointer().save_checkpoint(
