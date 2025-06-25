@@ -437,7 +437,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._model_type = ModelType[model_type]
         self._enable_dcp = enable_dcp
         self._intermediate_hf_dir_dcp = intermediate_hf_dir_dcp
-
         self._fs, _ = url_to_fs(self._checkpoint_dir)
         self._output_dir = output_dir
 
@@ -546,7 +545,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # DCP can change their metadata structure and we've already read in
             # the metadata when doing _load_state_dict_from_keys
             metadata = hf_storage_reader.read_metadata()
-
             self._weight_map = {
                 key.fqn: os.path.basename(val.relative_path)
                 for key, val in metadata.storage_data.items()
