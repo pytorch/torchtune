@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import ABC, abstractmethod
-from typing import Any, dict, Iterator
+from typing import Any, Iterator
 
 from torch.utils.data import IterableDataset
 

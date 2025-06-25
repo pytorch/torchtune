@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 import torch
 from torchdata.stateful_dataloader import StatefulDataLoader
 
@@ -40,7 +41,7 @@ def create_test_json_file(path: Path, num_samples: int, offset: int = 0) -> None
             token_len = (i % 3) + 1
             tokens = list(range(sample_id, sample_id + token_len))
             f.write(
-                f'{{"id": {sample_id}, "tokens": {tokens}, "text": "sample_{sample_id}"}}\n'
+                f'{{"id": {sample_id}, "tokens": {tokens}, "text": "sample_{sample_id}", "labels": {tokens}}}\n'
             )
 
 

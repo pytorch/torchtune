@@ -6,13 +6,14 @@
 
 from typing import Any, Optional
 
+import torch
+
 from torch.utils.data import DataLoader
-from torchtune.data import padded_collate_sft
-from torchtune.data._metrics import MetricsAggregator
+from torchtune.data import MetricsAggregator
 
 
 def collate_with_metrics(batch: list[dict[str, Any]]) -> dict[str, Any]:
-    """Collate function that extracts metrics and uses padded_collate_sft for the rest."""
+    """Simple collate that extracts metrics and pads tokens."""
     all_metrics = []
     clean_batch = []
     for sample in batch:
@@ -23,8 +24,22 @@ def collate_with_metrics(batch: list[dict[str, Any]]) -> dict[str, Any]:
     if not clean_batch:
         return {"metrics": all_metrics}
 
-    # Use torchtune's standard SFT collate function
-    collated = padded_collate_sft(clean_batch)
+    # Simple padding for tokens
+    ids = torch.tensor([item["id"] for item in clean_batch])
+    tokens = torch.nn.utils.rnn.pad_sequence(
+        [torch.tensor(item["tokens"]) for item in clean_batch],
+        batch_first=True,
+        padding_value=-1,  # Use -1 for padding to distinguish from valid IDs
+    )
+    collated = {
+        "id": ids,
+        "tokens": tokens,
+    }
+
+    # Add text field for non-tensor data
+    if "text" in clean_batch[0]:
+        collated["text"] = [item["text"] for item in clean_batch]
+
     collated["metrics"] = all_metrics
     return collated
 
