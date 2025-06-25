@@ -4,15 +4,89 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import tempfile
+from pathlib import Path
 from itertools import islice
 from typing import Any, Dict, Iterator
 from unittest.mock import patch
 
 import pytest
 import torch
+from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data import AggregationType, Metric, MetricsAggregator
-from torchtune.datasets import InterleavedDataset, TuneIterableDataset
+from torchtune.data import AggregationType, Metric, MetricsAggregator, StandardMetricTransform
+from torchtune.datasets import InterleavedDataset, HfIterableDataset
+
+# Import test utilities
+from .test_iterable_utils import collate_with_metrics, generate_ckpt
+
+# Test Constants
+SMALL_DATASET_SIZE = 23
+MEDIUM_DATASET_SIZE = 35
+SEED = 42
+BATCH_SIZE = 5
+
+
+def create_test_json_file(path: Path, num_samples: int, offset: int = 0) -> None:
+    """Creates a dummy JSON test data file with token samples of varying lengths.
+
+    Args:
+        path (Path): The path to the file to create
+        num_samples (int): The number of samples to create
+        offset (int): The offset to add to the sample ID to ensure unique IDs in different datasets
+    """
+    with open(path, "w") as f:
+        for i in range(num_samples):
+            sample_id = i + offset
+            # Realistic token length variation (1-3 tokens)
+            token_len = (i % 3) + 1
+            tokens = list(range(sample_id, sample_id + token_len))
+            f.write(
+                f'{{"id": {sample_id}, "tokens": {tokens}, "text": "sample_{sample_id}"}}\n'
+            )
+
+
+@pytest.fixture
+def tmp_data_dir(tmp_path):
+    """Provide temporary directory for test data files."""
+    return tmp_path
+
+
+@pytest.fixture
+def small_dataset_file(tmp_data_dir):
+    path = tmp_data_dir / "small_data.json"
+    create_test_json_file(path, SMALL_DATASET_SIZE, offset=0)
+    return str(path)
+
+
+@pytest.fixture
+def medium_dataset_file(tmp_data_dir):
+    path = tmp_data_dir / "medium_data.json"
+    create_test_json_file(path, MEDIUM_DATASET_SIZE, offset=100)
+    return str(path)
+
+
+@pytest.fixture
+def dataset_factory():
+    """Factory for creating HfIterableDataset instances with common defaults."""
+    def _create_dataset(
+        data_file: str,
+        dataset_name: str = "test_dataset",
+        shuffle: bool = False,
+        **kwargs
+    ) -> HfIterableDataset:
+        return HfIterableDataset(
+            path="json",
+            data_files=data_file,
+            split="train",
+            dataset_name=dataset_name,
+            seed=SEED,
+            shuffle_buffer_size=10 if shuffle else 0,
+            metric_transform=StandardMetricTransform(),
+            num_shards_per_rank=2,
+            **kwargs
+        )
+    return _create_dataset
 
 
 class TestInterleavedDataset:
@@ -90,7 +164,7 @@ class TestInterleavedDataset:
 
         # Process some samples
         TOTAL_SAMPLES = 200
-        for sample in islice(iter(interleaved), 200):
+        for sample in islice(iter(interleaved), TOTAL_SAMPLES):
             aggregator.update(sample["metrics"])
 
         metrics = aggregator.get_metrics_for_logging()
