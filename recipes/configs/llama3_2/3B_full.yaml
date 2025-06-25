@@ -56,8 +56,6 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3_2
-  enable_dcp: True
-  consolidated_output_path_dcp: /tmp/torchtune/llama3_2_3B/full/consolidated_dcp
 resume_from_checkpoint: False
 
 optimizer:

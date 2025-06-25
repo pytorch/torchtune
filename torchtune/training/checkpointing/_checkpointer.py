@@ -403,6 +403,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             the receipe state from a previous run. Default is False
         enable_dcp (bool): If True, the checkpointer will load the checkpoint file using dcp checkpointing apis.
             This is currently an experimental feature.
+        consolidated_output_path_dcp (Optional[str]): If enable_dcp is True, this is the path where
+            the consolidated safetensors checkpoint will be saved.
 
     Raises:
         ValueError: If ther checkpoint_dir and output_dir are not on the same filesystem
@@ -543,6 +545,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # DCP can change their metadata structure and we've already read in
             # the metadata when doing _load_state_dict_from_keys
             metadata = hf_storage_reader.read_metadata()
+
             self._weight_map = {
                 key.fqn: os.path.basename(val.relative_path)
                 for key, val in metadata.storage_data.items()
@@ -824,19 +827,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
                 dist = True if self._consolidated_output_path_dcp else False
                 storage_writer = HuggingFaceStorageWriter(
-                    path=os.path.join(self._output_dir, f"epoch_{epoch}"),
-                    fqn_to_index_mapping=fqn_to_file_index_mapping,
+                    path=os.path.join(self._output_dir, "epoch_1"),
                     save_sharded=dist,
                     thread_count=10,
                     consolidated_output_path=self._consolidated_output_path_dcp,
                     thread_count_consolidation=10,
-                )
-                print(
-                    "sizing again ",
-                    state_dict[training.MODEL_KEY]["model.embed_tokens.weight"].size(),
-                    state_dict[training.MODEL_KEY]["model.embed_tokens.weight"]
-                    .to_local()
-                    .size(),
                 )
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
@@ -1535,17 +1530,4 @@ class DistributedCheckpointer(_CheckpointerInterface):
             logger,
             msg="The full model checkpoint, including all the weights and configurations, has been saved successfully "
             "by the DistributedCheckpointer. You can now use this checkpoint for further training.",
-        )
-
-    def save_hugging_face_checkpoint(
-        self, state_dict: dict[str, Any], consolidated_output_path: str
-    ) -> None:
-        save(
-            state_dict=state_dict,
-            storage_writer=HuggingFaceStorageWriter(
-                self._output_dir,
-                thread_count=16,
-                consolidated_output_path=consolidated_output_path,
-            ),
-            process_group=self._process_group,
         )

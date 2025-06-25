@@ -912,8 +912,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
-                if idx > 2:
-                    break
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
