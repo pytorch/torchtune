@@ -817,9 +817,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if self._enable_dcp:
                 from torch.distributed.checkpoint import HuggingFaceStorageWriter
 
-                if self._intermediate_hf_dir_dcp:
-                    self._fs.mkdirs(self._intermediate_hf_dir_dcp, exist_ok=True)
-
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
                 for fqn, filename in self._weight_map.items():
@@ -837,8 +834,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     if self._intermediate_hf_dir_dcp
                     else None
                 )
+                if consolidated_output_path:
+                    self._fs.mkdirs(self._intermediate_hf_dir_dcp, exist_ok=True)
+                    self._fs.mkdirs(consolidated_output_path, exist_ok=True)
+
                 storage_writer = HuggingFaceStorageWriter(
                     path=save_path,
+                    fqn_to_index_mapping=fqn_to_file_index_mapping,
                     save_sharded=dist,
                     thread_count=10,
                     consolidated_output_path=consolidated_output_path,
