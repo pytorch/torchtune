@@ -733,33 +733,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         return converted_state_dict
 
-    def _save_checkpoint_with_dcp_hf(
-        self,
-        state_dict: dict[str, Any],
-        output_path: str,
-    ) -> None:
-        """
-        Helper function to save a checkpoint using DCP storage writer.
-        """
-        from torch.distributed.checkpoint._hf_planner import _HuggingFaceSavePlanner
-        from torch.distributed.checkpoint._hf_storage import _HuggingFaceStorageWriter
-        from torch.distributed.checkpoint.state_dict_saver import save
-
-        fqn_to_file_index_mapping = {}
-        for fqn, filename in self._weight_map.items():
-            index = int(filename.split("-")[1])
-            fqn_to_file_index_mapping[fqn] = index
-
-        save(
-            state_dict=state_dict,
-            storage_writer=_HuggingFaceStorageWriter(
-                path=output_path,
-                fqn_to_index_mapping=fqn_to_file_index_mapping,
-            ),
-            planner=_HuggingFaceSavePlanner(),
-            no_dist=True,
-        )
-
     def save_checkpoint(
         self,
         state_dict: dict[str, Any],
@@ -906,8 +879,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             # Here we actually save the model weights
             if self._enable_dcp:
-                self._save_checkpoint_with_dcp_hf(
-                    state_dict, output_path=ckpt_output_dir
+                from torch.distributed.checkpoint import HuggingFaceStorageWriter
+
+                # DCP save using the storage writer
+                fqn_to_file_index_mapping = {}
+                for fqn, filename in self._weight_map.items():
+                    index = int(filename.split("-")[1])
+                    fqn_to_file_index_mapping[fqn] = index
+                storage_writer = HuggingFaceStorageWriter(
+                    path=os.path.join(self._output_dir, ckpt_save_dirname),
+                    fqn_to_index_mapping=fqn_to_file_index_mapping,
+                )
+                save(
+                    state_dict=state_dict[training.MODEL_KEY],
+                    storage_writer=storage_writer,
+                    no_dist=True,
                 )
             else:
                 save_torch_state_dict(

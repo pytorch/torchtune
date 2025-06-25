@@ -168,9 +168,10 @@ class TestKDDistributedRecipe:
             --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{tmpdir}/{epoch_folder_minus_one}' \
+            checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -255,21 +256,18 @@ class TestKDDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         shutil.rmtree((tmpdir / "epoch_1"))
 
-        epoch_folder = get_largest_iter_folder(tmpdir)
-
         # Resume training
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 4 knowledge_distillation_distributed \
             --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{tmpdir}/{epoch_folder}' \
+            checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
             teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
-            teacher_checkpointer.output_dir={tmpdir} \
             resume_from_checkpoint=True \
             enable_async_checkpointing=True \
             metric_logger.filename={log_file} \
