@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Protocol, Union
+from typing import Any, Callable, Optional, Protocol, Union
 
 
 class AggregationType(Enum):
@@ -34,8 +34,11 @@ class Metric:
 class MetricTransform(Protocol):
     """Protocol for metric transforms."""
 
-    def set_dataset_name(self, dataset_name: str) -> None: ...
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]: ...
+    def set_dataset_name(self, dataset_name: str) -> None:
+        ...
+
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
+        ...
 
 
 class StandardMetricTransform(MetricTransform):
@@ -67,7 +70,7 @@ class StandardMetricTransform(MetricTransform):
         self.dataset_name = dataset_name
         self.new_metric = partial(Metric, dataset_name=dataset_name)
 
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         if self.dataset_name is None or self.new_metric is None:
             raise RuntimeError(
                 "set_dataset_name() must be called before using the transform."
@@ -92,4 +95,4 @@ class StandardMetricTransform(MetricTransform):
         if "metrics" not in sample:
             sample["metrics"] = []
         sample["metrics"].extend(metrics)
-        return sample 
+        return sample

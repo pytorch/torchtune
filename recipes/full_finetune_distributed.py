@@ -9,11 +9,11 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig, ListConfig
+from omegaconf import dictConfig, listConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -22,11 +22,10 @@ from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
 from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
 from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import padded_collate_packed, MetricsAggregator
-from torchtune.datasets import ConcatDataset, InterleavedDataset
+from torchtune.data import MetricsAggregator, padded_collate_packed
+from torchtune.datasets import InterleavedDataset
 from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
 from torchtune.modules.moe import utils as moe_utils
@@ -120,7 +119,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     has example commands for how to kick-off training.
 
     Args:
-        cfg (DictConfig): OmegaConf object parsed from yaml file
+        cfg (dictConfig): OmegaConf object parsed from yaml file
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
@@ -130,7 +129,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
-    def __init__(self, cfg: DictConfig) -> None:
+    def __init__(self, cfg: dictConfig) -> None:
         device_type = cfg.device
         self._device = utils.get_device(device=device_type)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
@@ -274,12 +273,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
         )
         self.global_step = 0
-        
+
         # Step-based training support
         self.num_training_steps = cfg.num_training_steps
         self._dataset_metrics_log_freq = cfg.get("dataset_metrics_log_freq", 100)
         self._metrics_aggregator = None  # Will be initialized in setup
-        
+
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
@@ -304,14 +303,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
 
-    def setup(self, cfg: DictConfig) -> None:
+    def setup(self, cfg: dictConfig) -> None:
         """
         Setup the recipe. This includes training state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
         if cfg.get("dataset_val") is not None:
-            raise NotImplementedError("Validation is not supported yet with iterable datasets.")
-        
+            raise NotImplementedError(
+                "Validation is not supported yet with iterable datasets."
+            )
+
         if self.fsdp_cpu_offload:
             # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
             # speed up when benchmarking fused AdamW on CPU
@@ -333,7 +334,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile_loss = compile_bool
         self._compile_optimizer_step = compile_bool
         self._compile_scale_grads = compile_bool
-        if isinstance(compile, DictConfig):
+        if isinstance(compile, dictConfig):
             self._compile_model = compile.get("model", True)
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
@@ -470,7 +471,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def _setup_lr_scheduler(
         self,
-        cfg_lr_scheduler: Optional[DictConfig],
+        cfg_lr_scheduler: Optional[dictConfig],
         num_training_steps: int,
         last_epoch: int,
     ) -> Optional[Optimizer]:
@@ -479,7 +480,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         It supports both standard optimization and optimizer-in-backward cases.
 
         Args:
-            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
+            cfg_lr_scheduler (Optional[dictConfig]): The learning rate scheduler configuration.
             num_training_steps (int): The total number of training steps.
             last_epoch (int): The index of the last epoch.
 
@@ -518,14 +519,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return lr_scheduler
 
     def _setup_profiler(
-        self, cfg_profiler: Optional[DictConfig] = None
+        self, cfg_profiler: Optional[dictConfig] = None
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
-            cfg_profiler = DictConfig({"enabled": False})
+            cfg_profiler = dictConfig({"enabled": False})
 
         # Check that component is included and set correctly
         if cfg_profiler.get("_component_", None) is None:
@@ -552,7 +553,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def _setup_model(
         self,
-        cfg_model: DictConfig,
+        cfg_model: dictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         activation_offloading_use_streams: bool,
@@ -710,7 +711,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def _setup_optimizer(
         self,
-        cfg_optimizer: DictConfig,
+        cfg_optimizer: dictConfig,
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
@@ -763,7 +764,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def _setup_data(
         self,
-        cfg_dataset: Union[DictConfig, ListConfig],
+        cfg_dataset: Union[dictConfig, listConfig],
         batch_size: int,
         collate_fn: str,
         dataloader_state_dict: Optional[dict[str, Any]] = None,
@@ -776,7 +777,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         iterable_datasets = []
         weights = []
         cfg_dataset_list = cfg_dataset
-        if not isinstance(cfg_dataset_list, ListConfig):
+        if not isinstance(cfg_dataset_list, listConfig):
             cfg_dataset_list = [cfg_dataset_list]
 
         for ds_cfg in cfg_dataset_list:
@@ -787,25 +788,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # 2. Interleave datasets if any
         if len(iterable_datasets) > 1:
             ds = InterleavedDataset(
-            datasets=iterable_datasets,
+                datasets=iterable_datasets,
                 weights=weights,
                 seed=self.seed,
             )
         else:
             ds = iterable_datasets[0]
-        
+
         # 3. Apply packing
         # TODO: follow up PR
         packed = False
 
         # 4. Define a collate function wrapper to handle metrics
         base_collate_fn = (
-            padded_collate_packed
-            if packed
-            else _get_component_from_path(collate_fn)
+            padded_collate_packed if packed else _get_component_from_path(collate_fn)
         )
 
-        def _collate_with_metrics_wrapper(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+        def _collate_with_metrics_wrapper(
+            batch: list[dict[str, Any]]
+        ) -> dict[str, Any]:
             # TODO: handling of metrics should prob be done in collate_fn.
             # putting this here for now to avoid making more changes to this PR.
             all_metrics = []
@@ -814,7 +815,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if "metrics" in sample:
                     all_metrics.extend(sample.pop("metrics"))
                 clean_batch.append(sample)
-            
+
             collated_batch = base_collate_fn(clean_batch)
             collated_batch["metrics"] = all_metrics
             return collated_batch
@@ -901,12 +902,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """Save checkpoint based on global step."""
         self._checkpoint_client.save_checkpoint(
             model=self._model,
-            optimizer=(self._optimizer if not self._optimizer_in_bwd else self._optim_ckpt_wrapper),
-            training_progress = TrainingProgress(
+            optimizer=(
+                self._optimizer
+                if not self._optimizer_in_bwd
+                else self._optim_ckpt_wrapper
+            ),
+            training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=0, # TODO: not needed. To be deprecated.
-                total_epochs=1, # TODO: not needed. To be deprecated.
-                max_steps_per_epoch=-1, # TODO: not needed. To be deprecated.
+                epochs_run=0,  # TODO: not needed. To be deprecated.
+                total_epochs=1,  # TODO: not needed. To be deprecated.
+                max_steps_per_epoch=-1,  # TODO: not needed. To be deprecated.
                 steps_run=self.global_step,
                 total_training_steps=self.num_training_steps,
                 dataloader_state_dict=self._dataloader.state_dict(),
@@ -915,10 +920,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._val_dataloader is not None
                     else {}
                 ),
-                #FIXME: add to load_ckpt and TrainingProgress too
+                # FIXME: add to load_ckpt and TrainingProgress too
                 metrics_aggregator_state_dict=self._metrics_aggregator.state_dict(),
             ),
-            epoch=epoch, # TODO: not needed. To be deprecated.
+            epoch=epoch,  # TODO: not needed. To be deprecated.
             step=step,
             single_device=False,
             full_tensors=full_tensors,
@@ -945,9 +950,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         num_tokens = 0
 
         self._profiler.start()
-        
-        pbar = tqdm(initial=self.global_step, total=self.num_training_steps, desc="Training")
-        
+
+        pbar = tqdm(
+            initial=self.global_step, total=self.num_training_steps, desc="Training"
+        )
+
         dataloader_iter = iter(self._dataloader)
         batch_count = 0
 
@@ -955,18 +962,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             try:
                 batch = next(dataloader_iter)
             except StopIteration:
-                self._logger.warning("Dataloader iterator exhausted unexpectedly. Ending training.")
+                self._logger.warning(
+                    "Dataloader iterator exhausted unexpectedly. Ending training."
+                )
                 break
-            
+
             if "metrics" in batch:
                 self._metrics_aggregator.update(batch.pop("metrics"))
-            
-             # Start tracking CUDA memory for active steps for just the first epoch
+
+            # Start tracking CUDA memory for active steps for just the first epoch
             if (
                 self._is_rank_zero
                 and self.profiler_profile_memory
-                and batch_count
-                == self.profiler_wait_steps + self.profiler_warmup_steps
+                and batch_count == self.profiler_wait_steps + self.profiler_warmup_steps
                 and self._device.type == "cuda"
             ):
                 torch.cuda.memory._record_memory_history()
@@ -975,9 +983,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Calculate the number of unmasked tokens in the current batch
             # and increment the total number of tokens seen in the step
-            current_num_tokens = (
-                batch["labels"] != self._loss_fn.ignore_index
-            ).sum()
+            current_num_tokens = (batch["labels"] != self._loss_fn.ignore_index).sum()
             num_tokens += current_num_tokens
 
             with self.train_context(
@@ -1038,32 +1044,54 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 loss_to_log = running_loss.detach().item() / num_tokens
                 pbar.update(1)
-                pbar.set_description(f"Step: {self.global_step}|Loss: {loss_to_log:.4f}")
-                
+                pbar.set_description(
+                    f"Step: {self.global_step}|Loss: {loss_to_log:.4f}"
+                )
+
                 # Log per-step metrics
-                if self.global_step % self._log_every_n_steps == 0 and self._is_rank_zero:
+                if (
+                    self.global_step % self._log_every_n_steps == 0
+                    and self._is_rank_zero
+                ):
                     time_per_step = time.perf_counter() - t0
                     log_dict = {
                         "loss": loss_to_log,
-                        "lr": get_lr(self._optimizer if not self._optimizer_in_bwd else self._optim_ckpt_wrapper),
-                        "tokens_per_second_per_gpu": (num_tokens / self.parallel_dims.non_data_parallel_size) / (time_per_step * self.world_size),
+                        "lr": get_lr(
+                            self._optimizer
+                            if not self._optimizer_in_bwd
+                            else self._optim_ckpt_wrapper
+                        ),
+                        "tokens_per_second_per_gpu": (
+                            num_tokens / self.parallel_dims.non_data_parallel_size
+                        )
+                        / (time_per_step * self.world_size),
                     }
                     if self._log_peak_memory_stats:
                         log_dict.update(training.get_memory_stats(device=self._device))
                     if self._clip_grad_norm is not None:
                         log_dict.update({"grad_norm": grad_norm})
                     self._metric_logger.log_dict(log_dict, step=self.global_step)
-                
+
                 # Log dataset metrics
                 # #TODO: it requires all_gather. Should we keep a separate log_freq for this?
-                if self.global_step % self._dataset_metrics_log_freq == 0 and self._is_rank_zero:
-                    dataset_metrics = self._metrics_aggregator.get_metrics_for_logging(prefix="train")
+                if (
+                    self.global_step % self._dataset_metrics_log_freq == 0
+                    and self._is_rank_zero
+                ):
+                    dataset_metrics = self._metrics_aggregator.get_metrics_for_logging(
+                        prefix="train"
+                    )
                     self._metric_logger.log_dict(dataset_metrics, step=self.global_step)
-                
+
                 # Save checkpoint if specified by user
-                if self.save_every_n_steps is not None and self.global_step % self.save_every_n_steps == 0:
-                    self.save_checkpoint(epoch=0, step=self.global_step, full_tensors=False)
-                
+                if (
+                    self.save_every_n_steps is not None
+                    and self.global_step % self.save_every_n_steps == 0
+                ):
+                    self.save_checkpoint(
+                        epoch=0, step=self.global_step, full_tensors=False
+                    )
+
                 # Reset running stats for the next step
                 running_loss = 0
                 num_tokens = 0
@@ -1102,7 +1130,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
 
 @config.parse
-def recipe_main(cfg: DictConfig) -> None:
+def recipe_main(cfg: dictConfig) -> None:
     """
     Entry point for the recipe.
 

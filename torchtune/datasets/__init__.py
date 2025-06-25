@@ -22,7 +22,7 @@ from torchtune.datasets._iterable_base import TuneIterableDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
-from torchtune.datasets._sft import SFTDataset, sft_iterable_dataset
+from torchtune.datasets._sft import sft_iterable_dataset, SFTDataset
 from torchtune.datasets._slimorca import slimorca_dataset, slimorca_iterable_dataset
 from torchtune.datasets._stack_exchange_paired import stack_exchange_paired_dataset
 from torchtune.datasets._text_completion import (

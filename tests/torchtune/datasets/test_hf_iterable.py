@@ -4,19 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import collections
-import tempfile
-from pathlib import Path
 from itertools import islice
-from typing import Any, Callable, Dict, List, Optional
-from unittest.mock import Mock, patch
+from pathlib import Path
+from typing import Any, Optional
 
 import pytest
-import torch
-from torch.nn.utils.rnn import pad_sequence
 from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data import AggregationType, Metric, MetricsAggregator, StandardMetricTransform, padded_collate_sft
+from torchtune.data import (
+    MetricsAggregator,
+    padded_collate_sft,
+    StandardMetricTransform,
+)
 from torchtune.datasets import HfIterableDataset
 
 
@@ -47,7 +46,7 @@ def create_test_json_file(path: Path, num_samples: int, offset: int = 0) -> None
             )
 
 
-def collate_with_metrics(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+def collate_with_metrics(batch: list[dict[str, Any]]) -> dict[str, Any]:
     """Collate function that extracts metrics and uses padded_collate_sft as base collator."""
     # Extract metrics first
     all_metrics = []
@@ -73,21 +72,24 @@ def generate_ckpt(
     steps_after_checkpoint: int,
     resume_dataloader: Optional[StatefulDataLoader] = None,
     resume_aggregator: Optional[MetricsAggregator] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generates a checkpoint by running through data and saving checkpoint mid-stream.
     Optionally, a second dataloader and aggregator can be given to resume from ckpt
     and run steps_after_checkpoint to match the first one.
 
     Args:
-        dataloader: The dataloader to test
-        aggregator: The metrics aggregator to use
-        steps_before_checkpoint: Number of steps to run before saving checkpoint
-        steps_after_checkpoint: Number of steps to run after checkpoint
-        resume_dataloader: Optional new dataloader to test resuming. If None, returns empty resumed_batches.
-        resume_aggregator: Optional new aggregator to test resuming. If None, returns empty resumed_metrics.
+        dataloader (StatefulDataLoader): The dataloader to test
+        aggregator (MetricsAggregator): The metrics aggregator to use
+        steps_before_checkpoint (int): Number of steps to run before saving checkpoint
+        steps_after_checkpoint (int): Number of steps to run after checkpoint
+        resume_dataloader (Optional[StatefulDataLoader]): Optional new dataloader to test resuming.
+            If None, returns empty resumed_batches.
+        resume_aggregator (Optional[MetricsAggregator]): Optional new aggregator to test resuming.
+            If None, returns empty resumed_metrics.
 
-    Returns dict with batches/metrics from both pre and post checkpoint runs.
+    Returns:
+        dict[str, Any]: Dict with batches/metrics from both pre and post checkpoint runs.
     """
     iterator = iter(dataloader)
 
@@ -179,11 +181,12 @@ def small_dataset_file(tmp_data_dir):
 @pytest.fixture
 def dataset_factory():
     """Factory for creating HfIterableDataset instances with common defaults."""
+
     def _create_dataset(
         data_file: str,
         dataset_name: str = "test_dataset",
         shuffle: bool = False,
-        **kwargs
+        **kwargs,
     ) -> HfIterableDataset:
         return HfIterableDataset(
             path="json",
@@ -194,8 +197,9 @@ def dataset_factory():
             shuffle_buffer_size=10 if shuffle else 0,
             metric_transform=StandardMetricTransform(),
             num_shards_per_rank=2,
-            **kwargs
+            **kwargs,
         )
+
     return _create_dataset
 
 
@@ -223,7 +227,7 @@ class TestHfIterableDataset:
             path="json",
             data_files=small_dataset_file,
             split="train",
-            dataset_name = "my_dataset",
+            dataset_name="my_dataset",
             seed=SEED,
             metric_transform=StandardMetricTransform(),
             num_shards_per_rank=4,
@@ -288,8 +292,8 @@ class TestHfIterableDataset:
         )
 
         # Get samples from two passes through the dataset
-        epoch_samples = islice(iter(unshuffled_ds), SMALL_DATASET_SIZE*2)
-        
+        epoch_samples = islice(iter(unshuffled_ds), SMALL_DATASET_SIZE * 2)
+
         first_epoch_samples = epoch_samples[:SMALL_DATASET_SIZE]
         second_epoch_samples = epoch_samples[SMALL_DATASET_SIZE:]
 
@@ -303,8 +307,8 @@ class TestHfIterableDataset:
         )
 
         # Collect full epochs to compare
-        epoch_samples = islice(iter(shuffled_ds), SMALL_DATASET_SIZE*2)
-        
+        epoch_samples = islice(iter(shuffled_ds), SMALL_DATASET_SIZE * 2)
+
         first_epoch_samples = epoch_samples[:SMALL_DATASET_SIZE]
         second_epoch_samples = epoch_samples[SMALL_DATASET_SIZE:]
 
@@ -317,23 +321,35 @@ class TestHfIterableDataset:
         ), f"Shuffled epochs should be shuffled differently, got {first_epoch_samples} and {second_epoch_samples}"
 
         # But should contain the same set of IDs
-        assert set(first_epoch_samples) == set(range(SMALL_DATASET_SIZE)), f"First epoch samples should be (0-{SMALL_DATASET_SIZE-1}), got {first_epoch_samples}"
-        assert set(second_epoch_samples) == set(range(SMALL_DATASET_SIZE)), f"Second epoch samples should be (0-{SMALL_DATASET_SIZE-1}), got {second_epoch_samples}"
+        assert set(first_epoch_samples) == set(
+            range(SMALL_DATASET_SIZE)
+        ), f"First epoch samples should be (0-{SMALL_DATASET_SIZE-1}), got {first_epoch_samples}"
+        assert set(second_epoch_samples) == set(
+            range(SMALL_DATASET_SIZE)
+        ), f"Second epoch samples should be (0-{SMALL_DATASET_SIZE-1}), got {second_epoch_samples}"
 
     def test_epoch_tracking(self, dataset_factory, small_dataset_file):
         """Test that epoch number is correctly tracked across dataset restarts."""
         dataset = dataset_factory(small_dataset_file, shuffle=False)
-        
+
         # Two epoch samples
-        epoch_samples = islice(iter(dataset), SMALL_DATASET_SIZE*2)
-        
+        epoch_samples = islice(iter(dataset), SMALL_DATASET_SIZE * 2)
+
         first_epoch_samples = epoch_samples[:SMALL_DATASET_SIZE]
         second_epoch_samples = epoch_samples[SMALL_DATASET_SIZE:]
 
         # All should have epoch 0
-        epoch_values = [epoch_metric.value for epoch_metric in first_epoch_samples["metrics"]]
-        assert all(epoch_value == 0 for epoch_value in epoch_values), f"Epoch values should be 0, got {epoch_values}"
-        
+        epoch_values = [
+            epoch_metric.value for epoch_metric in first_epoch_samples["metrics"]
+        ]
+        assert all(
+            epoch_value == 0 for epoch_value in epoch_values
+        ), f"Epoch values should be 0, got {epoch_values}"
+
         # All should have epoch 1
-        epoch_values = [epoch_metric.value for epoch_metric in second_epoch_samples["metrics"]]
-        assert all(epoch_value == 1 for epoch_value in epoch_values), f"Epoch values should be 1, got {epoch_values}"
+        epoch_values = [
+            epoch_metric.value for epoch_metric in second_epoch_samples["metrics"]
+        ]
+        assert all(
+            epoch_value == 1 for epoch_value in epoch_values
+        ), f"Epoch values should be 1, got {epoch_values}"

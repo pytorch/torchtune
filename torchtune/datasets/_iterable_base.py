@@ -1,5 +1,11 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator
+from typing import Any, dict, Iterator
 
 from torch.utils.data import IterableDataset
 
@@ -19,7 +25,7 @@ class TuneIterableDataset(IterableDataset, ABC):
         pass
 
     @abstractmethod
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         """
         Returns an infinite iterator over the dataset. Each implementation is responsible
         for its own iteration logic, including shuffling and making it an infinite stream.
@@ -27,11 +33,11 @@ class TuneIterableDataset(IterableDataset, ABC):
         pass
 
     @abstractmethod
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Returns a state dictionary for checkpointing"""
         pass
 
     @abstractmethod
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Load state from a state dictionary, used when resuming from a checkpoint."""
-        pass 
+        pass

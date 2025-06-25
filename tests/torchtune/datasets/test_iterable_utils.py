@@ -4,14 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from torch.utils.data import DataLoader
 from torchtune.data import padded_collate_sft
 from torchtune.data._metrics import MetricsAggregator
 
 
-def collate_with_metrics(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+def collate_with_metrics(batch: list[dict[str, Any]]) -> dict[str, Any]:
     """Collate function that extracts metrics and uses padded_collate_sft for the rest."""
     all_metrics = []
     clean_batch = []
@@ -36,21 +36,24 @@ def generate_ckpt(
     steps_after_checkpoint: int,
     resume_dataloader: Optional[DataLoader] = None,
     resume_aggregator: Optional[MetricsAggregator] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generates a checkpoint by running through data and saving checkpoint mid-stream.
     Optionally, a second dataloader and aggregator can be given to resume from ckpt
     and run steps_after_checkpoint to match the first one.
 
     Args:
-        dataloader: The dataloader to test
-        aggregator: The metrics aggregator to use
-        steps_before_checkpoint: Number of steps to run before saving checkpoint
-        steps_after_checkpoint: Number of steps to run after checkpoint
-        resume_dataloader: Optional new dataloader to test resuming. If None, returns empty resumed_batches.
-        resume_aggregator: Optional new aggregator to test resuming. If None, returns empty resumed_metrics.
+        dataloader (DataLoader): The dataloader to test
+        aggregator (MetricsAggregator): The metrics aggregator to use
+        steps_before_checkpoint (int): Number of steps to run before saving checkpoint
+        steps_after_checkpoint (int): Number of steps to run after checkpoint
+        resume_dataloader (Optional[DataLoader]): Optional new dataloader to test resuming.
+            If None, returns empty resumed_batches.
+        resume_aggregator (Optional[MetricsAggregator]): Optional new aggregator to test resuming.
+            If None, returns empty resumed_metrics.
 
-    Returns dict with batches/metrics from both pre and post checkpoint runs.
+    Returns:
+        dict[str, Any]: Dict with batches/metrics from both pre and post checkpoint runs.
     """
     iterator = iter(dataloader)
 

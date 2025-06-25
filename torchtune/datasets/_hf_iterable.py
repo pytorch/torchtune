@@ -1,5 +1,11 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import logging
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Iterator, Optional
 
 import torch
 import torch.distributed as dist
@@ -37,8 +43,8 @@ class HfIterableDataset(TuneIterableDataset):
         dataset_name (Optional[str]): Name of the dataset. If None, a default name is generated
             from the path, source, and split.
         filter_fn (Optional[Callable]): Filter function to apply to the dataset.
-        filter_kwargs (Optional[Dict[str, Any]]): Keyword arguments to pass to the filter function.
-        load_dataset_kwargs (Dict[str, Any]): Keyword arguments to pass to the load_dataset function.
+        filter_kwargs (Optional[dict[str, Any]]): Keyword arguments to pass to the filter function.
+        load_dataset_kwargs (dict[str, Any]): Keyword arguments to pass to the load_dataset function.
 
     """
 
@@ -55,7 +61,7 @@ class HfIterableDataset(TuneIterableDataset):
         num_shards_per_rank: int = 64,
         dataset_name: Optional[str] = None,
         filter_fn: Optional[Callable] = None,
-        filter_kwargs: Optional[Dict[str, Any]] = None,
+        filter_kwargs: Optional[dict[str, Any]] = None,
         **load_dataset_kwargs,
     ):
         # Store configuration
@@ -64,7 +70,7 @@ class HfIterableDataset(TuneIterableDataset):
         self._message_transform = message_transform
         self._model_transform = model_transform
         self._output_transform = output_transform
-        self._weight = weight # TODO: make it a property?
+        self._weight = weight  # TODO: make it a property?
 
         # Create default transform if not provided
         self._metric_transform = metric_transform or StandardMetricTransform()
@@ -98,7 +104,7 @@ class HfIterableDataset(TuneIterableDataset):
     def dataset_name(self) -> str:
         return self._dataset_name
 
-    def _apply_transforms(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_transforms(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Apply transforms if they exist, otherwise return sample unchanged."""
         if self._message_transform is not None:
             sample = self._message_transform(sample)
@@ -112,10 +118,10 @@ class HfIterableDataset(TuneIterableDataset):
 
     def _setup_hf_dataset(
         self,
-        load_dataset_kwargs: Dict[str, Any],
+        load_dataset_kwargs: dict[str, Any],
         num_shards_per_rank: int,
         filter_fn: Optional[Callable] = None,
-        filter_kwargs: Optional[Dict[str, Any]] = None,
+        filter_kwargs: Optional[dict[str, Any]] = None,
     ):
         """
         Configures the Hugging Face dataset, including sharding, filtering, and
@@ -185,7 +191,7 @@ class HfIterableDataset(TuneIterableDataset):
 
         self._ds = ds
 
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         """Iterate through the dataset infinitely.
 
         It will restart from the beginning after exhausting the dataset.
@@ -246,7 +252,7 @@ class HfIterableDataset(TuneIterableDataset):
             # Reset to the base dataset for the next epoch's shuffling.
             epoch_ds = self._ds
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """
         The dataset returns its own state directly, without namespacing.
         """
@@ -258,7 +264,7 @@ class HfIterableDataset(TuneIterableDataset):
         }
         return state
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """
         Load state from checkpoint, including restoring the state of the
         Hugging Face IterableDataset.
@@ -268,4 +274,4 @@ class HfIterableDataset(TuneIterableDataset):
 
         # HF is responsible for resuming the dataset state
         # where it last left off
-        self._ds.load_state_dict(hf_state) 
+        self._ds.load_state_dict(hf_state)

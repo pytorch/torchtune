@@ -7,11 +7,10 @@
 from typing import Any, Callable, Optional, Union
 
 from torchtune.data import ShareGPTToMessages
-from torchtune.data._metrics import StandardMetricTransform
 from torchtune.datasets._hf_iterable import HfIterableDataset
 from torchtune.datasets._packed import PackedDataset
 
-from torchtune.datasets._sft import SFTDataset, sft_iterable_dataset
+from torchtune.datasets._sft import sft_iterable_dataset, SFTDataset
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
@@ -121,7 +120,7 @@ def slimorca_iterable_dataset(
 
     Args:
         model_transform (ModelTokenizer): Model tokenizer used to tokenize the messages.
-        source (str): path to dataset repository on Hugging Face. Default is "Open-Orca/SlimOrca-Dedup". 
+        source (str): path to dataset repository on Hugging Face. Default is "Open-Orca/SlimOrca-Dedup".
         column_map (Optional[dict[str, str]]): mapping from expected "conversations" column
             to actual column name in dataset. If None, uses default "conversations".
         train_on_input (bool): Whether to train on input or mask it. Default is False.
@@ -132,13 +131,13 @@ def slimorca_iterable_dataset(
         dataset_name (Optional[str]): Name for metrics. If None, auto-generated from source.
         filter_fn (Optional[Callable]): Filter function to apply to dataset.
         filter_kwargs (Optional[dict[str, Any]]): Kwargs for filter function.
-        **load_dataset_kwargs: Additional kwargs for load_dataset.
+        **load_dataset_kwargs (dict[str, Any]): Additional kwargs for load_dataset.
 
     Returns:
         HfIterableDataset: Configured iterable dataset
 
     Example:
-        >>> from torchtune.datasets import slimorca_iterable_dataset  
+        >>> from torchtune.datasets import slimorca_iterable_dataset
         >>> ds = slimorca_iterable_dataset(shuffle_buffer_size=1000)
         >>> for sample in ds:
         >>>     print(sample["tokens"][:10])  # First 10 tokens
@@ -148,9 +147,9 @@ def slimorca_iterable_dataset(
         column_map=column_map,
         new_system_prompt=new_system_prompt,
     )
-    
+
     return sft_iterable_dataset(
-        source=source,  
+        source=source,
         message_transform=message_transform,
         model_transform=model_transform,
         shuffle_buffer_size=shuffle_buffer_size,

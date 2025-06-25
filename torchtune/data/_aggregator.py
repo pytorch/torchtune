@@ -7,9 +7,8 @@
 import ast
 import collections
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
-import torch
 import torch.distributed as dist
 
 from torchtune.data._metrics import AggregationType, Metric
@@ -34,16 +33,16 @@ class MetricsAggregator:
 
     def __init__(self, dist_window_size: int = 1000):
         # State shape: {(dataset_name, metric_name): {type: AggType, value/sum/counts/etc}}
-        self._state: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        self._state: dict[tuple[str, str], dict[str, Any]] = {}
 
         # For distributions, we keep a window of values to compute percentiles
         self._dist_window_size = dist_window_size
 
-    def update(self, metrics: List[Metric]) -> None:
+    def update(self, metrics: list[Metric]) -> None:
         """Update internal state with new metrics.
 
         Args:
-            metrics: List of Metric objects
+            metrics (list[Metric]): list of Metric objects
         """
         for metric in metrics:
             key = (metric.dataset_name, metric.name)
@@ -75,7 +74,7 @@ class MetricsAggregator:
                 state["counts"][metric.value] += 1
 
     def _initialize_state(
-        self, key: Tuple[str, str], agg_type: AggregationType
+        self, key: tuple[str, str], agg_type: AggregationType
     ) -> None:
         """Initialize state for a new metric."""
         self._state[key] = {"type": agg_type}
@@ -93,15 +92,15 @@ class MetricsAggregator:
         elif agg_type == AggregationType.CATEGORICAL_COUNT:
             state["counts"] = collections.Counter()
 
-    def get_metrics_for_logging(self, prefix: str = "") -> Dict[str, float]:
+    def get_metrics_for_logging(self, prefix: str = "") -> dict[str, float]:
         """
         Returns aggregated metrics ready for logging to wandb/tensorboard.
 
         Args:
-            prefix: Optional prefix like "train" or "valid" for metric keys
+            prefix (str): Optional prefix like "train" or "valid" for metric keys
 
         Returns:
-            Flat dictionary with keys like "train/dataset1/tokens_seen" -> float value
+            dict[str, float]: Flat dictionary with keys like "train/dataset1/tokens_seen" -> float value
             Ready to be logged directly: wandb.log(metrics)
         """
         # Always compute local metrics first
@@ -116,18 +115,16 @@ class MetricsAggregator:
         # Format for logging with proper key structure
         return self._format_for_logging(metrics, prefix)
 
-    def _compute_local_metrics(self) -> Dict[Tuple[str, str], Dict[str, Any]]:
+    def _compute_local_metrics(self) -> dict[tuple[str, str], dict[str, Any]]:
         """
         Compute metrics from current state.
 
         For distributions and categoricals, expands into multiple entries.
         The dict format allows future extensions with additional fields.
 
-        Args:
-            None
-
         Returns:
-            Dictionary mapping (dataset_name, metric_name) -> {"value": value, "agg_type": aggregation_type}
+            dict[tuple[str, str], dict[str, Any]]: dictionary mapping
+                (dataset_name, metric_name) -> {"value": value, "agg_type": aggregation_type}
         """
         metrics = {}
 
@@ -199,8 +196,8 @@ class MetricsAggregator:
         return metrics
 
     def _compute_distributed_metrics(
-        self, local_metrics: Dict[Tuple[str, str], Dict[str, Any]]
-    ) -> Dict[Tuple[str, str], Dict[str, Any]]:
+        self, local_metrics: dict[tuple[str, str], dict[str, Any]]
+    ) -> dict[tuple[str, str], dict[str, Any]]:
         """
         Performs distributed reduction on metrics.
 
@@ -212,10 +209,11 @@ class MetricsAggregator:
         This avoids complex tensor operations and handles all reduction in one pass.
 
         Args:
-            local_metrics: Dict mapping (dataset, metric) -> {"value": value, "agg_type": agg_type, ...}
+            local_metrics (dict[tuple[str, str], dict[str, Any]]): dict mapping
+                (dataset, metric) -> {"value": value, "agg_type": agg_type, ...}
 
         Returns:
-            Reduced metrics in same format as input
+            dict[tuple[str, str], dict[str, Any]]: Reduced metrics in same format as input
 
         Example:
             rank_1_metrics =
@@ -278,17 +276,18 @@ class MetricsAggregator:
         return reduced
 
     def _format_for_logging(
-        self, metrics: Dict[Tuple[str, str], Dict[str, Any]], prefix: str
-    ) -> Dict[str, float]:
+        self, metrics: dict[tuple[str, str], dict[str, Any]], prefix: str
+    ) -> dict[str, float]:
         """
         Format metrics for wandb/tensorboard logging.
 
         Args:
-            metrics: Dict mapping (dataset, metric) -> {"value": value, "agg_type": agg_type, ...}
-            prefix: Optional prefix like "train" or "valid"
+            metrics (dict[tuple[str, str], dict[str, Any]]): dict mapping
+                (dataset, metric) -> {"value": value, "agg_type": agg_type, ...}
+            prefix (str): Optional prefix like "train" or "valid"
 
         Returns:
-            Flat dict with string keys like "train/dataset1/tokens_seen" -> float
+            dict[str, float]: Flat dict with string keys like "train/dataset1/tokens_seen" -> float
         """
         formatted = {}
 
@@ -303,7 +302,7 @@ class MetricsAggregator:
 
         return formatted
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Serialize aggregator state. The state is almost directly serializable."""
         serializable_state = {}
         for key, state in self._state.items():
@@ -320,7 +319,7 @@ class MetricsAggregator:
             serializable_state[str(key)] = state_copy
         return {"state": serializable_state, "dist_window_size": self._dist_window_size}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Load aggregator state from checkpoint."""
         self._dist_window_size = state_dict["dist_window_size"]
 
@@ -339,4 +338,4 @@ class MetricsAggregator:
                 state["counts"] = collections.Counter(state["counts"])
 
             deserialized_state[key] = state
-        self._state = deserialized_state 
+        self._state = deserialized_state

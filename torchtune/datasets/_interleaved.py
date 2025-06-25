@@ -1,7 +1,13 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import collections
 import logging
 import math
-from typing import Any, Dict, Iterator, List
+from typing import Any, dict, Iterator
 
 import torch
 
@@ -17,16 +23,19 @@ class InterleavedDataset(TuneIterableDataset):
     to ensure correct checkpointing and resumption.
 
     Args:
-        datasets (List[TuneIterableDataset]): List of TuneIterableDatasets to interleave.
-        weights (List[float]): List of weights for each dataset. Must sum to 1.0.
+        datasets (list[TuneIterableDataset]): list of TuneIterableDatasets to interleave.
+        weights (list[float]): list of weights for each dataset. Must sum to 1.0.
         seed (int): Seed for sampling.
         dataset_name (str): Name of the dataset. If None, defaults to "interleaved_dataset".
+
+    Raises:
+        ValueError: If duplicate dataset names are detected in the provided datasets.
     """
 
     def __init__(
         self,
-        datasets: List[TuneIterableDataset],
-        weights: List[float],
+        datasets: list[TuneIterableDataset],
+        weights: list[float],
         seed: int,
         dataset_name: str = "interleaved_dataset",
     ):
@@ -36,7 +45,7 @@ class InterleavedDataset(TuneIterableDataset):
         self._dataset_names = [ds.dataset_name for ds in datasets]
 
         # Create a name-to-dataset mapping for robust state management
-        self._datasets: Dict[str, TuneIterableDataset] = {
+        self._datasets: dict[str, TuneIterableDataset] = {
             ds.dataset_name: ds for ds in datasets
         }
 
@@ -54,21 +63,22 @@ class InterleavedDataset(TuneIterableDataset):
         self._sampling_generator = torch.Generator().manual_seed(seed)
 
         # Normalize weights to sum to 1
-        #TODO: make it a property? rely on ds.weight? 
+        # TODO: make it a property? rely on ds.weight?
         total_weight = sum(weights)
         self._weights = torch.tensor(
             [w / total_weight for w in weights], dtype=torch.float
         )
         if not math.isclose(total_weight, 1.0, rel_tol=1e-9):
             logger.warning(
-                f"Interleaved dataset normalized weights to sum to 1.0. Found {total_weight=}. Previous {weights=}, new {self._weights.tolist()}"
+                f"Interleaved dataset normalized weights to sum to 1.0. "
+                f"Found {total_weight=}. Previous {weights=}, new {self._weights.tolist()}"
             )
 
     @property
     def dataset_name(self) -> str:
         return self._dataset_name
 
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         """Interleave samples from child infinite datasets"""
         child_iters = {name: iter(ds) for name, ds in self._datasets.items()}
 
@@ -96,7 +106,7 @@ class InterleavedDataset(TuneIterableDataset):
                 sample = next(child_iters[ds_name])
                 yield sample
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Save state for the interleaver and its children."""
         # The parent is responsible for namespacing the child states.
         child_states = {name: ds.state_dict() for name, ds in self._datasets.items()}
@@ -105,11 +115,11 @@ class InterleavedDataset(TuneIterableDataset):
             "child_states": child_states,
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Load state for the interleaver and its children."""
         self._sampling_generator.set_state(state_dict["sampling_generator_state"])
         child_states = state_dict["child_states"]
         for name, ds in self._datasets.items():
             if name in child_states:
                 # Pass the raw state dict to the child
-                ds.load_state_dict(child_states[name]) 
+                ds.load_state_dict(child_states[name])

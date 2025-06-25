@@ -6,7 +6,7 @@
 
 import pytest
 
-from torchtune.data import AggregationType, Metric, StandardMetricTransform
+from torchtune.data import AggregationType, StandardMetricTransform
 
 
 class TestStandardMetricTransform:
@@ -16,7 +16,7 @@ class TestStandardMetricTransform:
         """Test that using transform without setting dataset name raises error."""
         transform = StandardMetricTransform()
         sample = {"tokens": [1, 2, 3]}
-        
+
         with pytest.raises(RuntimeError, match="set_dataset_name"):
             transform(sample)
 
@@ -24,30 +24,30 @@ class TestStandardMetricTransform:
         """Test that transform generates expected metrics for a sample."""
         transform = StandardMetricTransform()
         transform.set_dataset_name("test_dataset")
-        
+
         sample = {"tokens": [1, 2, 3, 4, 5]}
         result = transform(sample)
-        
+
         # Should preserve original sample data
         assert result["tokens"] == [1, 2, 3, 4, 5]
-        
+
         # Should add metrics
         assert "metrics" in result
         metrics = result["metrics"]
         assert len(metrics) == 3
-        
+
         # Check each metric
         for metric in metrics:
             if metric.name == "samples_seen":
                 assert metric.dataset_name == "test_dataset"
                 assert metric.value == 1
                 assert metric.agg_type == AggregationType.SUM
-        
+
             elif metric.name == "tokens_seen":
                 assert metric.dataset_name == "test_dataset"
                 assert metric.value == 5
                 assert metric.agg_type == AggregationType.SUM
-            
+
             elif metric.name == "seq_len":
                 assert metric.dataset_name == "test_dataset"
                 assert metric.value == 5

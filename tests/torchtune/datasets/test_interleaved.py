@@ -4,18 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import tempfile
-from pathlib import Path
 from itertools import islice
-from typing import Any, Dict, Iterator
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import torch
 from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data import AggregationType, Metric, MetricsAggregator, StandardMetricTransform
-from torchtune.datasets import InterleavedDataset, HfIterableDataset
+from torchtune.data import MetricsAggregator, StandardMetricTransform
+from torchtune.datasets import HfIterableDataset, InterleavedDataset
 
 # Import test utilities
 from .test_iterable_utils import collate_with_metrics, generate_ckpt
@@ -69,11 +67,12 @@ def medium_dataset_file(tmp_data_dir):
 @pytest.fixture
 def dataset_factory():
     """Factory for creating HfIterableDataset instances with common defaults."""
+
     def _create_dataset(
         data_file: str,
         dataset_name: str = "test_dataset",
         shuffle: bool = False,
-        **kwargs
+        **kwargs,
     ) -> HfIterableDataset:
         return HfIterableDataset(
             path="json",
@@ -84,8 +83,9 @@ def dataset_factory():
             shuffle_buffer_size=10 if shuffle else 0,
             metric_transform=StandardMetricTransform(),
             num_shards_per_rank=2,
-            **kwargs
+            **kwargs,
         )
+
     return _create_dataset
 
 
@@ -107,10 +107,10 @@ class TestInterleavedDataset:
 
         with patch("logging.Logger.warning") as mock_warning:
             interleaved = InterleavedDataset(
-                datasets=[ds3, ds4], 
-                weights=[0.5, 1.5], 
+                datasets=[ds3, ds4],
+                weights=[0.5, 1.5],
                 seed=SEED,
-                dataset_name="test_interleaved"  # Sum = 2.0 != 1.0
+                dataset_name="test_interleaved",  # Sum = 2.0 != 1.0
             )
 
             # Check that weights were normalized
@@ -163,8 +163,8 @@ class TestInterleavedDataset:
         aggregator = MetricsAggregator()
 
         # Process some samples
-        TOTAL_SAMPLES = 200
-        for sample in islice(iter(interleaved), TOTAL_SAMPLES):
+        total_samples = 200
+        for sample in islice(iter(interleaved), total_samples):
             aggregator.update(sample["metrics"])
 
         metrics = aggregator.get_metrics_for_logging()
@@ -181,11 +181,11 @@ class TestInterleavedDataset:
         calculated_total_samples = (
             metrics["ds1/samples_seen"] + metrics["ds2/samples_seen"]
         )
-        assert calculated_total_samples == TOTAL_SAMPLES
+        assert calculated_total_samples == total_samples
 
         # Test that ratio is approximately correct
-        ds1_ratio = metrics["ds1/samples_seen"] / TOTAL_SAMPLES
-        ds2_ratio = metrics["ds2/samples_seen"] / TOTAL_SAMPLES
+        ds1_ratio = metrics["ds1/samples_seen"] / total_samples
+        ds2_ratio = metrics["ds2/samples_seen"] / total_samples
 
         # Allow 10% tolerance due to randomness
         assert abs(ds1_ratio - 0.2) < 0.1, f"ds1 ratio {ds1_ratio:.2f} should be ~0.2"
@@ -232,5 +232,3 @@ class TestInterleavedDataset:
         assert (
             result["final_metrics"] == result["resumed_metrics"]
         ), "Final metrics should match"
-        
- 

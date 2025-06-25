@@ -4,9 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import collections
 import pytest
-from unittest.mock import patch
 
 from torchtune.data import AggregationType, Metric, MetricsAggregator
 
@@ -63,7 +61,9 @@ class TestMetricsAggregator:
         assert result["train/test/dist_metric_mean"] == 5.5
         assert result["train/test/dist_metric_min"] == 1
         assert result["train/test/dist_metric_max"] == 10
-        assert result["train/test/dist_metric_p50"] == 5  # Median of 1-10 is 5 (index 4, value 5)
+        assert (
+            result["train/test/dist_metric_p50"] == 5
+        )  # Median of 1-10 is 5 (index 4, value 5)
 
     def test_state_management(self):
         """Test aggregator checkpointing and restoration."""
@@ -107,7 +107,7 @@ class TestMetricsAggregator:
     def test_multiple_datasets(self):
         """Test that metrics from multiple datasets are correctly namespaced."""
         aggregator = MetricsAggregator()
-        
+
         metrics = [
             Metric("dataset1", "samples", 100, AggregationType.SUM),
             Metric("dataset2", "samples", 200, AggregationType.SUM),
@@ -117,7 +117,7 @@ class TestMetricsAggregator:
         aggregator.update(metrics)
 
         result = aggregator.get_metrics_for_logging(prefix="train")
-        
+
         assert result["train/dataset1/samples"] == 100
         assert result["train/dataset2/samples"] == 200
         assert result["train/dataset1/tokens"] == 1000
@@ -146,4 +146,4 @@ class TestMetricsAggregator:
         # Test without prefix
         result_no_prefix = aggregator.get_metrics_for_logging()
         assert result_no_prefix["test_ds/metric1"] == 42
-        assert result_no_prefix["test_ds/metric2"] == 84 
+        assert result_no_prefix["test_ds/metric2"] == 84

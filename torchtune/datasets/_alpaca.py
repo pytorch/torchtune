@@ -9,11 +9,10 @@ from functools import partial
 from typing import Any, Callable, Optional, Union
 
 from torchtune.data._messages import AlpacaToMessages
-from torchtune.data._metrics import StandardMetricTransform
 
 from torchtune.datasets._hf_iterable import HfIterableDataset
 from torchtune.datasets._packed import PackedDataset
-from torchtune.datasets._sft import SFTDataset, sft_iterable_dataset
+from torchtune.datasets._sft import sft_iterable_dataset, SFTDataset
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
@@ -152,7 +151,7 @@ def alpaca_iterable_dataset(
     message_transform = AlpacaToMessages(
         train_on_input=train_on_input, column_map=column_map
     )
-    
+
     return sft_iterable_dataset(
         message_transform=message_transform,
         model_transform=model_transform,
