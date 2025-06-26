@@ -84,7 +84,7 @@ def qwen2_5_vl_text_decoder(
     head_dim = embed_dim // num_heads 
 
     rope = Qwen25VLRotaryPositionalEmbeddings(
-            dim=head_dim,
+            head_dim=head_dim,
             mrope_section=mrope_section,
             base=rope_base,
             max_seq_len=max_seq_len,

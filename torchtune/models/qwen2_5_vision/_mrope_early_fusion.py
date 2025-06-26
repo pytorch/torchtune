@@ -217,7 +217,6 @@ class Qwen25VLEarlyFusionModel(EarlyFusionModel):
             )
             
             if prefill_stage:
-                # Compute 3D position IDs for multimodal RoPE
                 position_ids, rope_deltas = self._get_rope_index(
                     input_ids=tokens,
                     image_grid_thw=image_grid_thw,
@@ -227,9 +226,8 @@ class Qwen25VLEarlyFusionModel(EarlyFusionModel):
                 )
                 self.rope_deltas = rope_deltas
                 
-                input_pos = position_ids[0]  
+                input_pos = position_ids # [3, B, L]
             else:
-                # For generation, compute incremental positions
                 batch_size, seq_length = tokens.shape
                 delta = (
                     (cache_position[0] + self.rope_deltas).to(tokens.device)

@@ -94,8 +94,9 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         sin_parts = [ sin_chunks[i][i % 3] for i in range(len(sin_chunks)) ]
 
         # concat back to [B, L, D] and unsqueeze heads-axis → [B,1,L,D]
-        cos = torch.cat(cos_parts, dim=-1).unsqueeze(1)
-        sin = torch.cat(sin_parts, dim=-1).unsqueeze(1)
+        # NOTE: the head dimension is the axis 2
+        cos = torch.cat(cos_parts, dim=-1).unsqueeze(2)
+        sin = torch.cat(sin_parts, dim=-1).unsqueeze(2)
 
         x_out = (x * cos) + (rotate_half(x) * sin)
         return x_out.to(x.dtype)
