@@ -236,6 +236,7 @@ def lora_qwen3_moe_mlp(
     return MoE(
         experts=experts,
         router=router,
+        scale_after_fwd=True,
     )
 
 def lora_qwen3_moe(
