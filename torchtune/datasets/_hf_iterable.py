@@ -201,12 +201,11 @@ class HfIterableDataset(TuneIterableDataset):
 
         An additional metric "num_epochs" is added to the sample.
         """
-        epoch_ds = self._ds
 
         while True:  # Infinite iteration
             epoch_seed = self._seed + self._num_epochs
-            epoch_ds.set_epoch(epoch_seed)
-            epoch_iterator = iter(epoch_ds)
+            self._ds.set_epoch(epoch_seed)
+            epoch_iterator = iter(self._ds)
             samples_yielded = 0
 
             try:
@@ -248,9 +247,6 @@ class HfIterableDataset(TuneIterableDataset):
 
             # Epoch complete - increment and continue infinite loop
             self._num_epochs += 1
-
-            # Reset to the base dataset for the next epoch's shuffling.
-            epoch_ds = self._ds
 
     def state_dict(self) -> dict[str, Any]:
         """
