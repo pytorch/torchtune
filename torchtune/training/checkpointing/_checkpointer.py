@@ -961,6 +961,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.warning(
                     "Saving Llama4 adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
+            elif self._model_type == ModelType.QWEN3_MOE:
+                logger.warning(
+                    "Saving Qwen3 MoE adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
             else:
                 config = (
                     self._config["text_config"]
