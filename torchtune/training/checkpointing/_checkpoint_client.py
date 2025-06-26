@@ -183,18 +183,6 @@ class CheckpointClient:
             )
 
         dcp_saver = self._get_dcp_checkpointer()
-        if not adapter_only:
-            dcp_saver.save_checkpoint(
-                ckpt_dict,
-                epoch=epoch,
-                save_async=True,
-                step=training_progress.steps_run,
-                dir_prefix=dir_prefix,
-            )
-            if self._is_rank_zero:
-                log.info(
-                    f"Saving asynchronous checkpoint took {time.perf_counter() - cp_start:.2f} secs"
-                )
 
         if adapter_config is not None:
             # save adapter weights first because it is faster
@@ -307,10 +295,10 @@ class CheckpointClient:
                 # This check can be removed once we fully migrate over to ``OptimizerInBackward``
                 if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[
-                            param
-                        ] = training.get_full_optimizer_state_dict(
-                            model, opt, self._is_rank_zero, device=self._device
+                        optim_state_dict[param] = (
+                            training.get_full_optimizer_state_dict(
+                                model, opt, self._is_rank_zero, device=self._device
+                            )
                         )
                 elif isinstance(optimizer, OptimizerInBackward):
                     optim_state_dict = optimizer.state_dict()
@@ -467,9 +455,9 @@ class CheckpointClient:
         if "param_groups" in optim_state_dict:
             for param_group in optim_state_dict["param_groups"]:
                 if param_group.get("initial_lr") is None:
-                    param_group[
-                        "initial_lr"
-                    ] = 0.0  # This will get overriden by the actual value in optimizer
+                    param_group["initial_lr"] = (
+                        0.0  # This will get overriden by the actual value in optimizer
+                    )
 
         checkpoint_dict.update(
             {
@@ -504,6 +492,7 @@ class CheckpointClient:
         adapter_only = False
         dcp_checkpointer = self._get_dcp_checkpointer()
         checkpoint_path = get_most_recent_checkpoint(dcp_checkpointer.output_dir)
+
         if checkpoint_path:
             adapter_only = not os.path.isfile(
                 os.path.join(checkpoint_path, dcp_checkpointer._metadata_file)
