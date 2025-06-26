@@ -15,6 +15,7 @@ from torch.nn.attention.flex_attention import (
 )
 from torchdata.stateful_dataloader import Stateful
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._metrics import AggregationType, Metric
 
 from torchtune.datasets import TuneIterableDataset
 from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
@@ -22,7 +23,7 @@ from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 logger = logging.getLogger(__name__)
 
 SampleType = TypeVar("SampleType")
-PackType = dict[str, torch.Tensor]
+PackType = dict[str, torch.Tensor | list[Metric]]
 
 
 class PackingStrategy(ABC, Generic[SampleType]):
@@ -38,6 +39,16 @@ class PackingStrategy(ABC, Generic[SampleType]):
             )
         self.padding_idx = padding_idx
         self.ignore_idx = ignore_idx
+
+    @abstractmethod
+    def set_dataset_name(self, dataset_name: str) -> None:
+        """
+        Sets the dataset name on the strategy.
+
+        Args:
+            dataset_name (str): The name of the dataset.
+        """
+        pass
 
     @abstractmethod
     def create_empty_pack(self) -> dict[str, list[Any]]:
@@ -188,6 +199,7 @@ class IterablePackedDataset(
         strategy (PackingStrategy[SampleType]): The PackingStrategy to use for packing.
         target_tokens_per_pack (int): The target number of tokens per pack.
         buffer_size (int): The size of the buffer to use for packing.
+        dataset_name (str): The name of the dataset. If None, a defaults to IterablePackedDataset.
     """
 
     def __init__(
@@ -196,13 +208,22 @@ class IterablePackedDataset(
         strategy: PackingStrategy[SampleType],
         target_tokens_per_pack: int,
         buffer_size: int = 50,
+        dataset_name: str = "IterablePackedDataset",
     ):
         self.dataset = dataset
         self.strategy = strategy
         self.target_tokens_per_pack = target_tokens_per_pack
         self.buffer_size = buffer_size
+        self._dataset_name = dataset_name
+
+        # Set dataset name on strategy if it supports it
+        self.strategy.set_dataset_name(dataset_name)
 
         self._reset_packer_state()
+
+    @property
+    def dataset_name(self) -> str:
+        return self._dataset_name
 
     def _reset_packer_state(self) -> None:
         """Resets the packer's internal state for a new or resumed iteration."""
@@ -400,20 +421,26 @@ class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
         super().__init__(padding_idx=padding_idx, ignore_idx=ignore_idx)
+        self.dataset_name = "packed_dataset"  # Default name
 
-    def create_empty_pack(self) -> dict[str, list[int]]:
+    def set_dataset_name(self, dataset_name: str) -> None:
+        """Set the dataset name for metrics."""
+        self.dataset_name = dataset_name
+
+    def create_empty_pack(self) -> dict[str, list]:
         return {
             "tokens": [],
             "labels": [],
             "document_ids": [],
             "input_pos": [],
+            "metrics": [],
         }
 
     def get_sample_size(self, sample: dict[str, list[int]]) -> int:
         return len(sample["tokens"])
 
     def add_sample_to_pack(
-        self, pack: dict[str, list[int]], sample: dict[str, list[int]], next_doc_id: int
+        self, pack: dict[str, list], sample: dict[str, list[int]], next_doc_id: int
     ) -> int:
         seq_len = len(sample["tokens"])
 
@@ -423,11 +450,15 @@ class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
         pack["document_ids"].extend([next_doc_id] * seq_len)
         pack["input_pos"].extend(range(seq_len))  # input_pos restarts for each doc
 
+        # Handle metrics if they exist in the sample
+        if "metrics" in sample:
+            pack["metrics"].extend(sample["metrics"])
+
         # Increment doc ID for the next sample
         return 1
 
     def finalize_pack(
-        self, pack: dict[str, list[int]], target_tokens_per_pack: int, next_doc_id: int
+        self, pack: dict[str, list], target_tokens_per_pack: int, next_doc_id: int
     ) -> PackType:
         current_size = len(pack["tokens"])
         num_padding = target_tokens_per_pack - current_size
@@ -438,12 +469,24 @@ class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
             pack["input_pos"].extend([0] * num_padding)
             pack["document_ids"].extend([next_doc_id] * num_padding)
 
-        return {
+        # Add pct_of_tokens_padded metric
+        padding_metric = Metric(
+            dataset_name=self.dataset_name,
+            name="pct_of_tokens_padded",
+            value=round(num_padding * 100 / len(pack["tokens"]), 2),
+            agg_type=AggregationType.MEAN,
+        )
+        pack["metrics"].append(padding_metric)
+
+        result = {
             "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
             "labels": torch.tensor(pack["labels"], dtype=torch.long),
             "document_ids": torch.tensor(pack["document_ids"], dtype=torch.long),
             "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+            "metrics": pack["metrics"],
         }
+
+        return result
 
     def _mask_mod(
         self,
@@ -483,8 +526,13 @@ class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
         super().__init__(padding_idx=padding_idx, ignore_idx=ignore_idx)
+        self.dataset_name = "packed_dataset"  # Default name
 
-    def create_empty_pack(self) -> dict[str, list[int]]:
+    def set_dataset_name(self, dataset_name: str) -> None:
+        """Set the dataset name for metrics."""
+        self.dataset_name = dataset_name
+
+    def create_empty_pack(self) -> dict[str, list]:
         return {
             "tokens": [],
             "labels": [],
@@ -492,6 +540,7 @@ class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
             "input_pos": [],
             "chosen_response_mask": [],
             "rejected_response_mask": [],
+            "metrics": [],
         }
 
     def get_sample_size(self, sample: dict[str, list[int]]) -> int:
@@ -503,7 +552,7 @@ class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
         )
 
     def add_sample_to_pack(
-        self, pack: dict[str, list[int]], sample: dict[str, list[int]], next_doc_id: int
+        self, pack: dict[str, list], sample: dict[str, list[int]], next_doc_id: int
     ) -> int:
         # Assign a unique doc ID triplet for (prompt, chosen, rejected)
         prompt_doc_id = next_doc_id
@@ -539,12 +588,16 @@ class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
         pack["chosen_response_mask"].extend([False] * len(rejected_ids))
         pack["rejected_response_mask"].extend([True] * len(rejected_ids))
 
+        # Handle metrics if they exist in the sample
+        if "metrics" in sample:
+            pack["metrics"].extend(sample["metrics"])
+
         # Advance the document ID counter by 3 for the next DPO sample.
         return 3
 
     def finalize_pack(
-        self, pack: dict[str, list[int]], target_tokens_per_pack: int, next_doc_id: int
-    ) -> dict[str, torch.Tensor]:
+        self, pack: dict[str, list], target_tokens_per_pack: int, next_doc_id: int
+    ) -> PackType:
         current_size = len(pack["tokens"])
         num_padding = target_tokens_per_pack - current_size
 
@@ -555,6 +608,15 @@ class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
             pack["chosen_response_mask"].extend([False] * num_padding)
             pack["rejected_response_mask"].extend([False] * num_padding)
             pack["document_ids"].extend([next_doc_id] * num_padding)
+
+        # Add pct_of_tokens_padded metric
+        padding_metric = Metric(
+            dataset_name=self.dataset_name,
+            name="pct_of_tokens_padded",
+            value=round(num_padding * 100 / len(pack["tokens"]), 2),
+            agg_type=AggregationType.MEAN,
+        )
+        pack["metrics"].append(padding_metric)
 
         return {
             "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
@@ -567,6 +629,7 @@ class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
             "rejected_response_mask": torch.tensor(
                 pack["rejected_response_mask"], dtype=torch.bool
             ),
+            "metrics": pack["metrics"],
         }
 
     def _mask_mod(
