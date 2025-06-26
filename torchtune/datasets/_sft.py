@@ -12,6 +12,8 @@ from torch.utils.data import Dataset
 
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
+from torchtune.data._metrics import StandardMetricTransform
+from torchtune.datasets._hf_iterable import HfIterableDataset
 
 from torchtune.modules.transforms import Transform
 
@@ -178,3 +180,99 @@ class SFTTransform(Transform):
             tokenized_dict = transformed_sample
 
         return tokenized_dict
+
+
+class SFTOutputTransform(Transform):
+    """
+    Output transform to be used in SFT recipes as an input to TuneIterableDataset.
+    It takes tokenized inputs with "tokens" and "mask" keys and
+    creates the "labels" key for SFT training.
+
+    The labels are created by:
+    1. Shifting tokens by 1 position (for autoregressive training)
+    2. Masking positions where mask[1:] is True with CROSS_ENTROPY_IGNORE_IDX
+    3. Adding CROSS_ENTROPY_IGNORE_IDX at the end
+    """
+
+    def __call__(self, sample: Mapping[str, Any]) -> dict[str, Any]:
+        # Create a copy to avoid modifying the original
+        tokenized_dict = dict(sample)
+
+        if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
+            keys_str = ", ".join(tokenized_dict.keys())
+            raise ValueError(
+                f"SFTOutputTransform expects 'tokens' and 'mask' keys. "
+                f"Got keys: {keys_str}"
+            )
+
+        # Create labels for SFT training
+        tokenized_dict["labels"] = list(
+            np.where(
+                tokenized_dict["mask"][1:],
+                CROSS_ENTROPY_IGNORE_IDX,
+                tokenized_dict["tokens"][1:],
+            )
+        )
+        tokenized_dict["labels"].append(CROSS_ENTROPY_IGNORE_IDX)
+        assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+
+        return tokenized_dict
+
+
+def sft_iterable_dataset(
+    model_transform: Transform,
+    *,
+    weight: int = 1,
+    message_transform: Transform,
+    shuffle_buffer_size: Optional[int] = 1000,
+    seed: int = 42,
+    num_shards_per_rank: int = 64,
+    dataset_name: Optional[str] = None,
+    filter_fn: Optional[Callable] = None,
+    filter_kwargs: Optional[dict[str, Any]] = None,
+    **load_dataset_kwargs: dict[str, Any],
+) -> HfIterableDataset:
+    """
+    Creates an SFT-ready iterable dataset with appropriate output transform.
+
+    Args:
+        model_transform (Transform): Usually the tokenizer
+        weight (int): Weight of the dataset. Used for sampling when interleaving datasets.
+        message_transform (Transform): Transform to convert raw data to messages
+        shuffle_buffer_size (Optional[int]): Buffer size for shuffling
+        seed (int): Random seed for shuffling
+        num_shards_per_rank (int): Target shards per worker
+        dataset_name (Optional[str]): Name for metrics namespacing
+        filter_fn (Optional[Callable]): Filter function
+        filter_kwargs (Optional[dict[str, Any]]): Filter function kwargs
+        **load_dataset_kwargs (dict[str, Any]): Args passed to load_dataset
+
+    Returns:
+        HfIterableDataset: Configured for SFT training
+
+    Example:
+        >>> from torchtune.data import AlpacaToMessages
+        >>> message_transform = AlpacaToMessages(train_on_input=False)
+        >>> ds = sft_iterable_dataset(
+        ...     message_transform=message_transform,
+        ...     model_transform=tokenizer,
+        ...     path="tatsu-lab/alpaca"
+        ... )
+    """
+
+    output_transform = SFTOutputTransform()
+
+    return HfIterableDataset(
+        message_transform=message_transform,
+        model_transform=model_transform,
+        output_transform=output_transform,
+        metric_transform=StandardMetricTransform(),
+        shuffle_buffer_size=shuffle_buffer_size,
+        weight=weight,
+        seed=seed,
+        num_shards_per_rank=num_shards_per_rank,
+        dataset_name=dataset_name,
+        filter_fn=filter_fn,
+        filter_kwargs=filter_kwargs,
+        **load_dataset_kwargs,
+    )

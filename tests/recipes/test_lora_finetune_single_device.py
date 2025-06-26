@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -330,6 +331,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        shutil.rmtree(tmpdir / "epoch_1")
+
         cmd_2 = f"""
         tune run lora_finetune_single_device \
             --config llama3/8B_lora_single_device \
