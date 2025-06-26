@@ -74,10 +74,12 @@ from torchtune.models.qwen2_5_vision import Qwen25VLRotaryPositionalEmbeddings
 
 def test_mrope_identity():
     torch.manual_seed(0)
-    B, heads, L, D = 2, 1, 5, 8
+    B, L, heads, D = 2, 5, 1, 8  # Changed to match [b, s_x, num_heads, head_dim]
     mrope_section = [1, 1, 2]  # sums to 4 pairs → 8 dims
     base = 1e6
     max_seq_len = 100
+    max_height = 1024
+    max_width = 1024
 
     # Dummy config for HF implementation
     class DummyConfig:
@@ -91,40 +93,48 @@ def test_mrope_identity():
 
     # instantiate both
     hf_rope  = HF_Rope(cfg)
-    our_rope = Qwen25VLRotaryPositionalEmbeddings(D, max_seq_len, base, mrope_section)
+    our_rope = Qwen25VLRotaryPositionalEmbeddings(
+        head_dim=D, 
+        max_seq_len=max_seq_len, 
+        max_height=max_height, 
+        max_width=max_width, 
+        base=base, 
+        mrope_section=mrope_section, 
+    )
 
-    # random input tensor and position ids
-    x = torch.randn(B, heads, L, D)
+    # random input tensor and position ids - using [b, s_x, num_heads, head_dim] layout
+    x = torch.randn(B, L, heads, D)
     # time: [0…L-1], height: all 2, width: all 3
     pos_time   = torch.arange(L).unsqueeze(0).repeat(B, 1)
     pos_height = torch.full((B, L), 2)
     pos_width  = torch.full((B, L), 3)
     position_ids = torch.stack([pos_time, pos_height, pos_width], dim=0)
 
-    # HF outputs
-    cos3, sin3 = hf_rope(x, position_ids)
-    q_hf, k_hf = apply_multimodal_rotary_pos_emb(x, x, cos3, sin3, mrope_section)
+    # For HF comparison, we need to transpose to [B, heads, L, D] format
+    x_hf = x.transpose(1, 2)  # [b, s_x, num_heads, head_dim] -> [b, num_heads, s_x, head_dim]
+    cos3, sin3 = hf_rope(x_hf, position_ids)
+    q_hf, _ = apply_multimodal_rotary_pos_emb(x_hf, x_hf, cos3, sin3, mrope_section)
 
     # Our outputs
-    cos_flat, sin_flat = our_rope(x, position_ids)
-    q_ours = (x * cos_flat) + (rotate_half(x) * sin_flat)
+    q_ours = our_rope(x, position_ids)
 
-    try: 
-        assert torch.allclose(q_hf, q_ours, atol=1e-6)
-    except AssertionError as e:
-        print(f"AssertionError: {e}")
-        print(f"q_hf: {q_hf[0, 0, 0, :10]}")
-        print(f"q_ours: {q_ours[0, 0, 0, :10]}")
-        breakpoint()
+    # Transpose our output to match HF format for comparison
+    q_ours_transposed = q_ours.transpose(1, 2)
+
+    print(f"q_hf: {q_hf[0, 0, 0, :10]}")
+    print(f"q_ours: {q_ours_transposed[0, 0, 0, :10]}")
+    assert torch.allclose(q_hf, q_ours_transposed, atol=1e-6)
     print("✅ test_mrope_identity passed.")
 
 
 def test_mrope_random():
     torch.manual_seed(42)
-    B, heads, L, D = 3, 1, 7, 128
+    B, L, heads, D = 3, 7, 1, 128  # Changed to match [b, s_x, num_heads, head_dim]
     mrope_section = [16, 24, 24]
     base = 1e6
     max_seq_len = 100
+    max_height = 1024
+    max_width = 1024
 
     class DummyConfig:
         pass
@@ -136,30 +146,92 @@ def test_mrope_random():
     cfg.rope_scaling = {"rope_type": "default", "mrope_section": mrope_section}
 
     hf_rope  = HF_Rope(cfg)
-    our_rope = Qwen25VLRotaryPositionalEmbeddings(D, max_seq_len, base, mrope_section)
+    our_rope = Qwen25VLRotaryPositionalEmbeddings(
+        head_dim=D, 
+        max_seq_len=max_seq_len, 
+        max_height=max_height, 
+        max_width=max_width, 
+        base=base, 
+        mrope_section=mrope_section,
+    )
 
-    x = torch.randn(B, heads, L, D)
+    x = torch.randn(B, L, heads, D)  # [b, s_x, num_heads, head_dim]
     # random position ids in [0, 10)
     pos_time   = torch.randint(0, 10, (B, L))
     pos_height = torch.randint(0, 10, (B, L))
     pos_width  = torch.randint(0, 10, (B, L))
     position_ids = torch.stack([pos_time, pos_height, pos_width], dim=0)
 
-    cos3, sin3 = hf_rope(x, position_ids)
-    q_hf, _    = apply_multimodal_rotary_pos_emb(x, x, cos3, sin3, mrope_section)
+    # For HF comparison, transpose to [B, heads, L, D]
+    x_hf = x.transpose(1, 2)
+    cos3, sin3 = hf_rope(x_hf, position_ids)
+    q_hf, _    = apply_multimodal_rotary_pos_emb(x_hf, x_hf, cos3, sin3, mrope_section)
 
     q_ours = our_rope(x, position_ids)
 
-    try: 
-        assert torch.allclose(q_hf, q_ours, atol=1e-6)
-    except AssertionError as e:
-        print(f"AssertionError: {e}")
-        print(f"q_hf: {q_hf[0, 0, 0, :10]}")
-        print(f"q_ours: {q_ours[0, 0, 0, :10]}")
-        breakpoint()
+    # Transpose our output to match HF format for comparison
+    q_ours_transposed = q_ours.transpose(1, 2)
+
+    print(f"q_hf: {q_hf[0, 0, 0, :10]}")
+    print(f"q_ours: {q_ours_transposed[0, 0, 0, :10]}")
+    assert torch.allclose(q_hf, q_ours_transposed, atol=1e-6)
     print("✅ test_mrope_random passed.")
 
+def test_mrope_cache_extrema():
+    torch.manual_seed(123)
+    B, L, heads, D = 2, 6, 1, 8
+    # Very small toy caches so we can exhaustively test
+    mrope_section = [1, 2, 1]  # pairs → sum=4 pairs → 8 dims
+    base = 1e3
+    max_seq_len = 10
+    max_height  = 5
+    max_width   = 7
+
+    # Dummy HF config
+    class DummyConfig: pass
+    cfg = DummyConfig()
+    cfg.rope_theta = base
+    cfg.hidden_size = D * heads
+    cfg.num_attention_heads = heads
+    cfg.max_position_embeddings = max_seq_len
+    cfg.rope_scaling = {"rope_type": "default", "mrope_section": mrope_section}
+
+    hf_rope  = HF_Rope(cfg)
+    our_rope = Qwen25VLRotaryPositionalEmbeddings(
+        head_dim=D,
+        max_seq_len=max_seq_len,
+        max_height=max_height,
+        max_width=max_width,
+        base=base,
+        mrope_section=mrope_section,
+    )
+
+    # dummy input
+    x = torch.randn(B, L, heads, D)
+
+    # Build position_ids that cycle through [0, mid, max-1]
+    def pick_vals(maxv):
+        return torch.tensor([0, maxv//2, maxv-1]).repeat(1, L//3 + 1).flatten()[:L]
+
+    pos_time   = torch.stack([pick_vals(max_seq_len)   for _ in range(B)], dim=0)
+    pos_height = torch.stack([pick_vals(max_height)    for _ in range(B)], dim=0)
+    pos_width  = torch.stack([pick_vals(max_width)     for _ in range(B)], dim=0)
+    position_ids = torch.stack([pos_time, pos_height, pos_width], dim=0)  # [3,B,L]
+
+    # HF run (transpose x)
+    x_hf = x.transpose(1,2)  # → [B, heads, L, D]
+    cos3, sin3 = hf_rope(x_hf, position_ids)
+    q_hf, _    = apply_multimodal_rotary_pos_emb(x_hf, x_hf, cos3, sin3, mrope_section)
+
+    # Our run
+    q_ours = our_rope(x, position_ids)
+    q_ours_t = q_ours.transpose(1,2)
+
+    # compare
+    assert torch.allclose(q_hf, q_ours_t, atol=1e-6), "Extrema cache test failed!"
+    print("✅ test_mrope_cache_extrema passed.")
 
 if __name__ == "__main__":
     test_mrope_identity()
     test_mrope_random()
+    test_mrope_cache_extrema()
