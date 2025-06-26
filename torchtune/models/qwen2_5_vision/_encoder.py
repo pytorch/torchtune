@@ -7,6 +7,7 @@
 from typing import List, Optional
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from torchtune.modules.transformer import _get_clones
 from torchtune.modules.model_fusion import register_fusion_module
@@ -120,7 +121,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
             pad_w = vit_merger_window_size - llm_grid_w % vit_merger_window_size
             num_windows_h = (llm_grid_h + pad_h) // vit_merger_window_size
             num_windows_w = (llm_grid_w + pad_w) // vit_merger_window_size
-            index_padded = nn.F.pad(index, (0, pad_w, 0, pad_h), "constant", -100)
+            index_padded = F.pad(index, (0, pad_w, 0, pad_h), "constant", -100)
             index_padded = index_padded.reshape(
                 grid_t,
                 num_windows_h,
@@ -170,12 +171,13 @@ class Qwen2_5_VisionTransformer(nn.Module):
         hidden_states = hidden_states.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
         hidden_states = hidden_states[window_index, :, :]
         hidden_states = hidden_states.reshape(seq_len, -1)
+        hidden_states = hidden_states.unsqueeze(0)
 
         cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
             dim=0,
             dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
         )
-        cu_seqlens = nn.F.pad(cu_seqlens, (1, 0), value=0)
+        cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
 
         for layer_num, blk in enumerate(self.layers):
             if layer_num in self.fullatt_block_indexes:
@@ -184,7 +186,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
                 cu_seqlens_now = cu_window_seqlens
             
             attention_mask = torch.full(
-                [1, seq_len, seq_len], # TODO: figure out these args torch.finfo(q.dtype).min, device=q.device, dtype=q.dtype
+                [1, seq_len, seq_len],  torch.finfo(hidden_states.dtype).min, device=hidden_states.device, dtype=hidden_states.dtype
             )
             for i in range(1, len(cu_seqlens_now)):
                 attention_mask[..., cu_seqlens_now[i - 1] : cu_seqlens_now[i], cu_seqlens_now[i - 1] : cu_seqlens_now[i]] = 0
