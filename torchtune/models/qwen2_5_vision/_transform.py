@@ -460,16 +460,19 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
                 - mask: List[bool] of masks for the tokenized messages
                 - encoder_input: Dict[str, Any] of transformed images
         """
-        encoder_input = {"vision": {"images": []}}
+        encoder_input = {"image": {"hidden_states": [], "grid_thw": []}}
         messages = sample["messages"]
         for message in messages:
             for content in message.content:
                 if content["type"] == "image":
                     image = content["content"]
                     pixel_values, image_grid_thw = self.transform_image(image, inference=inference)
-                    encoder_input["vision"]["images"].append(pixel_values)
-
-                    content["image_grid_thw"] = image_grid_thw
+                    print(f"Image grid thw: {image_grid_thw.shape}")
+                    encoder_input["image"]["hidden_states"].append(pixel_values)
+                    encoder_input["image"]["grid_thw"].append(image_grid_thw)
+                    
+        encoder_input["image"]["hidden_states"] = torch.stack(encoder_input["image"]["hidden_states"], dim=0)
+        encoder_input["image"]["grid_thw"] = torch.cat(encoder_input["image"]["grid_thw"], dim=0)
 
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)

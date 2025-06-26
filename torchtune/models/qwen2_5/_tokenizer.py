@@ -167,6 +167,11 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
                             add_eos=False,
                         )
                     )
+                # TODO: create separate qwen2_5_vl tokenizer
+                elif item["type"] == "image":
+                    tokens.append(self.im_start_id)
+                    tokens.extend(self.encode(f"<|image_pad|>", add_bos=False, add_eos=False))
+                    tokens.append(self.im_end_id)
                 else:
                     raise RuntimeError(
                         f"Unsupported message content type: {item['type']}"
