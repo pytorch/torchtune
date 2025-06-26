@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -110,12 +111,12 @@ class TestFullDPODistributedRecipe:
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_to_resume_from}]\
+            checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            ref_checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
             ref_checkpointer.checkpoint_files=[{ckpt_path}]\
             ref_checkpointer.output_dir={tmpdir} \
             ref_checkpointer.model_type=LLAMA3 \
@@ -185,6 +186,8 @@ class TestFullDPODistributedRecipe:
 
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
+
+        shutil.rmtree(tmpdir / "epoch_1")
 
         # Resume training
         cmd_2 = f"""

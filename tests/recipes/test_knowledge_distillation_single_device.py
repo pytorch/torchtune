@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -31,7 +32,6 @@ from torchtune import config
 from torchtune.training.checkpointing._utils import (
     ADAPTER_MODEL_FNAME,
     get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
     safe_torch_load,
     SHARD_FNAME,
 )
@@ -179,6 +179,7 @@ class TestKDSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
+            enable_async_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -194,8 +195,8 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        shutil.rmtree(tmpdir / "epoch_1")
+
         cmd_2 = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
@@ -203,9 +204,8 @@ class TestKDSingleDeviceRecipe:
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
+            checkpointer.recipe_checkpoint='recipe_state.pt' \
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -285,6 +285,7 @@ class TestKDSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
+            enable_async_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -300,8 +301,8 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        shutil.rmtree(tmpdir / "epoch_1")
+
         cmd_2 = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
@@ -309,8 +310,6 @@ class TestKDSingleDeviceRecipe:
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -325,6 +324,7 @@ class TestKDSingleDeviceRecipe:
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
+            enable_async_checkpointing=True \
         """.split()
         cmd_2 = (
             cmd_2

@@ -13,11 +13,11 @@ import torch
 from torch.nn.attention.flex_attention import (
     create_block_mask as create_block_mask_flex,
 )
-from torch.utils.data import IterableDataset
 from torchdata.stateful_dataloader import Stateful
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
+from torchtune.datasets import TuneIterableDataset
+from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
 logger = logging.getLogger(__name__)
 
@@ -176,13 +176,15 @@ class PackingStrategy(ABC, Generic[SampleType]):
         )
 
 
-class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleType]):
+class IterablePackedDataset(
+    TuneIterableDataset[PackType], Stateful, Generic[SampleType]
+):
     """
-    IterablePackedDataset takes any IterableDataset and a PackingStrategy, packs documents until
+    IterablePackedDataset takes any TuneIterableDataset and a PackingStrategy, packs documents until
     the 'target_tokens_per_pack' is reached and yields a dictionary of tensors.
 
     Args:
-        dataset (IterableDataset[SampleType]): The IterableDataset to pack.
+        dataset (TuneIterableDataset[SampleType]): The TuneIterableDataset to pack.
         strategy (PackingStrategy[SampleType]): The PackingStrategy to use for packing.
         target_tokens_per_pack (int): The target number of tokens per pack.
         buffer_size (int): The size of the buffer to use for packing.
@@ -190,7 +192,7 @@ class IterablePackedDataset(IterableDataset[PackType], Stateful, Generic[SampleT
 
     def __init__(
         self,
-        dataset: IterableDataset[SampleType],
+        dataset: TuneIterableDataset[SampleType],
         strategy: PackingStrategy[SampleType],
         target_tokens_per_pack: int,
         buffer_size: int = 50,
@@ -460,8 +462,8 @@ class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
         return causal_mask & document_mask
 
 
-
 # NOTE: For demonstration purposes only.
+
 
 class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
     """
