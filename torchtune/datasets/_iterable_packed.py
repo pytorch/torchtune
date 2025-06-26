@@ -216,7 +216,7 @@ class IterablePackedDataset(
         self.buffer_size = buffer_size
         self._dataset_name = dataset_name
 
-        # Set dataset name on strategy if it supports it
+        # Set dataset name on the strategy
         self.strategy.set_dataset_name(dataset_name)
 
         self._reset_packer_state()
