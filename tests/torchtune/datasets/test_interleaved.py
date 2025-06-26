@@ -168,25 +168,25 @@ class TestInterleavedDataset:
         for sample in islice(iter(interleaved), total_samples):
             aggregator.update(sample["metrics"])
 
-        metrics = aggregator.get_metrics_for_logging()
+        metrics = aggregator.get_metrics_for_logging(prefix="train")
 
         # Should have metrics from both datasets, with flat keys
-        assert "ds1/samples_seen" in metrics
-        assert "ds2/samples_seen" in metrics
+        assert "train_ds1/samples_seen" in metrics
+        assert "train_ds2/samples_seen" in metrics
 
         # Both datasets should have contributed samples
-        assert metrics["ds1/samples_seen"] > 0
-        assert metrics["ds2/samples_seen"] > 0
+        assert metrics["train_ds1/samples_seen"] > 0
+        assert metrics["train_ds2/samples_seen"] > 0
 
         # Total samples should equal what we processed
         calculated_total_samples = (
-            metrics["ds1/samples_seen"] + metrics["ds2/samples_seen"]
+            metrics["train_ds1/samples_seen"] + metrics["train_ds2/samples_seen"]
         )
         assert calculated_total_samples == total_samples
 
         # Test that ratio is approximately correct
-        ds1_ratio = metrics["ds1/samples_seen"] / total_samples
-        ds2_ratio = metrics["ds2/samples_seen"] / total_samples
+        ds1_ratio = metrics["train_ds1/samples_seen"] / total_samples
+        ds2_ratio = metrics["train_ds2/samples_seen"] / total_samples
 
         # Allow 10% tolerance due to randomness
         assert abs(ds1_ratio - 0.2) < 0.1, f"ds1 ratio {ds1_ratio:.2f} should be ~0.2"

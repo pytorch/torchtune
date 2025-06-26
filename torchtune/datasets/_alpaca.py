@@ -107,7 +107,7 @@ See the dataset page and :func:`~torchtune.datasets.alpaca_dataset` for more det
 def alpaca_iterable_dataset(
     model_transform: ModelTokenizer,
     *,
-    source: str = "tatsu-lab/alpaca",
+    path: str = "tatsu-lab/alpaca",
     column_map: Optional[dict[str, str]] = None,
     train_on_input: bool = True,
     shuffle_buffer_size: Optional[int] = 1000,
@@ -125,7 +125,7 @@ def alpaca_iterable_dataset(
 
     Args:
         model_transform (ModelTokenizer): Model tokenizer used to tokenize the messages.
-        source (str): path to dataset repository on Hugging Face. Default is ``tatsu-lab/alpaca``.
+        path (str): path to dataset repository on Hugging Face. Default is ``tatsu-lab/alpaca``.
         column_map (Optional[dict[str, str]]): a mapping from the expected columns in the message transform
             :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. Keys should be
             "instruction", "input", and "output" and values should be the actual column names.
@@ -160,6 +160,6 @@ def alpaca_iterable_dataset(
         dataset_name=dataset_name,
         filter_fn=filter_fn,
         split=split,
-        path=source,
+        path=path,
         **load_dataset_kwargs,
     )

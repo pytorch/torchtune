@@ -100,7 +100,8 @@ def slimorca_dataset(
 def slimorca_iterable_dataset(
     model_transform: ModelTokenizer,
     *,
-    source: str = "Open-Orca/SlimOrca-Dedup",
+    path: str = "Open-Orca/SlimOrca-Dedup",
+    split: str = "train",
     column_map: Optional[dict[str, str]] = None,
     train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
@@ -120,7 +121,9 @@ def slimorca_iterable_dataset(
 
     Args:
         model_transform (ModelTokenizer): Model tokenizer used to tokenize the messages.
-        source (str): path to dataset repository on Hugging Face. Default is "Open-Orca/SlimOrca-Dedup".
+        path (str): path to dataset repository on Hugging Face. Default is "Open-Orca/SlimOrca-Dedup".
+        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a
+            subset of a given split, e.g. ``split="train[:10%]"``. Default is "train
         column_map (Optional[dict[str, str]]): mapping from expected "conversations" column
             to actual column name in dataset. If None, uses default "conversations".
         train_on_input (bool): Whether to train on input or mask it. Default is False.
@@ -149,7 +152,8 @@ def slimorca_iterable_dataset(
     )
 
     return sft_iterable_dataset(
-        source=source,
+        path=path,
+        split=split,
         message_transform=message_transform,
         model_transform=model_transform,
         shuffle_buffer_size=shuffle_buffer_size,

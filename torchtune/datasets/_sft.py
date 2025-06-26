@@ -222,6 +222,7 @@ class SFTOutputTransform(Transform):
 def sft_iterable_dataset(
     model_transform: Transform,
     *,
+    weight: int = 1,
     message_transform: Transform,
     shuffle_buffer_size: Optional[int] = 1000,
     seed: int = 42,
@@ -236,6 +237,7 @@ def sft_iterable_dataset(
 
     Args:
         model_transform (Transform): Usually the tokenizer
+        weight (int): Weight of the dataset. Used for sampling when interleaving datasets.
         message_transform (Transform): Transform to convert raw data to messages
         shuffle_buffer_size (Optional[int]): Buffer size for shuffling
         seed (int): Random seed for shuffling
@@ -266,6 +268,7 @@ def sft_iterable_dataset(
         output_transform=output_transform,
         metric_transform=StandardMetricTransform(),
         shuffle_buffer_size=shuffle_buffer_size,
+        weight=weight,
         seed=seed,
         num_shards_per_rank=num_shards_per_rank,
         dataset_name=dataset_name,

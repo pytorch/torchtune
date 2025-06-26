@@ -36,13 +36,13 @@ class TestMetricsAggregator:
         ]
         aggregator.update(metrics)
 
-        result = aggregator.get_metrics_for_logging()
+        result = aggregator.get_metrics_for_logging(prefix="train")
 
         if agg_type == AggregationType.CATEGORICAL_COUNT:
             for category, count in expected.items():
-                assert result[f"test/metric_{category}_count"] == count
+                assert result[f"train_test/metric_{category}_count"] == count
         else:
-            assert result["test/metric"] == expected
+            assert result["train_test/metric"] == expected
 
     def test_distribution_metrics(self):
         """Tests that `AggregationType.DISTRIBUTION` computes all expected statistics (mean, min, max, p50)."""
@@ -58,11 +58,11 @@ class TestMetricsAggregator:
         result = aggregator.get_metrics_for_logging(prefix="train")
 
         # Verify distribution statistics
-        assert result["train/test/dist_metric_mean"] == 5.5
-        assert result["train/test/dist_metric_min"] == 1
-        assert result["train/test/dist_metric_max"] == 10
+        assert result["train_test/dist_metric_mean"] == 5.5
+        assert result["train_test/dist_metric_min"] == 1
+        assert result["train_test/dist_metric_max"] == 10
         assert (
-            result["train/test/dist_metric_p50"] == 5
+            result["train_test/dist_metric_p50"] == 5
         )  # Median of 1-10 is 5 (index 4, value 5)
 
     def test_state_management(self):
@@ -84,8 +84,8 @@ class TestMetricsAggregator:
         aggregator2.load_state_dict(state)
 
         # Both should have identical metrics
-        metrics1 = aggregator1.get_metrics_for_logging()
-        metrics2 = aggregator2.get_metrics_for_logging()
+        metrics1 = aggregator1.get_metrics_for_logging(prefix="train")
+        metrics2 = aggregator2.get_metrics_for_logging(prefix="train")
         assert metrics1 == metrics2
 
         # Continue updating both - should remain identical
@@ -96,13 +96,13 @@ class TestMetricsAggregator:
         aggregator1.update(additional_metrics)
         aggregator2.update(additional_metrics)
 
-        final_metrics1 = aggregator1.get_metrics_for_logging()
-        final_metrics2 = aggregator2.get_metrics_for_logging()
+        final_metrics1 = aggregator1.get_metrics_for_logging(prefix="train")
+        final_metrics2 = aggregator2.get_metrics_for_logging(prefix="train")
         assert final_metrics1 == final_metrics2
 
         # Verify expected values
-        assert final_metrics1["ds1/counter"] == 15  # 10 + 5
-        assert final_metrics1["ds1/average"] == 10.0  # (5 + 15) / 2
+        assert final_metrics1["train_ds1/counter"] == 15  # 10 + 5
+        assert final_metrics1["train_ds1/average"] == 10.0  # (5 + 15) / 2
 
     def test_multiple_datasets(self):
         """Test that metrics from multiple datasets are correctly namespaced."""
@@ -118,15 +118,15 @@ class TestMetricsAggregator:
 
         result = aggregator.get_metrics_for_logging(prefix="train")
 
-        assert result["train/dataset1/samples"] == 100
-        assert result["train/dataset2/samples"] == 200
-        assert result["train/dataset1/tokens"] == 1000
-        assert result["train/dataset2/tokens"] == 2000
+        assert result["train_dataset1/samples"] == 100
+        assert result["train_dataset2/samples"] == 200
+        assert result["train_dataset1/tokens"] == 1000
+        assert result["train_dataset2/tokens"] == 2000
 
     def test_empty_aggregator(self):
         """Test that empty aggregator returns empty metrics."""
         aggregator = MetricsAggregator()
-        result = aggregator.get_metrics_for_logging()
+        result = aggregator.get_metrics_for_logging(prefix="train")
         assert result == {}
 
     def test_prefix_handling(self):
@@ -140,10 +140,10 @@ class TestMetricsAggregator:
 
         # Test with prefix
         result_with_prefix = aggregator.get_metrics_for_logging(prefix="validation")
-        assert result_with_prefix["validation/test_ds/metric1"] == 42
-        assert result_with_prefix["validation/test_ds/metric2"] == 84
+        assert result_with_prefix["validation_test_ds/metric1"] == 42
+        assert result_with_prefix["validation_test_ds/metric2"] == 84
 
-        # Test without prefix
+        # Test without prefix (uses default "data")
         result_no_prefix = aggregator.get_metrics_for_logging()
-        assert result_no_prefix["test_ds/metric1"] == 42
-        assert result_no_prefix["test_ds/metric2"] == 84
+        assert result_no_prefix["data_test_ds/metric1"] == 42
+        assert result_no_prefix["data_test_ds/metric2"] == 84

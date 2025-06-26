@@ -92,7 +92,7 @@ class MetricsAggregator:
         elif agg_type == AggregationType.CATEGORICAL_COUNT:
             state["counts"] = collections.Counter()
 
-    def get_metrics_for_logging(self, prefix: str = "") -> dict[str, float]:
+    def get_metrics_for_logging(self, prefix: str = "data") -> dict[str, float]:
         """
         Returns aggregated metrics ready for logging to wandb/tensorboard.
 
@@ -237,7 +237,6 @@ class MetricsAggregator:
         world_size = dist.get_world_size()
 
         # Gather all metrics from all ranks in one operation
-        dist.barrier()
         all_metrics = [None] * world_size
         dist.all_gather_object(all_metrics, local_metrics)
 
@@ -276,7 +275,10 @@ class MetricsAggregator:
         return reduced
 
     def _format_for_logging(
-        self, metrics: dict[tuple[str, str], dict[str, Any]], prefix: str
+        self,
+        metrics: dict[tuple[str, str], dict[str, Any]],
+        prefix: str,
+        template: str = r"{prefix}_{ds_name}/{metric_name}",
     ) -> dict[str, float]:
         """
         Format metrics for wandb/tensorboard logging.
@@ -285,6 +287,7 @@ class MetricsAggregator:
             metrics (dict[tuple[str, str], dict[str, Any]]): dict mapping
                 (dataset, metric) -> {"value": value, "agg_type": agg_type, ...}
             prefix (str): Optional prefix like "train" or "valid"
+            template (str): Template for metric key. Use {prefix}, {ds_name}, and {metric_name} as placeholders.
 
         Returns:
             dict[str, float]: Flat dict with string keys like "train/dataset1/tokens_seen" -> float
@@ -292,12 +295,10 @@ class MetricsAggregator:
         formatted = {}
 
         for (ds_name, metric_name), metric_dict in metrics.items():
-            # Build key: "prefix/dataset/metric" or "dataset/metric" if no prefix
-            if prefix:
-                key = f"{prefix}/{ds_name}/{metric_name}"
-            else:
-                key = f"{ds_name}/{metric_name}"
-
+            # Use regex format to build key
+            key = template.format(
+                prefix=prefix, ds_name=ds_name, metric_name=metric_name
+            )
             formatted[key] = metric_dict["value"]
 
         return formatted
