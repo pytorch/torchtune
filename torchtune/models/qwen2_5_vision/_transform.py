@@ -20,6 +20,7 @@ from torchtune.models.qwen2_5._tokenizer import Qwen2_5Tokenizer
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
+from torchtune.models.qwen2_5_vision._vision_utils import smart_resize
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ class Qwen2_5_VLImageTransform:
                 raise ValueError("size must contain 'shortest_edge' and 'longest_edge' keys.")
             self.size = size.copy()
         else:
-            self.size = {"shortest_edge": 56 * 56, "longest_edge": 28 * 28 * 1280}
+            self.size = {"shortest_edge": 56 * 56, "longest_edge": 12845056}
 
         # Override with individual parameters if provided
         if min_pixels is not None:
@@ -125,35 +126,6 @@ class Qwen2_5_VLImageTransform:
         self.mean = image_mean if image_mean is not None else OPENAI_CLIP_MEAN
         self.std = image_std if image_std is not None else OPENAI_CLIP_STD
 
-    def smart_resize(
-        self, height: int, width: int, factor: int = 28, min_pixels: int = 56 * 56, max_pixels: int = 14 * 14 * 4 * 1280
-    ):
-        """Rescales the image so that the following conditions are met:
-
-        1. Both dimensions (height and width) are divisible by 'factor'.
-
-        2. The total number of pixels is within the range ['min_pixels', 'max_pixels'].
-
-        3. The aspect ratio of the image is maintained as closely as possible.
-
-        """
-        if max(height, width) / min(height, width) > 200:
-            raise ValueError(
-                f"absolute aspect ratio must be smaller than 200, got {max(height, width) / min(height, width)}"
-            )
-        h_bar = round(height / factor) * factor
-        w_bar = round(width / factor) * factor
-        if h_bar * w_bar > max_pixels:
-            beta = math.sqrt((height * width) / max_pixels)
-            h_bar = max(factor, math.floor(height / beta / factor) * factor)
-            w_bar = max(factor, math.floor(width / beta / factor) * factor)
-        elif h_bar * w_bar < min_pixels:
-            beta = math.sqrt(min_pixels / (height * width))
-            h_bar = math.ceil(height * beta / factor) * factor
-            w_bar = math.ceil(width * beta / factor) * factor
-        return h_bar, w_bar
-    
-
     def __call__(
         self, sample: Mapping[str, Any], inference: bool = False
     ) -> Mapping[str, Any]:
@@ -169,6 +141,7 @@ class Qwen2_5_VLImageTransform:
             Mapping[str, Any]: The sample with updated fields:
                 - "pixel_values": Flattened patches tensor
                 - "image_grid_thw": Grid dimensions (temporal, height, width)
+                - "num_patches": Number of patches calculated
         """
         image = sample["image"]
         assert isinstance(
@@ -187,7 +160,7 @@ class Qwen2_5_VLImageTransform:
         height, width = image.shape[-2:]
 
         # Calculate resize dimensions
-        resized_height, resized_width = self.smart_resize(
+        resized_height, resized_width = smart_resize(
             height, 
             width,
             factor=self.patch_size * self.merge_size,
@@ -238,9 +211,13 @@ class Qwen2_5_VLImageTransform:
             channels * self.temporal_patch_size * self.patch_size * self.patch_size
         )
 
+        num_patches = grid_h * grid_w 
+        num_image_tokens = num_patches // self.merge_size**2
+
         sample.update({
             "pixel_values": flatten_patches,
-            "image_grid_thw": torch.tensor([[grid_t, grid_h, grid_w]])  # [1, 3] to match HuggingFace shape
+            "image_grid_thw": torch.tensor([[grid_t, grid_h, grid_w]]),
+            "num_image_tokens": num_image_tokens,
         })
 
         return sample
@@ -380,7 +357,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
 
     def transform_image(
         self, image: Image.Image, inference: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, int]:
         """
         Transform an image into flattened patches for the vision encoder.
         This method applies the transformations defined in `Qwen2_5_VLImageTransform`.
@@ -391,13 +368,14 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
                 underlying image transform. Default is False.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            Tuple[torch.Tensor, torch.Tensor, int]: A tuple containing:
                 - The transformed image patches as a tensor.
                 - The image grid dimensions (t, h, w) as a tensor.
+                - The number of patches calculated.
         """
         sample = {"image": image}
         transformed = self.image_transform(sample, inference=inference)
-        return transformed["pixel_values"], transformed["image_grid_thw"]
+        return transformed["pixel_values"], transformed["image_grid_thw"], transformed["num_image_tokens"]
 
     def tokenize_message(
         self,
@@ -466,8 +444,11 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             for content in message.content:
                 if content["type"] == "image":
                     image = content["content"]
-                    pixel_values, image_grid_thw = self.transform_image(image, inference=inference)
-                    print(f"Image grid thw: {image_grid_thw.shape}")
+                    
+                    pixel_values, image_grid_thw, num_image_tokens = self.transform_image(image, inference=inference)
+                    
+                    content["num_image_tokens"] = num_image_tokens
+                    
                     encoder_input["image"]["hidden_states"].append(pixel_values)
                     encoder_input["image"]["grid_thw"].append(image_grid_thw)
                     

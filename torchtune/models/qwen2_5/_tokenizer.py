@@ -118,6 +118,14 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
 
         self.tool_call_start_id = self.special_tokens["<tool_call>"]
         self.tool_call_end_id = self.special_tokens["</tool_call>"]
+        self.im_start_id = self.special_tokens["<|im_start|>"]
+        self.im_end_id = self.special_tokens["<|im_end|>"]
+        self.image_pad_id = self.special_tokens["<|image_pad|>"]
+        self.video_pad_id = self.special_tokens["<|video_pad|>"]
+
+        self.vision_start_token_id = self.special_tokens["<|vision_start|>"]
+        self.vision_end_token_id = self.special_tokens["<|vision_end|>"]
+
         self.truncation_type = truncation_type
 
     def tokenize_messages(
@@ -167,11 +175,18 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
                             add_eos=False,
                         )
                     )
-                # TODO: create separate qwen2_5_vl tokenizer
                 elif item["type"] == "image":
-                    tokens.append(self.im_start_id)
-                    tokens.extend(self.encode(f"<|image_pad|>", add_bos=False, add_eos=False))
-                    tokens.append(self.im_end_id)
+                    num_image_tokens = item.get("num_image_tokens")
+                    
+                    tokens.append(self.vision_start_token_id)
+                    tokens.extend([self.image_pad_id] * num_image_tokens)
+                    tokens.append(self.vision_end_token_id)
+                elif item["type"] == "video":
+                    num_video_tokens = item.get("num_video_tokens")
+                    
+                    tokens.append(self.vision_start_token_id)
+                    tokens.extend([self.video_pad_id] * num_video_tokens)
+                    tokens.append(self.vision_end_token_id)
                 else:
                     raise RuntimeError(
                         f"Unsupported message content type: {item['type']}"

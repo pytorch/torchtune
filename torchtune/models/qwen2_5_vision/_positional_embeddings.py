@@ -18,7 +18,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
     Args:
         head_dim (int):      dimensionality per head (e.g. 128)
         max_seq_len (int):   maximum temporal length to expect (default 4096)
-        base (float):        geometric base for inv-freq (default 1e6)
+        base (float):        geometric base for theta (default 1e6)
         mrope_section (List[int]):
                             # of frequency-pairs for [time, height, width]
     """
@@ -52,7 +52,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
 
     def rope_init(self) -> None:
         # standard RoPE: inv_freq[i] = 1 / base^(2i / head_dim)
-        inv_freq = 1.0 / (
+        theta = 1.0 / (
             self.base
             ** (
                 torch.arange(0, self.head_dim, 2, dtype=torch.float32)
@@ -60,7 +60,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
             )
         )
         attention_scaling = 1.0
-        self.register_buffer("inv_freq", inv_freq, persistent=False)
+        self.register_buffer("theta", theta, persistent=False)
         self.attention_scaling = attention_scaling
 
         self._build_cache("time", self.max_seq_len)
@@ -69,9 +69,9 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
 
     def _build_cache(self, name: str, length: int):
         # positions 0…length-1
-        p = torch.arange(length, device=self.inv_freq.device, dtype=self.inv_freq.dtype)
+        p = torch.arange(length, device=self.theta.device, dtype=self.theta.dtype)
         # [length, head_dim/2]
-        angles = torch.einsum("p,f->pf", p, self.inv_freq).float()
+        angles = torch.einsum("p,f->pf", p, self.theta).float()
         # [length, head_dim]
         freqs = torch.cat([angles, angles], dim=-1)
         # [length, 2*head_dim]

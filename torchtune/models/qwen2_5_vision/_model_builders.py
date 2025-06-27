@@ -127,6 +127,7 @@ def qwen2_5_vl_7b(
 # TODO: decide arguments and default values
 def qwen2_5_vl_transform(
     path: str,
+    merges_file: str,
     max_seq_len: int = 8192,
     patch_size: int = 14, 
     special_tokens_path: Optional[str] = None,
@@ -136,14 +137,14 @@ def qwen2_5_vl_transform(
     Data transform (including tokenizer) for Qwen2.5-VL.
 
     Args:
-        path (str): path to the tokenizer
+        path (str): path to the vocab.json file
+        merges_file (str): path to the merges.txt file
         max_seq_len (int): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated.
-        image_size (int): Base image size that images will be tiled and resized to.
-            Default is 336.
-        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
+        patch_size (int): Size of the patches to divide the image into. Default 14.
+        special_tokens_pah (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file
-            structured similarly. Default is None to use the canonical Llama3 special tokens.
+            structured similarly. Default is None to use the canonical Qwen2.5 special tokens.
         prompt_template (Optional[_TemplateType]): optional specified prompt template.
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
@@ -154,6 +155,7 @@ def qwen2_5_vl_transform(
     """
     return Qwen2_5_VLTransform(
         path=path,
+        merges_file=merges_file,
         special_tokens_path=special_tokens_path,
         patch_size=patch_size,
         max_seq_len=max_seq_len, 
