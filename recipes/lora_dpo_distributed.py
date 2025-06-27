@@ -138,7 +138,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
-            cfg.device, offload_ops_to_cpu=True
+            cfg.device, offload_ops_to_cpu=self.fsdp_cpu_offload
+            or self._enable_async_checkpointing,
         )
         init_process_group(self.distributed_backend)
 
@@ -152,6 +153,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
         self._logger = utils.get_logger(cfg.log_level)
 
         if (
@@ -335,6 +337,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -541,8 +549,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
+            # Removed dropping last for debugging purposes.
+            # Dropping last should be set to True later on after other problems
+            # with batch size are corrected.
+            drop_last=False,
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
@@ -557,6 +567,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        full_tensors: bool,
     ) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -566,11 +577,16 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 epochs_run=self.epochs_run,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
+                steps_run=self.global_step,
+                total_training_steps=self.total_epochs * self._steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
             ),
             epoch=epoch,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
+            full_tensors=full_tensors,
+            single_device=False,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def concatenated_forward(
@@ -649,7 +665,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += torch.tensor(batch[0].numel())
+                num_tokens += torch.tensor(batch[0].numel(), device="cuda")
 
                 policy_chosen_rejected_outputs = self.concatenated_forward(
                     self._model, batch
@@ -777,6 +793,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # Save checkpoint if specified by user
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Reset running stats for the next step
                     running_loss = 0
                     running_metrics = {key: 0 for key in running_metrics}
@@ -785,7 +805,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+        # Only do final sync checkpoint if async checkpointing is disabled
+        if not self._enable_async_checkpointing:
+            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

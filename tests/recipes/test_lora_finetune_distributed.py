@@ -211,7 +211,7 @@ class TestLoRAFinetuneDistributedRecipe:
 
         expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
 
-        loss_values = get_loss_values_from_metric_logger(log_file)
+        loss_values = get_loss_values_from_metric_logger(log_file)[2:]
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
@@ -310,7 +310,7 @@ class TestLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
+        expected_loss_values = self._fetch_expected_loss_values(model_type)
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(

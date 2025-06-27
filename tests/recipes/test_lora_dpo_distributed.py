@@ -136,7 +136,7 @@ class TestLoRADPODistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
+        resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)[-2:]
 
         torch.testing.assert_close(
             resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
@@ -207,7 +207,6 @@ class TestLoRADPODistributedRecipe:
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \

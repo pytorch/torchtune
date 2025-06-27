@@ -184,6 +184,8 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
 
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
+
         if (
             self._log_peak_memory_stats
             and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
@@ -381,6 +383,12 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -668,6 +676,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        full_tensors: bool,
     ) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -682,6 +691,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             epoch=epoch,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
+            full_tensors=full_tensors
         )
 
     def train(self) -> None:
@@ -833,8 +843,11 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
         self._profiler.stop()
 

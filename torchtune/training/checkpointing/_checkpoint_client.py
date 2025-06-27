@@ -200,10 +200,8 @@ class CheckpointClient:
             )
 
             if adapter_only:
-                # TODO: Remove this. Hackily needed to access the actual dir
-                # used for saving outside of the save loop
                 save_path = dcp_saver.output_dir
-                if training_progress.steps_run is not None:
+                if dir_prefix == 'step':
                     save_path = save_path / f"step_{training_progress.steps_run}"
                 else:
                     save_path = save_path / f"epoch_{epoch}"
@@ -220,6 +218,19 @@ class CheckpointClient:
 
         if not adapter_only:
             dcp_saver.save_checkpoint(ckpt_dict, epoch=epoch, save_async=True)
+
+            # Save recipe_state.pt for full checkpoints as well
+            save_path = dcp_saver.output_dir
+            if dir_prefix == 'step':
+                save_path = save_path / f"step_{training_progress.steps_run}"
+            else:
+                save_path = save_path / f"epoch_{epoch}"
+            save_path.mkdir(parents=True, exist_ok=True)
+            log.info(f"CHECKPOINT CLIENT Saving recipe_state.pt for full checkpoint at {save_path}")
+            torch.save(
+                training_progress.state_dict(),
+                os.path.join(save_path, "recipe_state.pt"),
+            )
 
             if self._is_rank_zero:
                 log.info(
@@ -404,7 +415,8 @@ class CheckpointClient:
                 single_device=single_device,
                 dir_prefix=dir_prefix,
             )
-        else:
+        elif full_tensors or not self._enable_async_checkpointing:
+            # Only do sync checkpointing for full_tensors or when async is disabled
             self._save_checkpoint_sync(
                 model,
                 optimizer,
