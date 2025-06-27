@@ -48,13 +48,9 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         self.base           = base
         self.mrope_section  = mrope_section
 
-        self._rope_init()
+        self.rope_init()
 
-        self._build_cache("time", self.max_seq_len)
-        self._build_cache("height", self.max_height)
-        self._build_cache("width", self.max_width)
-
-    def _rope_init(self) -> None:
+    def rope_init(self) -> None:
         # standard RoPE: inv_freq[i] = 1 / base^(2i / head_dim)
         inv_freq = 1.0 / (
             self.base
@@ -66,6 +62,10 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         attention_scaling = 1.0
         self.register_buffer("inv_freq", inv_freq, persistent=False)
         self.attention_scaling = attention_scaling
+
+        self._build_cache("time", self.max_seq_len)
+        self._build_cache("height", self.max_height)
+        self._build_cache("width", self.max_width)
 
     def _build_cache(self, name: str, length: int):
         # positions 0…length-1
@@ -176,3 +176,69 @@ class Qwen2_5_VisionRotaryEmbedding(nn.Module):
         # [max_seq_len, dim // 2, 2]
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
+
+    def forward(
+        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None, window_index: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): input tensor with shape
+                ``[b, s, n_h, h_d]``
+            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b, s].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
+            window_index (Optional[torch.Tensor]): Optional tensor which contains the window index
+                of each token. During training, this is used to indicate the window index
+                of each token when packed, shape [b, s]. # TODO: check if this is correct
+
+
+        Returns:
+            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
+
+        Notation used for tensor shapes:
+            - b: batch size
+            - s: sequence length
+            - n_h: num heads
+            - h_d: head dim
+        """
+        # input tensor has shape [b, s, n_h, h_d]
+        seq_len = x.size(1)
+
+        # extract the values based on whether input_pos is set or not
+        rope_cache = (
+            self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
+        )
+        # merge height and width into one dimension
+        rope_cache = rope_cache.flatten(1) # [s, h_d, 2]
+
+        # rearrange indices to match window index
+        rope_cache = rope_cache.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
+        rope_cache = rope_cache[window_index, :, :]
+        rope_cache = rope_cache.reshape(seq_len, -1)
+
+        # reshape input; the last dimension is used for computing the output.
+        # Cast to float to match the reference implementation
+        # tensor has shape [b, s, n_h, h_d // 2, 2]
+        xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
+
+        # reshape the cache for broadcasting
+        # tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,
+        # otherwise has shape [1, s, 1, h_d // 2, 2]
+        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
+
+        # tensor has shape [b, s, n_h, h_d // 2, 2]
+        x_out = torch.stack(
+            [
+                xshaped[..., 0] * rope_cache[..., 0]
+                - xshaped[..., 1] * rope_cache[..., 1],
+                xshaped[..., 1] * rope_cache[..., 0]
+                + xshaped[..., 0] * rope_cache[..., 1],
+            ],
+            -1,
+        )
+
+        # tensor has shape [b, s, n_h, h_d]
+        x_out = x_out.flatten(3)
+        return x_out.type_as(x)

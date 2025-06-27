@@ -28,8 +28,8 @@ Qwen2.5-VL 7B model with vision capabilities.
 
 def qwen2_5_vl_7b(
     *,
-    decoder_trainable: bool = False,
-    encoder_trainable: bool = False,
+    decoder_trainable: bool = True,
+    encoder_trainable: bool = True,
     fusion_trainable: bool = False,
     image_size: int = 336,
 ) -> Qwen25VLEarlyFusionModel:
@@ -71,7 +71,7 @@ def qwen2_5_vl_7b(
     encoder = qwen2_5_vision_encoder(
         embed_dim=1280,
         num_layers=32,
-        activation=nn.SiLU,
+        activation=nn.SiLU(),
         intermediate_size=3420,
         num_heads=16,
         in_channels=3,

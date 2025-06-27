@@ -301,7 +301,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         self.tokenizer = Qwen2_5Tokenizer(
             path=path,
             merges_file=merges_file,
-            special_tokens=special_tokens,
+            #special_tokens=special_tokens,
             max_seq_len=max_seq_len,
             prompt_template=template,
         )
