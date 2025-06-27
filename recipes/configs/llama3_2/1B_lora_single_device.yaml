@@ -43,6 +43,7 @@ checkpointer:
   model_type: LLAMA3_2
 resume_from_checkpoint: False
 save_adapter_weights_only: False
+save_last_epoch_only: False
 
 # Dataset and Sampler
 dataset:
