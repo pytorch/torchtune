@@ -691,7 +691,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self.epochs_run += 1
 
                 # If self._save_last_epoch_only is true, only save checkpoint on the final epoch to save disk space
-                if not self._save_last_epoch_only or curr_epoch == self.total_epochs - 1:
+                if (
+                    not self._save_last_epoch_only
+                    or curr_epoch == self.total_epochs - 1
+                ):
                     start_save_checkpoint = time.perf_counter()
                     self._logger.info("Starting checkpoint save...")
                     self.save_checkpoint(epoch=curr_epoch)
@@ -702,7 +705,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     )
                 else:
                     self._logger.info(
-                        f"Skipping checkpoint save for epoch {curr_epoch + 1}..")
+                        f"Skipping checkpoint save for epoch {curr_epoch + 1}.."
+                    )
 
     def cleanup(self) -> None:
         self._metric_logger.close()
