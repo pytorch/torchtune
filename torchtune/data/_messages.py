@@ -9,8 +9,6 @@ from pathlib import Path
 from typing import Any, Literal, Mapping, Optional, Union
 from warnings import warn
 
-from torchtune.data._utils import format_content_with_images, load_image
-
 from torchtune.modules.transforms import Transform
 
 Role = Literal[
@@ -243,6 +241,8 @@ class InputOutputToMessages(Transform):
         self.image_dir = image_dir
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        from torchtune.data._utils import load_image
+
         is_multimodal = "image" in sample or (
             "image" in self._column_map and self._column_map["image"] in sample
         )
@@ -519,6 +519,8 @@ class ShareGPTToMessages(Transform):
         Returns:
             list[Message]: A list of messages with "role" and "content" fields.
         """
+        from torchtune.data._utils import format_content_with_images, load_image
+
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
         messages = []
         if self.new_system_prompt is not None:
@@ -674,6 +676,8 @@ class OpenAIToMessages(Transform):
         self, content: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
         """Converts a list of content dicts from the OpenAI format to the torchtune format."""
+        from torchtune.data._utils import load_image
+
         converted_content = []
         for content_dict in content:
             if content_dict["type"] == "text":
