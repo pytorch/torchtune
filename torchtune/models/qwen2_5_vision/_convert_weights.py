@@ -109,6 +109,9 @@ def qwen2_5_vl_tune_to_hf(
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 
     for key, value in state_dict.items():
+        if "k_proj" in key or "v_proj" in key:
+            continue
+
         new_key = get_mapped_key(key, inverted_mapping_dict)
         if "q_proj" in key:
             q = value
