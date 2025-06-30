@@ -126,7 +126,7 @@ class InferenceRecipe:
         )
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
-        custom_generate_next_token = None
+        compiled_generate_next_token = None
 
         # Ensure the cache is setup on the right device, with only as many tokens as we need
         if cfg.enable_kv_cache:
@@ -141,7 +141,7 @@ class InferenceRecipe:
         # to get the accurate performance measurement
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
-            custom_generate_next_token = torch.compile(
+            compiled_generate_next_token = torch.compile(
                 generation.generate_next_token, mode="max-autotune", fullgraph=True
             )
             t0 = time.perf_counter()
@@ -152,7 +152,7 @@ class InferenceRecipe:
                 temperature=cfg.temperature,
                 top_k=cfg.top_k,
                 stop_tokens=self._tokenizer.stop_tokens,
-                custom_generate_next_token=custom_generate_next_token,
+                compiled_generate_next_token=compiled_generate_next_token,
             )
             t = time.perf_counter() - t0
             logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
@@ -167,7 +167,7 @@ class InferenceRecipe:
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             stop_tokens=self._tokenizer.stop_tokens,
-            custom_generate_next_token=custom_generate_next_token,
+            compiled_generate_next_token=compiled_generate_next_token,
         )
         generated_tokens = generated_tokens.tolist()
         t = time.perf_counter() - t0
