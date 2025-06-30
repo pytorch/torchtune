@@ -139,6 +139,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
 
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
+
         if self._log_peak_memory_stats and self._device.type == "cpu":
             self._logger.info(
                 "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
@@ -332,6 +334,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
+
+        self.checkpoint_dir_prefix = ""
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -542,7 +551,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, full_tensors: bool) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
@@ -557,6 +566,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
+            full_tensors=full_tensors
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -683,6 +693,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # if the schedule cycle doesn't align with gradient accumulation.
                     prof.step()
 
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     if (
                         (idx + 1) // self._gradient_accumulation_steps
                     ) == self.max_steps_per_epoch:
@@ -691,7 +704,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self.epochs_run += 1
                 start_save_checkpoint = time.perf_counter()
                 self._logger.info("Starting checkpoint save...")
-                self.save_checkpoint(epoch=curr_epoch)
+                self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
                 self._logger.info(
                     "Checkpoint saved in {:.2f} seconds.".format(
                         time.perf_counter() - start_save_checkpoint

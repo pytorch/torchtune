@@ -164,6 +164,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -357,6 +358,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -694,6 +701,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        full_tensors: bool,
     ) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -709,6 +717,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 max_steps_per_epoch=self.max_steps_per_epoch,
             ),
             epoch=epoch,
+            full_tensors=full_tensors,
         )
 
     def concatenated_forward(
@@ -948,6 +957,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # Save checkpoint if specified by user
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Reset running stats for the next step
                     running_loss = 0
                     running_metrics = {key: 0 for key in running_metrics}
@@ -961,7 +974,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     self._profiler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+            if not self._enable_async_checkpointing:
+                self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
         self._profiler.stop()
 

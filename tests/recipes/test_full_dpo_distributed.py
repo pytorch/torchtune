@@ -216,5 +216,5 @@ class TestFullDPODistributedRecipe:
 
         resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
         torch.testing.assert_close(
-            resumed_loss_values, self.expected_loss_values()[2:], rtol=1e-5, atol=1e-5
+            resumed_loss_values, self.expected_loss_values(), rtol=1e-5, atol=1e-5
         )
