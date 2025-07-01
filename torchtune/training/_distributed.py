@@ -6,6 +6,7 @@
 
 
 import contextlib
+from datetime import timedelta
 import logging
 import os
 from copy import deepcopy
@@ -519,7 +520,9 @@ def gather_cpu_state_dict(
             param = param.to(param.dtype)
         if is_rank_zero:
             cpu_state_dict[param_name] = param.cpu()
-        torch.distributed.barrier()
+    _log.info(f"World: {torch.distributed.group.WORLD}")
+    _log.info(f'Rank {dist.get_rank()}: reached timeout barrier')
+    torch.distributed.barrier()
     if adapter_weights_only:
         cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
     return cpu_state_dict

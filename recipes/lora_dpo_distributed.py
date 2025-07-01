@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from datetime import timedelta
 import sys
 import time
 
@@ -38,6 +39,8 @@ from torchtune.training.checkpointing._checkpoint_client import (
     TrainingProgress,
 )
 from tqdm import tqdm
+
+import torch.distributed as dist
 
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
@@ -138,10 +141,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
-            cfg.device, offload_ops_to_cpu=self.fsdp_cpu_offload
+            cfg.device,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
-        init_process_group(self.distributed_backend)
+        init_process_group(self.distributed_backend, timeout=timedelta(seconds=20))
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
@@ -665,7 +669,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += torch.tensor(batch[0].numel(), device="cuda")
+                num_tokens += torch.tensor(batch[0].numel())
 
                 policy_chosen_rejected_outputs = self.concatenated_forward(
                     self._model, batch
@@ -793,8 +797,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             step=self.global_step,
                         )
 
-                    # Save checkpoint if specified by user
-                    if self.global_step % self.save_every_n_steps == 0:
+                    is_final_step = (
+                        (curr_epoch == self.total_epochs - 1)
+                        and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                    )
+
+                    if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
                         self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     # Reset running stats for the next step
@@ -806,8 +814,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             self.epochs_run += 1
         # Only do final sync checkpoint if async checkpointing is disabled
-        if not self._enable_async_checkpointing:
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+
+        self._logger.info(f"[Rank {dist.get_rank()}] About to save final checkpoint")
+            
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

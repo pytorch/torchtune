@@ -226,7 +226,6 @@ class CheckpointClient:
             else:
                 save_path = save_path / f"epoch_{epoch}"
             save_path.mkdir(parents=True, exist_ok=True)
-            log.info(f"CHECKPOINT CLIENT Saving recipe_state.pt for full checkpoint at {save_path}")
             torch.save(
                 training_progress.state_dict(),
                 os.path.join(save_path, "recipe_state.pt"),
@@ -405,6 +404,7 @@ class CheckpointClient:
             intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
 
         if not full_tensors and self._enable_async_checkpointing:
+            log.info('async checkpointing')
             self._save_checkpoint_async(
                 model,
                 optimizer,
@@ -417,6 +417,7 @@ class CheckpointClient:
             )
         elif full_tensors or not self._enable_async_checkpointing:
             # Only do sync checkpointing for full_tensors or when async is disabled
+            log.info('just sync checkpointing')
             self._save_checkpoint_sync(
                 model,
                 optimizer,
