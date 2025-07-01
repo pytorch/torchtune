@@ -28,7 +28,7 @@ class TestLLaVAInstructDataset:
         return PIL.Image.new(mode="RGB", size=(4, 4))
 
     @patch("torchtune.datasets._sft.load_dataset")
-    @patch("torchtune.data._messages.load_image")
+    @patch("torchtune.data._utils.load_image")
     def test_get_item(self, load_image, load_dataset, tokenizer, test_image_pil):
         """
         WARNING: careful with these mocks, they are applied in bottom up order
