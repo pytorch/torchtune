@@ -17,6 +17,8 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed.tensor import DTensor
+import torch.distributed as dist
+
 
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -798,7 +800,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-                    if self.global_step % self.save_every_n_steps == 0:
+                    is_final_step = (
+                        (curr_epoch == self.total_epochs - 1)
+                        and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                    )
+
+                    if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
                         self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     # Run validation after gradient update
@@ -817,8 +824,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
 
         self._profiler.stop()
-        if not self._enable_async_checkpointing:
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+
+        if dist.is_initialized():
+            dist.barrier()
+
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
