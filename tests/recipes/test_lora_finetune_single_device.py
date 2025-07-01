@@ -364,6 +364,136 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+
+@pytest.mark.parametrize("save_last_epoch_only", [False, True])
+@pytest.mark.integration_test
+@gpu_test(gpu_count=1)
+def test_save_last_epoch_only(self, tmpdir, monkeypatch, save_last_epoch_only):
+    """Test that save_last_epoch_only parameter controls checkpoint saving behavior.
+    The test checks if the last epoch is saved when save_last_epoch_only is True
+    after training a model for 3 epochs.
+    """
+
+    ckpt = "llama3_tune"
+    ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+    ckpt_dir = ckpt_path.parent
+    log_file = gen_log_file_name(tmpdir)
+
+    # Config file needed for model conversion.
+    write_hf_ckpt_config(ckpt_dir)
+    write_hf_ckpt_config(tmpdir)
+
+    # Train for three epochs
+    cmd = f"""
+    tune run lora_finetune_single_device \
+        --config llama3/8B_lora_single_device \
+        batch_size=8 \
+        gradient_accumulation_steps=1 \
+        output_dir={tmpdir} \
+        model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+        model.apply_lora_to_mlp=False \
+        checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
+        checkpointer.checkpoint_dir='{ckpt_dir}' \
+        checkpointer.checkpoint_files=[{ckpt_path}] \
+        checkpointer.output_dir={tmpdir} \
+        checkpointer.model_type=LLAMA3 \
+        tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+        tokenizer.prompt_template=null \
+        save_last_epoch_only={save_last_epoch_only} \
+        enable_activation_checkpointing=True \
+        enable_activation_offloading=False \
+        enable_async_checkpointing=False \
+    """.split()
+
+    model_config = MODEL_TEST_CONFIGS["llama3_lora"]
+
+    cmd = cmd + self._get_test_config_overrides(epochs=3) + model_config
+    monkeypatch.setattr(sys, "argv", cmd)
+    with pytest.raises(SystemExit, match=""):
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+    # Verify the checkpointing behavior
+    # Check if the expected epoch folders are created
+    epoch_folders = [f for f in os.listdir(tmpdir) if f.startswith("epoch_")]
+
+    if save_last_epoch_only:
+        expected_epoch_folders = 1
+        assert (
+            len(epoch_folders) == expected_epoch_folders
+        ), f"With save_last_epoch_only=True, expected {expected_epoch_folders} epoch folder, got {len(epoch_folders)}"
+        assert "epoch_2" in epoch_folders, "Final epoch checkpoint should exist"
+    else:
+        expected_epoch_folders = 3
+        assert (
+            len(epoch_folders) == expected_epoch_folders
+        ), f"With save_last_epoch_only=False, expected {expected_epoch_folders} epoch folders, got {len(epoch_folders)}"
+
+
+@pytest.mark.parametrize("save_last_epoch_only", [False, True])
+@pytest.mark.integration_test
+@gpu_test(gpu_count=1)
+def test_save_last_epoch_only_with_async_checkpointing(
+    self, tmpdir, monkeypatch, save_last_epoch_only
+):
+    """Test that save_last_epoch_only parameter controls checkpoint saving behavior with asunc checkpointing.
+    The test checks if the last epoch is saved when save_last_epoch_only is True
+    after training a model for 3 epochs.
+    """
+
+    ckpt = "llama3_tune"
+    ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+    ckpt_dir = ckpt_path.parent
+    log_file = gen_log_file_name(tmpdir)
+
+    # Config file needed for model conversion.
+    write_hf_ckpt_config(ckpt_dir)
+    write_hf_ckpt_config(tmpdir)
+
+    # Train for three epochs
+    cmd = f"""
+    tune run lora_finetune_single_device \
+        --config llama3/8B_lora_single_device \
+        batch_size=8 \
+        gradient_accumulation_steps=1 \
+        output_dir={tmpdir} \
+        model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+        model.apply_lora_to_mlp=False \
+        checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
+        checkpointer.checkpoint_dir='{ckpt_dir}' \
+        checkpointer.checkpoint_files=[{ckpt_path}] \
+        checkpointer.output_dir={tmpdir} \
+        checkpointer.model_type=LLAMA3 \
+        tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+        tokenizer.prompt_template=null \
+        save_last_epoch_only={save_last_epoch_only} \
+        enable_activation_checkpointing=True \
+        enable_activation_offloading=False \
+        enable_async_checkpointing=True \
+    """.split()
+
+    model_config = MODEL_TEST_CONFIGS["llama3_lora"]
+
+    cmd = cmd + self._get_test_config_overrides(epochs=3) + model_config
+    monkeypatch.setattr(sys, "argv", cmd)
+    with pytest.raises(SystemExit, match=""):
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+    # Verify the checkpointing behavior
+    # Check if the expected epoch folders are created
+    epoch_folders = [f for f in os.listdir(tmpdir) if f.startswith("epoch_")]
+
+    if save_last_epoch_only:
+        expected_epoch_folders = 1
+        assert (
+            len(epoch_folders) == expected_epoch_folders
+        ), f"With save_last_epoch_only=True, expected {expected_epoch_folders} epoch folder, got {len(epoch_folders)}"
+        assert "epoch_2" in epoch_folders, "Final epoch checkpoint should exist"
+    else:
+        expected_epoch_folders = 3
+        assert (
+            len(epoch_folders) == expected_epoch_folders
+        ), f"With save_last_epoch_only=False, expected {expected_epoch_folders} epoch folders, got {len(epoch_folders)}"
+
     @pytest.mark.parametrize("use_dora", [False, True])
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
