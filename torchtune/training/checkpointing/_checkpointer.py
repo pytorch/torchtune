@@ -619,6 +619,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 dim=self._config["hidden_size"],
                 tie_word_embeddings=self._config["tie_word_embeddings"],
             )
+        elif self._model_type == ModelType.QWEN3_MOE:
+            from torchtune.models.qwen3._convert_weights import qwen3_moe_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = qwen3_moe_hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                num_experts=self._config["num_experts"],
+                dim=self._config["hidden_size"],
+                tie_word_embeddings=self._config["tie_word_embeddings"],
+            )
         elif self._model_type == ModelType.LLAMA3_VISION:
             from torchtune.models.llama3_2_vision._convert_weights import (
                 llama3_vision_hf_to_tune,
@@ -755,6 +766,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     state_dict[training.MODEL_KEY],
                     num_heads=self._config["num_attention_heads"],
                     num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    tie_word_embeddings=self._config["tie_word_embeddings"],
+                )
+            elif self._model_type == ModelType.QWEN3_MOE:
+                from torchtune.models.qwen3._convert_weights import qwen3_moe_tune_to_hf
+
+                state_dict[training.MODEL_KEY] = qwen3_moe_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    num_experts=self._config["num_experts"],
                     dim=self._config["hidden_size"],
                     tie_word_embeddings=self._config["tie_word_embeddings"],
                 )
@@ -930,6 +952,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             elif self._model_type == ModelType.LLAMA4:
                 logger.warning(
                     "Saving Llama4 adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
+            elif self._model_type == ModelType.QWEN3_MOE:
+                logger.warning(
+                    "Saving Qwen3 MoE adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
                 config = (
