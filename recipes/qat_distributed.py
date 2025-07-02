@@ -213,6 +213,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self._fake_quant_after_n_steps = cfg.get("fake_quant_after_n_steps", None)
         self._quantizer_mode = None
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
         if self._run_val_every_n_steps is not None:
@@ -492,6 +493,12 @@ class QATRecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -846,6 +853,7 @@ class QATRecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        full_tensors: bool,
     ) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -862,6 +870,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                 dataloader_state_dict=self._dataloader.state_dict(),
             ),
             epoch=epoch,
+            full_tensors=full_tensors,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -1096,24 +1105,19 @@ class QATRecipeDistributed(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-            self._checkpoint_client.save_checkpoint(
-                model=self._model,
-                optimizer=(
-                    self._optimizer
-                    if not self._optimizer_in_bwd
-                    else self._optim_ckpt_wrapper
-                ),
-                training_progress=TrainingProgress(
-                    seed=self.seed,
-                    epochs_run=self.epochs_run,
-                    total_epochs=self.total_epochs,
-                    max_steps_per_epoch=self.max_steps_per_epoch,
-                    dataloader_state_dict=self._dataloader.state_dict(),
-                ),
-                epoch=curr_epoch,
+
+            is_final_step = (
+                (curr_epoch == self.total_epochs - 1)
+                and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
             )
 
+            if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+    
+
         self._profiler.stop()
+
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

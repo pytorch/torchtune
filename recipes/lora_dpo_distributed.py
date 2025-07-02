@@ -141,10 +141,13 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
-            cfg.device,
-            offload_ops_to_cpu=self.fsdp_cpu_offload
-            or self._enable_async_checkpointing,
+            cfg.device, offload_ops_to_cpu=True
         )
+
+        self._logger = utils.get_logger(cfg.log_level)
+        self._logger.info(f'{self.distributed_backend=}')
+        self._logger.info(f'{self.fsdp_cpu_offload=}')
+        self._logger.info(f'{self._enable_async_checkpointing=}')
         init_process_group(self.distributed_backend, timeout=timedelta(seconds=20))
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
@@ -158,7 +161,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self.save_every_n_steps = cfg.get("save_every_n_steps")
-        self._logger = utils.get_logger(cfg.log_level)
+        
 
         if (
             self._log_peak_memory_stats
@@ -737,6 +740,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
                     torch.distributed.all_reduce(running_loss)
+
+                    # if num_tokens.device.type == "cpu":
+                    #     num_tokens = num_tokens.to(self._device)
+
                     torch.distributed.all_reduce(num_tokens)
 
                     for key in running_metrics:
@@ -799,7 +806,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                     is_final_step = (
                         (curr_epoch == self.total_epochs - 1)
-                        and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                        # and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
                     )
 
                     if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
