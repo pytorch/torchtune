@@ -12,7 +12,7 @@ import torch.distributed as dist
 from datasets import load_dataset
 from datasets.distributed import split_dataset_by_node
 
-from torchtune.data._metrics import AggregationType, Metric, StandardMetricTransform
+from torchtune.data.metrics import AggregationType, Metric, StandardMetricTransform
 from torchtune.datasets._iterable_base import TuneIterableDataset
 
 logger = logging.getLogger(__name__)
