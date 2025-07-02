@@ -5,19 +5,19 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-import tempfile
 import shutil
+import tempfile
 from itertools import islice
 from pathlib import Path
 
 import pytest
 import torch.distributed as dist
-from torch.testing._internal.common_fsdp import FSDPTest
 from tests.test_utils import gpu_test
+from torch.testing._internal.common_fsdp import FSDPTest
 
 from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data.metrics import MetricsAggregator, StandardMetricTransform
+from torchtune.data.metrics import DefaultTrainingMetricTransform, MetricsAggregator
 from torchtune.datasets import HfIterableDataset
 
 from .test_iterable_utils import collate_with_metrics, generate_ckpt
@@ -79,7 +79,7 @@ def dataset_factory():
             dataset_name=dataset_name,
             seed=SEED,
             shuffle_buffer_size=10 if shuffle else 0,
-            metric_transform=StandardMetricTransform(),
+            metric_transform=DefaultTrainingMetricTransform(),
             num_shards_per_rank=2,
             **kwargs,
         )
@@ -99,7 +99,7 @@ class TestHfIterableDataset:
             split="train",
             # dataset_name not provided - should auto-generate
             seed=SEED,
-            metric_transform=StandardMetricTransform(),
+            metric_transform=DefaultTrainingMetricTransform(),
             num_shards_per_rank=4,
         )
 
@@ -113,7 +113,7 @@ class TestHfIterableDataset:
             split="train",
             dataset_name="my_dataset",
             seed=SEED,
-            metric_transform=StandardMetricTransform(),
+            metric_transform=DefaultTrainingMetricTransform(),
             num_shards_per_rank=4,
         )
 
@@ -287,6 +287,7 @@ class TestDistributedHfIterableDataset(FSDPTest):
 
             # Test multiple epoch boundaries
             for num_epochs in [0.9, 1.0, 2.5]:
+
                 def create_loader_and_aggregator():
                     dataset = HfIterableDataset(
                         path="json",
@@ -295,11 +296,14 @@ class TestDistributedHfIterableDataset(FSDPTest):
                         dataset_name="epoch_test",
                         seed=SEED,
                         shuffle_buffer_size=0,  # No shuffle for determinism
-                        metric_transform=StandardMetricTransform(),
+                        metric_transform=DefaultTrainingMetricTransform(),
                         num_shards_per_rank=2,
                     )
                     loader = StatefulDataLoader(
-                        dataset, batch_size=BATCH_SIZE, collate_fn=collate_with_metrics, num_workers=0
+                        dataset,
+                        batch_size=BATCH_SIZE,
+                        collate_fn=collate_with_metrics,
+                        num_workers=0,
                     )
                     return loader, MetricsAggregator()
 
@@ -310,21 +314,29 @@ class TestDistributedHfIterableDataset(FSDPTest):
                 samples_per_rank = MEDIUM_DATASET_SIZE // dist.get_world_size()
                 total_samples = int(samples_per_rank * num_epochs)
                 total_steps = total_samples // BATCH_SIZE
-                
+
                 if total_steps < 2:
-                    raise ValueError(f"Not enough steps for meaningful test: {total_steps}")
+                    raise ValueError(
+                        f"Not enough steps for meaningful test: {total_steps}"
+                    )
 
                 # Split steps between before and after checkpoint
                 steps_before = max(1, total_steps // 2)
                 steps_after = total_steps - steps_before
 
                 result = generate_ckpt(
-                    loader1, aggregator1, steps_before, steps_after,
-                    resume_dataloader=loader2, resume_aggregator=aggregator2
+                    loader1,
+                    aggregator1,
+                    steps_before,
+                    steps_after,
+                    resume_dataloader=loader2,
+                    resume_aggregator=aggregator2,
                 )
 
                 # Verify deterministic resumption - critical for distributed training
-                orig_post_ids = [b["id"].tolist() for b in result["post_checkpoint_batches"]]
+                orig_post_ids = [
+                    b["id"].tolist() for b in result["post_checkpoint_batches"]
+                ]
                 resumed_ids = [b["id"].tolist() for b in result["resumed_batches"]]
                 assert orig_post_ids == resumed_ids, (
                     f"Rank {rank}: Non-deterministic resume for {num_epochs} epochs. "
@@ -333,10 +345,12 @@ class TestDistributedHfIterableDataset(FSDPTest):
 
                 # Verify epoch metric is correctly tracked
                 final_metrics = result["final_metrics"]
-                expected_epoch = math.floor(num_epochs - 1e-9)  # -1e-9 so 1.0 epochs -> 0
-                assert final_metrics[f"train_epoch_test/num_epochs"] == expected_epoch, (
-                    f"Epoch count incorrect for {num_epochs} epochs test scenario"
-                )
+                expected_epoch = math.floor(
+                    num_epochs - 1e-9
+                )  # -1e-9 so 1.0 epochs -> 0
+                assert (
+                    final_metrics["train_epoch_test/num_epochs"] == expected_epoch
+                ), f"Epoch count incorrect for {num_epochs} epochs test scenario"
 
         finally:
             # Clean up temp directory (only rank 0)

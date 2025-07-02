@@ -102,12 +102,12 @@ aggregator = MetricsAggregator()
 # Sample metrics from different batches
 batch1_metrics = [
     Metric("alpaca", "tokens_seen", 100, AggregationType.SUM),
-    Metric("alpaca", "avg_tokens_seen", 100, AggregationType.MEAN), 
+    Metric("alpaca", "avg_tokens_seen", 100, AggregationType.MEAN),
 ]
 
 batch2_metrics = [
     Metric("alpaca", "tokens_seen", 100, AggregationType.SUM),
-    Metric("alpaca", "avg_tokens_seen", 100, AggregationType.MEAN), 
+    Metric("alpaca", "avg_tokens_seen", 100, AggregationType.MEAN),
 ]
 
 # Update with metrics
@@ -125,7 +125,7 @@ Pluggable strategies for different aggregation patterns.
 ```
 AggregationHandler (ABC)
 ├── SumAggHandler          # value += metric.value
-├── MeanAggHandler         # tracks sum and count 
+├── MeanAggHandler         # tracks sum and count
 ├── MaxAggHandler          # value = max(value, metric.value)
 ├── MinAggHandler          # value = min(value, metric.value)
 ├── DistributionAggHandler # maintains value window + stats
@@ -138,18 +138,18 @@ class CustomAggHandler(AggregationHandler):
     def initialize_metric_state(self, dataset_name, metric_name, agg_type):
         return MetricState(
             dataset_name=dataset_name,
-            metric_name=metric_name, 
+            metric_name=metric_name,
             value=<initial_value>, # should change
             agg_type=agg_type,
             metadata={} # may need to change
         )
-        
+
     def update(self, local_agg_metric, metric):
         ...
-        
+
     def finalize_local_agg(self, local_agg_metric):
         ...
-        
+
     def finalize_dist_agg(self, local_agg_metrics):
         ...
 

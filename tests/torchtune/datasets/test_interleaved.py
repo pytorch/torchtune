@@ -4,21 +4,21 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import tempfile
 import shutil
+import tempfile
 from itertools import islice
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import torch.distributed as dist
-from torch.testing._internal.common_fsdp import FSDPTest
-from tests.test_utils import gpu_test
 
 import torch
+import torch.distributed as dist
+from tests.test_utils import gpu_test
+from torch.testing._internal.common_fsdp import FSDPTest
 from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data.metrics import MetricsAggregator, StandardMetricTransform
+from torchtune.data.metrics import DefaultTrainingMetricTransform, MetricsAggregator
 from torchtune.datasets import HfIterableDataset, InterleavedDataset
 
 # Import test utilities
@@ -87,7 +87,7 @@ def dataset_factory():
             dataset_name=dataset_name,
             seed=SEED,
             shuffle_buffer_size=10 if shuffle else 0,
-            metric_transform=StandardMetricTransform(),
+            metric_transform=DefaultTrainingMetricTransform(),
             num_shards_per_rank=2,
             **kwargs,
         )
@@ -270,6 +270,7 @@ class TestDistributedInterleavedDataset(FSDPTest):
         tmp_path = Path(temp_dir)
 
         try:
+
             def create_dataset():
                 file1 = tmp_path / "ds1.json"
                 file2 = tmp_path / "ds2.json"
@@ -277,18 +278,28 @@ class TestDistributedInterleavedDataset(FSDPTest):
                 # Only rank 0 creates the data files
                 if rank == 0:
                     create_test_json_file(file1, SMALL_DATASET_SIZE)  # IDs 0-22
-                    create_test_json_file(file2, MEDIUM_DATASET_SIZE, offset=100)  # IDs 100-134
+                    create_test_json_file(
+                        file2, MEDIUM_DATASET_SIZE, offset=100
+                    )  # IDs 100-134
                 dist.barrier()  # Wait for file creation
 
                 ds1 = HfIterableDataset(
-                    path="json", data_files=str(file1), split="train", dataset_name="ds1",
+                    path="json",
+                    data_files=str(file1),
+                    split="train",
+                    dataset_name="ds1",
                     shuffle_buffer_size=0,  # No shuffle for determinism
-                    metric_transform=StandardMetricTransform(), num_shards_per_rank=2,
+                    metric_transform=DefaultTrainingMetricTransform(),
+                    num_shards_per_rank=2,
                 )
                 ds2 = HfIterableDataset(
-                    path="json", data_files=str(file2), split="train", dataset_name="ds2", 
+                    path="json",
+                    data_files=str(file2),
+                    split="train",
+                    dataset_name="ds2",
                     shuffle_buffer_size=0,  # No shuffle for determinism
-                    metric_transform=StandardMetricTransform(), num_shards_per_rank=2,
+                    metric_transform=DefaultTrainingMetricTransform(),
+                    num_shards_per_rank=2,
                 )
 
                 # Create interleaved dataset with 70/30 weighting
@@ -296,9 +307,10 @@ class TestDistributedInterleavedDataset(FSDPTest):
 
             def create_dataloader(dataset):
                 loader = StatefulDataLoader(
-                    dataset, batch_size=BATCH_SIZE, 
+                    dataset,
+                    batch_size=BATCH_SIZE,
                     num_workers=0,  # Avoid multiprocessing in distributed tests
-                    collate_fn=collate_with_metrics
+                    collate_fn=collate_with_metrics,
                 )
                 return loader, MetricsAggregator()
 
@@ -307,24 +319,32 @@ class TestDistributedInterleavedDataset(FSDPTest):
             loader2, aggregator2 = create_dataloader(create_dataset())
 
             result = generate_ckpt(
-                loader1, aggregator1, 3, 3,  # 3 steps before, 3 steps after checkpoint
-                resume_dataloader=loader2, resume_aggregator=aggregator2
+                loader1,
+                aggregator1,
+                3,
+                3,  # 3 steps before, 3 steps after checkpoint
+                resume_dataloader=loader2,
+                resume_aggregator=aggregator2,
             )
 
             # Verify deterministic resumption
-            orig_post_ids = [b["id"].tolist() for b in result["post_checkpoint_batches"]]
+            orig_post_ids = [
+                b["id"].tolist() for b in result["post_checkpoint_batches"]
+            ]
             resumed_ids = [b["id"].tolist() for b in result["resumed_batches"]]
             assert orig_post_ids == resumed_ids, (
                 f"Rank {rank}: Non-deterministic interleaved resume. "
                 f"This indicates sampling state is not properly preserved."
             )
-            assert result["final_metrics"] == result["resumed_metrics"], (
-                "Final metrics don't match resumed metrics - aggregator state issue"
-            )
+            assert (
+                result["final_metrics"] == result["resumed_metrics"]
+            ), "Final metrics don't match resumed metrics - aggregator state issue"
 
             # Verify sampling ratio is approximately maintained (80/20 split)
             all_ids = []
-            for batch in result["pre_checkpoint_batches"] + result["post_checkpoint_batches"]:
+            for batch in (
+                result["pre_checkpoint_batches"] + result["post_checkpoint_batches"]
+            ):
                 all_ids.extend(batch["id"].tolist())
 
             # Count samples by ID ranges: ds1 has IDs < 100, ds2 has IDs >= 100

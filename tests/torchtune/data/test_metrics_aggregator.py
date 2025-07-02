@@ -6,8 +6,8 @@
 
 import pytest
 import torch.distributed as dist
-from torch.testing._internal.common_fsdp import FSDPTest
 from tests.test_utils import gpu_test
+from torch.testing._internal.common_fsdp import FSDPTest
 
 from torchtune.data.metrics import AggregationType, Metric, MetricsAggregator
 
@@ -64,9 +64,7 @@ class TestMetricsAggregator:
         assert result["train_test/dist_metric_mean"] == 5.5
         assert result["train_test/dist_metric_min"] == 1
         assert result["train_test/dist_metric_max"] == 10
-        assert (
-            result["train_test/dist_metric_p50"] == 5
-        )  # Median of 1-10 is 5 (index 4, value 5)
+        assert result["train_test/dist_metric_p50"] == 5.5
 
     def test_state_management(self):
         """Test aggregator checkpointing and restoration."""
@@ -182,28 +180,54 @@ class TestDistributedMetricsAggregator(FSDPTest):
         # rank 0: [0, 1, 2, 3, 4], rank 1: [10, 11, 12, 13, 14]
         for i in range(5):
             metrics.append(
-                Metric("test", "dist_metric", rank * 10 + i, AggregationType.DISTRIBUTION)
+                Metric(
+                    "test", "dist_metric", rank * 10 + i, AggregationType.DISTRIBUTION
+                )
             )
 
         # CATEGORICAL_COUNT: Different categories per rank to test counting
         # rank 0: 3 of cat_A, 2 of cat_B
         # rank 1: 1 of cat_A, 4 of cat_C
         if rank == 0:
-            metrics.extend([
-                Metric("test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT), 
-                Metric("test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_B", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_B", AggregationType.CATEGORICAL_COUNT),
-            ])
+            metrics.extend(
+                [
+                    Metric(
+                        "test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_B", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_B", AggregationType.CATEGORICAL_COUNT
+                    ),
+                ]
+            )
         else:
-            metrics.extend([
-                Metric("test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT),
-            ])
+            metrics.extend(
+                [
+                    Metric(
+                        "test", "cat_metric", "cat_A", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT
+                    ),
+                    Metric(
+                        "test", "cat_metric", "cat_C", AggregationType.CATEGORICAL_COUNT
+                    ),
+                ]
+            )
 
         # Update aggregator and get results
         aggregator.update(metrics)
@@ -211,7 +235,7 @@ class TestDistributedMetricsAggregator(FSDPTest):
 
         # Verify aggregation results across all ranks
         # SUM: rank 0 adds 10, rank 1 adds 20 -> total 30
-        # MEAN: rank 0 has 15, rank 1 has 25 -> avg 20  
+        # MEAN: rank 0 has 15, rank 1 has 25 -> avg 20
         # MAX: rank 0 has 100, rank 1 has 200 -> max 200
         # MIN: rank 0 has 5, rank 1 has 10 -> min 5
         assert result["train_test/sum_metric"] == 30
@@ -237,7 +261,7 @@ class TestDistributedMetricsAggregator(FSDPTest):
         Test that MetricsAggregator state_dict save/restore works correctly in distributed setting.
         Verifies:
         - State can be saved after partial updates across ranks
-        - State can be restored consistently across ranks  
+        - State can be restored consistently across ranks
         - Continued updates after restore produce identical results
         - Distributed aggregation works correctly after restoration
         """
@@ -245,64 +269,95 @@ class TestDistributedMetricsAggregator(FSDPTest):
 
         # Phase 1: Create aggregator and add initial metrics
         aggregator1 = MetricsAggregator()
-        
+
         # Each rank contributes different initial values
         base_value = rank * 100  # rank 0: 0, rank 1: 100
-        
+
         initial_metrics = [
             Metric("test", "sum_metric", base_value, AggregationType.SUM),
             Metric("test", "mean_metric", base_value // 2, AggregationType.MEAN),
             Metric("test", "max_metric", base_value * 2, AggregationType.MAX),
         ]
-        
+
         # Add some DISTRIBUTION values - each rank adds 3 values
         for i in range(3):
             initial_metrics.append(
-                Metric("test", "dist_metric", rank * 100 + i, AggregationType.DISTRIBUTION)
+                Metric(
+                    "test", "dist_metric", rank * 100 + i, AggregationType.DISTRIBUTION
+                )
             )
-        
+
         # Add CATEGORICAL_COUNT values
         if rank == 0:
-            initial_metrics.extend([
-                Metric("test", "cat_metric", "type_A", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "type_A", AggregationType.CATEGORICAL_COUNT),
-            ])
+            initial_metrics.extend(
+                [
+                    Metric(
+                        "test",
+                        "cat_metric",
+                        "type_A",
+                        AggregationType.CATEGORICAL_COUNT,
+                    ),
+                    Metric(
+                        "test",
+                        "cat_metric",
+                        "type_A",
+                        AggregationType.CATEGORICAL_COUNT,
+                    ),
+                ]
+            )
         else:
-            initial_metrics.extend([
-                Metric("test", "cat_metric", "type_B", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "type_B", AggregationType.CATEGORICAL_COUNT),
-                Metric("test", "cat_metric", "type_B", AggregationType.CATEGORICAL_COUNT),
-            ])
-        
+            initial_metrics.extend(
+                [
+                    Metric(
+                        "test",
+                        "cat_metric",
+                        "type_B",
+                        AggregationType.CATEGORICAL_COUNT,
+                    ),
+                    Metric(
+                        "test",
+                        "cat_metric",
+                        "type_B",
+                        AggregationType.CATEGORICAL_COUNT,
+                    ),
+                    Metric(
+                        "test",
+                        "cat_metric",
+                        "type_B",
+                        AggregationType.CATEGORICAL_COUNT,
+                    ),
+                ]
+            )
+
         aggregator1.update(initial_metrics)
-        
+
         # Save state_dict after initial update
         state_dict = aggregator1.state_dict()
-        
+
         # Phase 2: Create new aggregator and restore from state_dict
         aggregator2 = MetricsAggregator()
         aggregator2.load_state_dict(state_dict)
-        
+
         # Verify both aggregators produce identical results after restore
         result1 = aggregator1.get_metrics_for_logging(prefix="checkpoint")
         result2 = aggregator2.get_metrics_for_logging(prefix="checkpoint")
-        assert result1 == result2, (
-            f"Rank {rank}: Aggregators differ after state_dict restore"
-        )
-        
-        # Phase 3: Add more metrics to both aggregators        
+        assert (
+            result1 == result2
+        ), f"Rank {rank}: Aggregators differ after state_dict restore"
+
+        # Phase 3: Add more metrics to both aggregators
         additional_metrics = [
             Metric("test", "sum_metric", rank * 1000, AggregationType.SUM),
             Metric("test", "min_metric", rank * 1000, AggregationType.MIN),
         ]
-        
+
         # Update both aggregators with additional metrics
         aggregator1.update(additional_metrics)
         aggregator2.update(additional_metrics)
-        
+
         # Phase 4: Verify final results are identical across both aggregators
         final_result1 = aggregator1.get_metrics_for_logging(prefix="final")
         final_result2 = aggregator2.get_metrics_for_logging(prefix="final")
-        assert final_result1 == final_result2, (
-            f"Rank {rank}: Final results differ after continued updates"
-        )
+        assert (
+            final_result1 == final_result2
+        ), f"Rank {rank}: Final results differ after continued updates"

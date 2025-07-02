@@ -9,7 +9,7 @@ from typing import Any, Optional
 import torch
 
 from torch.utils.data import DataLoader
-from torchtune.data import MetricsAggregator
+from torchtune.data.metrics import MetricsAggregator
 
 
 def collate_with_metrics(batch: list[dict[str, Any]]) -> dict[str, Any]:

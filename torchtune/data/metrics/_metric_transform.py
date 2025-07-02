@@ -7,9 +7,10 @@
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Mapping, Optional, Union
 
 from torchtune.modules.transforms import Transform
+
 
 @dataclass(frozen=True)
 class Metric:
@@ -17,6 +18,7 @@ class Metric:
     name: str
     value: Union[int, float, str]
     agg_type: "AggregationType"
+
 
 class AggregationType(Enum):
     """Defines how a metric's value should be aggregated."""
@@ -28,11 +30,12 @@ class AggregationType(Enum):
     MAX = "max"
     MIN = "min"
 
+
 class MetricTransform(Transform):
     """Applied to each sample to generate per-sample metrics for training tracking.
-    
-    Creates Metric objects that are later aggregated by 'MetricsAggregator'. This separation 
-    of concerns ensures metrics are correctly aggregated even with multiple dataloader 
+
+    Creates Metric objects that are later aggregated by 'MetricsAggregator'. This separation
+    of concerns ensures metrics are correctly aggregated even with multiple dataloader
     workers and in distributed settings."""
 
     def __init__(self):
@@ -42,10 +45,10 @@ class MetricTransform(Transform):
 
     def set_dataset_name(self, dataset_name: str) -> None:
         """Called by dataset to set the namespace for metrics.
-        
+
         The dataset name is used to differentiate multiple datasets stats,
         e.g. "train/dataset1/tokens_seen" and "train/dataset2/tokens_seen".
-        
+
         Args:
             dataset_name (str): Name of the dataset for metric namespacing
         """
@@ -53,21 +56,22 @@ class MetricTransform(Transform):
         # Create a partial to make it easier to create new metrics
         self.new_metric = partial(Metric, dataset_name=dataset_name)
 
-    def _generate_metrics(self, sample: dict[str, Any]) -> list[Metric]:
+    def _generate_metrics(self, sample: Mapping[str, Any]) -> list[Metric]:
         """Generate metrics for a single sample. Must be implemented by subclasses.
-        
+
         Args:
-            sample (dict[str, Any]): The sample dictionary to generate metrics from
-            
+            sample (Mapping[str, Any]): The sample dictionary to generate metrics from
+
         Returns:
             list[Metric]: List of metrics generated for this sample
-        """
-        raise NotImplementedError(
-            "Subclasses must implement _generate_metrics method"
-        )
 
-    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
-        """Apply transform to sample, adding generated metrics. """
+        Raises:
+            NotImplementedError: If subclass does not implement this method.
+        """
+        raise NotImplementedError("Subclasses must implement _generate_metrics method")
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Apply transform to sample, adding generated metrics."""
         if self.dataset_name is None or self.new_metric is None:
             raise RuntimeError(
                 "set_dataset_name() must be called before using the transform."
@@ -85,18 +89,18 @@ class MetricTransform(Transform):
 
 class DefaultTrainingMetricTransform(MetricTransform):
     """Generates training metrics: samples_seen, tokens_seen, seq_len distribution.
-    
+
     For details about MetricTransform base class behavior, see the parent class docstring.
-    
+
     Tracked metrics:
     - samples_seen: Cumulative count of samples processed (SUM aggregation)
-    - tokens_seen: Cumulative sum of all tokens processed (SUM aggregation)  
+    - tokens_seen: Cumulative sum of all tokens processed (SUM aggregation)
     - seq_len: Distribution of sequence lengths (DISTRIBUTION aggregation)
-    
+
     Example:
         >>> transform = DefaultTrainingMetricTransform()
         >>> transform.set_dataset_name("alpaca")
-        >>> 
+        >>>
         >>> sample = {"tokens": [1, 2, 3, 4, 5]}  # 5 tokens
         >>> metrics = transform._generate_metrics(sample)
         >>> # Creates:
@@ -107,7 +111,12 @@ class DefaultTrainingMetricTransform(MetricTransform):
         >>> # ]
     """
 
-    def _generate_metrics(self, sample: dict[str, Any]) -> list[Metric]:
+    def _generate_metrics(self, sample: Mapping[str, Any]) -> list[Metric]:
+        if self.new_metric is None:
+            raise RuntimeError(
+                "set_dataset_name() must be called before using the transform."
+            )
+
         # Determine token key
         token_key = "tokens" if "tokens" in sample else "input_ids"
         token_len = len(sample.get(token_key, []))

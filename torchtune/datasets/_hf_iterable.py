@@ -12,7 +12,11 @@ import torch.distributed as dist
 from datasets import load_dataset
 from datasets.distributed import split_dataset_by_node
 
-from torchtune.data.metrics import AggregationType, Metric, StandardMetricTransform
+from torchtune.data.metrics import (
+    AggregationType,
+    DefaultTrainingMetricTransform,
+    Metric,
+)
 from torchtune.datasets._iterable_base import TuneIterableDataset
 
 logger = logging.getLogger(__name__)
@@ -73,7 +77,7 @@ class HfIterableDataset(TuneIterableDataset):
         self._weight = weight  # TODO: make it a property?
 
         # Create default transform if not provided
-        self._metric_transform = metric_transform or StandardMetricTransform()
+        self._metric_transform = metric_transform or DefaultTrainingMetricTransform()
 
         # Auto-generate dataset name if not provided, ensuring it's always a string.
         if dataset_name is None:
