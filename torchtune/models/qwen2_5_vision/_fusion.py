@@ -22,7 +22,7 @@ class Qwen25VL(EarlyFusionModel):
         vision_start_token_id: int = 151652, 
         spatial_merge_size: int = 2,
         tokens_per_second: int = 2,
-        decoder_trainable: bool = False,
+        decoder_trainable: bool = True,
         encoders_trainable: Union[bool, Dict[str, bool]] = False,
         fusion_trainable: bool = True,
     ):

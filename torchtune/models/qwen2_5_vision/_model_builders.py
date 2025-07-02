@@ -24,8 +24,8 @@ Model builders build specific instantiations using component builders.
 def qwen2_5_vl_3b(
     *,
     decoder_trainable: bool = True,
-    encoder_trainable: bool = True,
-    fusion_trainable: bool = False,
+    encoder_trainable: bool = False,
+    fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> Qwen25VL:
     """
@@ -87,8 +87,8 @@ def qwen2_5_vl_3b(
 def qwen2_5_vl_7b(
     *,
     decoder_trainable: bool = True,
-    encoder_trainable: bool = True,
-    fusion_trainable: bool = False,
+    encoder_trainable: bool = False,
+    fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> Qwen25VL:
     """
@@ -153,8 +153,8 @@ def qwen2_5_vl_7b(
 def qwen2_5_vl_72b(
     *,
     decoder_trainable: bool = True,
-    encoder_trainable: bool = True,
-    fusion_trainable: bool = False,
+    encoder_trainable: bool = False,
+    fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> Qwen25VL:
     """
