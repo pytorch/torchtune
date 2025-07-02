@@ -979,10 +979,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     self._profiler.step()
 
             self.epochs_run += 1
-            
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
         self._profiler.stop()
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
