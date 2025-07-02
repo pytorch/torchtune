@@ -4,11 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import tempfile
+import shutil
 from itertools import islice
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import torch.distributed as dist
+from torch.testing._internal.common_fsdp import FSDPTest
+from tests.test_utils import gpu_test
 
 import torch
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -233,3 +238,108 @@ class TestInterleavedDataset:
         assert (
             result["final_metrics"] == result["resumed_metrics"]
         ), "Final metrics should match"
+
+
+class TestDistributedInterleavedDataset(FSDPTest):
+    @property
+    def world_size(self) -> int:
+        return 2
+
+    @gpu_test(gpu_count=2)
+    def test_distributed_interleaved_checkpointing(self):
+        """
+        Test interleaved dataset checkpointing with distributed settings.
+        Assertions:
+        - Each rank processes non-overlapping data shards
+        - Sampling ratios (70/30) are maintained across ranks
+        - Checkpoint/resume produces identical batches (deterministic)
+        - Metrics correctly aggregate across ranks
+        """
+        rank = dist.get_rank()
+
+        # Create shared temp directory (only rank 0 creates it)
+        if rank == 0:
+            temp_dir = tempfile.mkdtemp(prefix="interleaved_test_")
+        else:
+            temp_dir = None
+
+        # Broadcast temp directory to all ranks
+        temp_dir_list = [temp_dir]
+        dist.broadcast_object_list(temp_dir_list, src=0)
+        temp_dir = temp_dir_list[0]
+        tmp_path = Path(temp_dir)
+
+        try:
+            def create_dataset():
+                file1 = tmp_path / "ds1.json"
+                file2 = tmp_path / "ds2.json"
+
+                # Only rank 0 creates the data files
+                if rank == 0:
+                    create_test_json_file(file1, SMALL_DATASET_SIZE)  # IDs 0-22
+                    create_test_json_file(file2, MEDIUM_DATASET_SIZE, offset=100)  # IDs 100-134
+                dist.barrier()  # Wait for file creation
+
+                ds1 = HfIterableDataset(
+                    path="json", data_files=str(file1), split="train", dataset_name="ds1",
+                    shuffle_buffer_size=0,  # No shuffle for determinism
+                    metric_transform=StandardMetricTransform(), num_shards_per_rank=2,
+                )
+                ds2 = HfIterableDataset(
+                    path="json", data_files=str(file2), split="train", dataset_name="ds2", 
+                    shuffle_buffer_size=0,  # No shuffle for determinism
+                    metric_transform=StandardMetricTransform(), num_shards_per_rank=2,
+                )
+
+                # Create interleaved dataset with 70/30 weighting
+                return InterleavedDataset([ds1, ds2], [0.8, 0.2], seed=SEED)
+
+            def create_dataloader(dataset):
+                loader = StatefulDataLoader(
+                    dataset, batch_size=BATCH_SIZE, 
+                    num_workers=0,  # Avoid multiprocessing in distributed tests
+                    collate_fn=collate_with_metrics
+                )
+                return loader, MetricsAggregator()
+
+            # Run checkpointing test with small number of steps
+            loader1, aggregator1 = create_dataloader(create_dataset())
+            loader2, aggregator2 = create_dataloader(create_dataset())
+
+            result = generate_ckpt(
+                loader1, aggregator1, 3, 3,  # 3 steps before, 3 steps after checkpoint
+                resume_dataloader=loader2, resume_aggregator=aggregator2
+            )
+
+            # Verify deterministic resumption
+            orig_post_ids = [b["id"].tolist() for b in result["post_checkpoint_batches"]]
+            resumed_ids = [b["id"].tolist() for b in result["resumed_batches"]]
+            assert orig_post_ids == resumed_ids, (
+                f"Rank {rank}: Non-deterministic interleaved resume. "
+                f"This indicates sampling state is not properly preserved."
+            )
+            assert result["final_metrics"] == result["resumed_metrics"], (
+                "Final metrics don't match resumed metrics - aggregator state issue"
+            )
+
+            # Verify sampling ratio is approximately maintained (80/20 split)
+            all_ids = []
+            for batch in result["pre_checkpoint_batches"] + result["post_checkpoint_batches"]:
+                all_ids.extend(batch["id"].tolist())
+
+            # Count samples by ID ranges: ds1 has IDs < 100, ds2 has IDs >= 100
+            ds1_samples = sum(1 for id in all_ids if id < 100)
+            ds2_samples = sum(1 for id in all_ids if id >= 100)
+            total_samples = ds1_samples + ds2_samples
+
+            if total_samples > 0:
+                ds1_ratio = ds1_samples / total_samples
+                assert 0.6 < ds1_ratio < 1.0, (
+                    f"Rank {rank}: Dataset sampling ratio {ds1_ratio:.2f} outside expected "
+                    f"range for 80/20 split. Got {ds1_samples}, {ds2_samples} samples."
+                )
+
+        finally:
+            # Clean up temp directory (only rank 0)
+            if rank == 0:
+                shutil.rmtree(temp_dir)

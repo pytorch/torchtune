@@ -4,10 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
+import tempfile
+import shutil
 from itertools import islice
 from pathlib import Path
 
 import pytest
+import torch.distributed as dist
+from torch.testing._internal.common_fsdp import FSDPTest
+from tests.test_utils import gpu_test
 
 from torchdata.stateful_dataloader import StatefulDataLoader
 
@@ -241,3 +247,98 @@ class TestHfIterableDataset:
         assert all(
             epoch_value == 1 for epoch_value in epoch_values
         ), f"Epoch values should be 1, got {epoch_values}"
+
+
+class TestDistributedHfIterableDataset(FSDPTest):
+    @property
+    def world_size(self) -> int:
+        return 2
+
+    @gpu_test(gpu_count=2)
+    def test_distributed_epoch_boundary_checkpointing(self):
+        """
+        Test epoch boundary handling with checkpointing in distributed setting.
+        Ensures proper handling of:
+        - Checkpointing at 0.9, 1.0, and 2.5 epoch boundaries
+        - Correct sample distribution across epochs
+        - Proper state restoration after checkpointing
+        """
+        rank = dist.get_rank()
+
+        # Create shared temp directory (only rank 0 creates it)
+        if rank == 0:
+            temp_dir = tempfile.mkdtemp(prefix="epoch_test_")
+        else:
+            temp_dir = ""
+
+        # Broadcast temp directory path to all ranks
+        temp_dir_list = [temp_dir]
+        dist.broadcast_object_list(temp_dir_list, src=0)
+        temp_dir = temp_dir_list[0]
+        tmp_path = Path(temp_dir)
+
+        try:
+            medium_dataset_file = tmp_path / "medium_data.json"
+
+            # Only rank 0 creates the data file, all ranks read from it
+            if rank == 0:
+                create_test_json_file(medium_dataset_file, MEDIUM_DATASET_SIZE)
+            dist.barrier()  # Wait for file creation
+
+            # Test multiple epoch boundaries
+            for num_epochs in [0.9, 1.0, 2.5]:
+                def create_loader_and_aggregator():
+                    dataset = HfIterableDataset(
+                        path="json",
+                        data_files=str(medium_dataset_file),
+                        split="train",
+                        dataset_name="epoch_test",
+                        seed=SEED,
+                        shuffle_buffer_size=0,  # No shuffle for determinism
+                        metric_transform=StandardMetricTransform(),
+                        num_shards_per_rank=2,
+                    )
+                    loader = StatefulDataLoader(
+                        dataset, batch_size=BATCH_SIZE, collate_fn=collate_with_metrics, num_workers=0
+                    )
+                    return loader, MetricsAggregator()
+
+                loader1, aggregator1 = create_loader_and_aggregator()
+                loader2, aggregator2 = create_loader_and_aggregator()
+
+                # Calculate steps to reach desired epoch boundary
+                samples_per_rank = MEDIUM_DATASET_SIZE // dist.get_world_size()
+                total_samples = int(samples_per_rank * num_epochs)
+                total_steps = total_samples // BATCH_SIZE
+                
+                if total_steps < 2:
+                    raise ValueError(f"Not enough steps for meaningful test: {total_steps}")
+
+                # Split steps between before and after checkpoint
+                steps_before = max(1, total_steps // 2)
+                steps_after = total_steps - steps_before
+
+                result = generate_ckpt(
+                    loader1, aggregator1, steps_before, steps_after,
+                    resume_dataloader=loader2, resume_aggregator=aggregator2
+                )
+
+                # Verify deterministic resumption - critical for distributed training
+                orig_post_ids = [b["id"].tolist() for b in result["post_checkpoint_batches"]]
+                resumed_ids = [b["id"].tolist() for b in result["resumed_batches"]]
+                assert orig_post_ids == resumed_ids, (
+                    f"Rank {rank}: Non-deterministic resume for {num_epochs} epochs. "
+                    f"This indicates checkpoint/resume state is not properly preserved."
+                )
+
+                # Verify epoch metric is correctly tracked
+                final_metrics = result["final_metrics"]
+                expected_epoch = math.floor(num_epochs - 1e-9)  # -1e-9 so 1.0 epochs -> 0
+                assert final_metrics[f"train_epoch_test/num_epochs"] == expected_epoch, (
+                    f"Epoch count incorrect for {num_epochs} epochs test scenario"
+                )
+
+        finally:
+            # Clean up temp directory (only rank 0)
+            if rank == 0:
+                shutil.rmtree(temp_dir)
