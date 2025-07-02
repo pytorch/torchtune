@@ -32,7 +32,6 @@ from torchtune import config
 from torchtune.training.checkpointing._utils import (
     ADAPTER_MODEL_FNAME,
     get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
     safe_torch_load,
     SHARD_FNAME,
 )
@@ -171,7 +170,7 @@ class TestKDDistributedRecipe:
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \

@@ -194,18 +194,21 @@ class TestKDSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+
         shutil.rmtree(tmpdir / "epoch_1")
 
+        # Resume training
         cmd_2 = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_dir={tmpdir}/epoch_0 \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.recipe_checkpoint='recipe_state.pt' \
+            checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")}
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \

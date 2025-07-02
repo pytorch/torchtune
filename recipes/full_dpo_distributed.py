@@ -718,6 +718,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             ),
             epoch=epoch,
             full_tensors=full_tensors,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def concatenated_forward(
@@ -980,7 +981,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             self.epochs_run += 1
             
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
         self._profiler.stop()
 
