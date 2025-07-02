@@ -122,7 +122,7 @@ class TestSDPAOrFlexAttention:
             _attention_call = _sdpa_or_flex_attention()
             _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
             mock_sdpa.assert_not_called()
-            mock_flex.assert_called_with(q, k, v, block_mask=attn_mask)
+            mock_flex.assert_called_with(q, k, v, block_mask=attn_mask, scale=None)
         # If mask is not a BlockMask, then we should call SDPA
         _attention_call = _sdpa_or_flex_attention()
         _ = _attention_call(q, k, v, attn_mask, dropout_p, is_causal)
