@@ -219,8 +219,8 @@ def qwen2_5_vl_72b(
 def qwen2_5_vl_transform(
     path: str,
     merges_file: str,
-    max_seq_len: Optional[int] = None,
-    patch_size: Optional[int] = None, 
+    max_seq_len: int = 38462,
+    patch_size: int = 14, 
     prompt_template: Optional[_TemplateType] = None,
 ) -> Qwen2_5_VLTransform:
     """

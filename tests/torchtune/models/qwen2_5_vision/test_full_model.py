@@ -909,52 +909,6 @@ def test_batched_inputs(hf_processor, hf_model, tune_model, tune_transform):
         else:
             print(f"❌ Sample {i+1} logits don't match")
         
-        # Generate descriptions for this sample
-        print(f"Generating descriptions for sample {i+1}...")
-        
-        # HuggingFace generation
-        with torch.no_grad():
-            hf_generated = hf_model.generate(
-                **hf_inputs,
-                max_new_tokens=30,
-                do_sample=False,
-                pad_token_id=hf_processor.tokenizer.eos_token_id
-            )
-        
-        input_length = hf_inputs['input_ids'].shape[1]
-        hf_new_tokens = hf_generated[0][input_length:]
-        hf_description = hf_processor.decode(hf_new_tokens, skip_special_tokens=True)
-        
-        # TorchTune generation
-        tune_generated_tokens, _ = generate_multimodal(
-            model=tune_model,
-            tokens=tune_model_input["tokens"],
-            encoder_input=tune_model_input["encoder_input"],
-            image_grid_thw=tune_model_input["image_grid_thw"],
-            max_new_tokens=30,
-            temperature=1e-6,
-            stop_tokens=[151645]
-        )
-        
-        tune_input_length = tune_model_input["tokens"].shape[1]
-        tune_new_tokens = tune_generated_tokens[0][tune_input_length:]
-        
-        print(f"Sample {i+1} - Prompt: '{prompts[i]}'")
-        print(f"Sample {i+1} - HF description: '{hf_description}'")
-        print(f"Sample {i+1} - TT generated tokens: {tune_new_tokens.tolist()}")
-        
-        # Compare first few tokens
-        hf_tokens_list = hf_new_tokens.tolist()
-        tune_tokens_list = tune_new_tokens.tolist()
-        
-        if len(tune_tokens_list) > 0 and len(hf_tokens_list) > 0:
-            first_match = tune_tokens_list[0] == hf_tokens_list[0]
-            print(f"Sample {i+1} - First token match: {first_match}")
-            
-            min_len = min(3, len(tune_tokens_list), len(hf_tokens_list))
-            matches = sum(1 for j in range(min_len) if tune_tokens_list[j] == hf_tokens_list[j])
-            print(f"Sample {i+1} - First {min_len} tokens match: {matches}/{min_len}")
-    
     # Test batch processing results if available
     batch_processing_passed = False
     if batch_result is not None:
@@ -1047,7 +1001,7 @@ def run_all_tests():
         # test_text_only_comparison,
         # test_multimodal_comparison,
         # test_generation_consistency,
-        test_real_cat_image_description,
+        # test_real_cat_image_description,
         test_batched_inputs,
     ]
     

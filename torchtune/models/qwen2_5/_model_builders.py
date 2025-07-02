@@ -343,6 +343,7 @@ def qwen2_5_72b_instruct() -> TransformerDecoder:
 def qwen2_5_tokenizer(
     path: str,
     merges_file: str,
+    special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[_TemplateType] = None,
     truncation_type: str = "right",
@@ -370,7 +371,11 @@ def qwen2_5_tokenizer(
     Returns:
         Qwen2_5Tokenizer: Instantiation of the Qwen2.5 tokenizer
     """
-    special_tokens = QWEN2_5_SPECIAL_TOKENS
+    special_tokens = (
+        parse_hf_tokenizer_json(special_tokens_path)
+        if special_tokens_path is not None
+        else None
+    )
 
     if prompt_template is not None:
         prompt_template = _get_prompt_template(prompt_template)
