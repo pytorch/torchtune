@@ -62,10 +62,10 @@ optimizer:
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
-max_steps_per_epoch: null
+max_steps_per_epoch: 110
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 clip_grad_norm: null
-compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+compile: True  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Training environment
 device: cuda
