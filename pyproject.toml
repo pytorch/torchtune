@@ -3,7 +3,7 @@
 name = "torchtune"
 description = "PyTorch native post-training library"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = {file = "LICENSE"}
 authors = [
     { name = "PyTorch Team", email = "packages@pytorch.org" },
@@ -12,28 +12,29 @@ keywords = ["pytorch", "post-training", "rlhf", "finetuning", "llm"]
 dependencies = [
     # Stable torchdata (no nightly support)
     "torchdata",
+
     # Hugging Face integrations
     "datasets",
     "huggingface_hub[hf_transfer]",
     "safetensors",
+
     # Kaggle Integrations
     "kagglehub",
+
     # Tokenization
     "sentencepiece",
     "tiktoken",
     "blobfile>=2",
     "tokenizers",
+
     # Miscellaneous
     "numpy",
     "tqdm",
     "omegaconf",
     "psutil",
+
     # Multimodal
     "Pillow>=9.4.0",
-    "torchvision>=0.21.0",
-    "torchao>=0.11.0",
-    "transformers>=4.52.4",
-    "pytest>=7.4.0",
 ]
 dynamic = ["version"]
 
@@ -108,7 +109,7 @@ check-return-types = 'False'
 exclude = 'tests/torchtune/models/(\w+)/scripts/|recipes/|torchtune/modules/_export'
 
 [tool.pytest.ini_options]
-addopts = ["--showlocals", "--import-mode=prepend"]
+addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]
 # --showlocals will show local variables in tracebacks
 # --import-mode=prepend will add the root (the parent dir of torchtune/, tests/, recipes/)
 # to `sys.path` when invoking pytest, allowing us to treat `tests` as a package within the tests.
