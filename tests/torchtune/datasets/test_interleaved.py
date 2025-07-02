@@ -243,6 +243,25 @@ class TestInterleavedDataset:
             result["final_metrics"] == result["resumed_metrics"]
         ), "Final metrics should match"
 
+        # Test sampling log functionality
+        # Check that sampling log contains tuples of (iteration_count, dataset_name)
+        state_dict = interleaved1.state_dict()
+        sampling_log = state_dict["sampling_log"]
+        iteration_count = state_dict["iteration_count"]
+        
+        assert len(sampling_log) > 0, "Sampling log should not be empty"
+        assert iteration_count > 0, "Iteration count should be positive"
+        
+        # Check sampling ratios match expected weights (70/30)
+        ds1_count = sum(1 for _, ds_name in sampling_log if ds_name == "ds1")
+        ds2_count = sum(1 for _, ds_name in sampling_log if ds_name == "ds2")
+        total_samples = ds1_count + ds2_count
+        
+        ds1_ratio = ds1_count / total_samples
+        ds2_ratio = ds2_count / total_samples
+        
+        assert abs(ds1_ratio - 0.7) < 0.1, f"ds1 ratio {ds1_ratio:.2f} should be ~0.7"
+        assert abs(ds2_ratio - 0.3) < 0.1, f"ds2 ratio {ds2_ratio:.2f} should be ~0.3"
 
 class TestDistributedInterleavedDataset(FSDPTest):
     @property

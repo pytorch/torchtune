@@ -7,6 +7,7 @@
 import collections
 import logging
 import math
+from collections import deque
 from typing import Any, Iterator
 
 import torch
@@ -26,7 +27,8 @@ class InterleavedDataset(TuneIterableDataset):
         datasets (list[TuneIterableDataset]): list of TuneIterableDatasets to interleave.
         seed (int): Seed for sampling.
         dataset_name (str): Name of the dataset. If None, defaults to "interleaved_dataset".
-
+        sampling_log_maxlen (int): Maximum length of the sampling log.
+        
     Raises:
         ValueError: If duplicate dataset names are detected in the provided datasets.
     """
@@ -36,8 +38,10 @@ class InterleavedDataset(TuneIterableDataset):
         datasets: list[TuneIterableDataset],
         seed: int,
         dataset_name: str = "interleaved_dataset",
+        sampling_log_maxlen: int = 10000,
     ):
         self._dataset_name = dataset_name
+        self._sampling_log_maxlen = sampling_log_maxlen
 
         # Preserve original order for weighted sampling
         self._dataset_names = [ds.dataset_name for ds in datasets]
@@ -59,6 +63,10 @@ class InterleavedDataset(TuneIterableDataset):
             )
 
         self._sampling_generator = torch.Generator().manual_seed(seed)
+
+        # Track sampling decisions for debugging and analysis
+        self._sampling_log: deque[tuple[int, str]] = deque(maxlen=self._sampling_log_maxlen)
+        self._iteration_count = 0
 
         # Extract weights from datasets' sampling_weight property
         weights = []
@@ -101,6 +109,10 @@ class InterleavedDataset(TuneIterableDataset):
             # Sample an index, then get the name for safe lookup
             ds_name = self._dataset_names[ds_idx]
 
+            # Log this sampling decision
+            self._sampling_log.append((self._iteration_count, ds_name))
+            self._iteration_count += 1
+
             try:
                 sample = next(child_iters[ds_name])
                 yield sample
@@ -123,6 +135,8 @@ class InterleavedDataset(TuneIterableDataset):
         return {
             "sampling_generator_state": self._sampling_generator.get_state(),
             "child_states": child_states,
+            "sampling_log": list(self._sampling_log),
+            "iteration_count": self._iteration_count,
         }
 
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
@@ -133,3 +147,9 @@ class InterleavedDataset(TuneIterableDataset):
             if name in child_states:
                 # Pass the raw state dict to the child
                 ds.load_state_dict(child_states[name])
+        
+        # Load sampling log and iteration count
+        self._sampling_log = deque(
+            state_dict.get("sampling_log", []), maxlen=self._sampling_log_maxlen
+        )
+        self._iteration_count = state_dict.get("iteration_count", 0)
