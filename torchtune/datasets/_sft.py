@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
-from torchtune.data._metrics import StandardMetricTransform
+from torchtune.data.metrics import StandardMetricTransform
 from torchtune.datasets._hf_iterable import HfIterableDataset
 
 from torchtune.modules.transforms import Transform

@@ -11,7 +11,7 @@ import pytest
 
 from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data import MetricsAggregator, StandardMetricTransform
+from torchtune.data.metrics import MetricsAggregator, StandardMetricTransform
 from torchtune.datasets import HfIterableDataset
 
 from .test_iterable_utils import collate_with_metrics, generate_ckpt

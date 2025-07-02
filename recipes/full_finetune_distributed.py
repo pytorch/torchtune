@@ -24,7 +24,8 @@ from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import MetricsAggregator, padded_collate_packed
+from torchtune.data import padded_collate_packed
+from torchtune.data.metrics import MetricsAggregator
 from torchtune.datasets import InterleavedDataset
 from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss

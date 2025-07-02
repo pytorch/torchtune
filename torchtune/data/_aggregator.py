@@ -11,7 +11,7 @@ from typing import Any
 
 import torch.distributed as dist
 
-from torchtune.data._metrics import AggregationType, Metric
+from torchtune.data.metrics import AggregationType, Metric
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,8 @@ class MetricsAggregator:
                 n = len(sorted_values)
 
                 # Each stat becomes its own metric
-                # For percentiles, it is an approximattion by computing avg of averages
+                # so that we can all gather O(5) values across ranks
+                # instead of the entire distribution
                 metrics[(ds_name, f"{metric_name}_mean")] = {
                     "value": sum(values) / n,
                     "agg_type": AggregationType.MEAN,

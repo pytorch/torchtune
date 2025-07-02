@@ -6,15 +6,15 @@
 
 import pytest
 
-from torchtune.data import AggregationType, StandardMetricTransform
+from torchtune.data.metrics import AggregationType, DefaultTrainingMetricTransform
 
 
-class TestStandardMetricTransform:
-    """Tests for StandardMetricTransform functionality."""
+class TestDefaultTrainingMetricTransform:
+    """Tests for DefaultTrainingMetricTransform functionality."""
 
     def test_dataset_name_not_set_raises_error(self):
         """Test that using transform without setting dataset name raises error."""
-        transform = StandardMetricTransform()
+        transform = DefaultTrainingMetricTransform()
         sample = {"tokens": [1, 2, 3]}
 
         with pytest.raises(RuntimeError, match="set_dataset_name"):
@@ -22,7 +22,7 @@ class TestStandardMetricTransform:
 
     def test_basic_metrics_generation(self):
         """Test that transform generates expected metrics for a sample."""
-        transform = StandardMetricTransform()
+        transform = DefaultTrainingMetricTransform()
         transform.set_dataset_name("test_dataset")
 
         sample = {"tokens": [1, 2, 3, 4, 5]}

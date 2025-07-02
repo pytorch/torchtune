@@ -6,7 +6,7 @@
 
 import pytest
 
-from torchtune.data import AggregationType, Metric, MetricsAggregator
+from torchtune.data.metrics import AggregationType, Metric, MetricsAggregator
 
 
 class TestMetricsAggregator:

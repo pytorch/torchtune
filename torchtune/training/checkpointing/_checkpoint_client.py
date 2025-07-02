@@ -19,7 +19,7 @@ from torch.distributed.checkpoint.state_dict import (
     StateDictOptions,
 )
 from torchtune import config, training, utils
-from torchtune.data import MetricsAggregator
+from torchtune.data.metrics import MetricsAggregator
 from torchtune.modules.optim import OptimizerInBackward
 from torchtune.modules.peft import (
     get_adapter_state_dict,

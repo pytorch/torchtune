@@ -13,7 +13,7 @@ import pytest
 import torch
 from torchdata.stateful_dataloader import StatefulDataLoader
 
-from torchtune.data import MetricsAggregator, StandardMetricTransform
+from torchtune.data.metrics import MetricsAggregator, StandardMetricTransform
 from torchtune.datasets import HfIterableDataset, InterleavedDataset
 
 # Import test utilities
