@@ -180,7 +180,6 @@ class TestKDSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
             metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
-            enable_async_checkpointing=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -209,6 +208,7 @@ class TestKDSingleDeviceRecipe:
             checkpointer.checkpoint_dir={tmpdir}/epoch_0 \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
             checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")}
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
