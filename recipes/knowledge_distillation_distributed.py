@@ -700,7 +700,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
