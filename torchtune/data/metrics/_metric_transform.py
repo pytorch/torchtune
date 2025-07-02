@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from torchtune.modules.transforms import Transform
 
@@ -32,7 +32,7 @@ class AggregationType(Enum):
 
 
 class MetricTransform(Transform):
-    """Applied to each sample to generate per-sample metrics for training tracking.
+    """Applied to each dataset sample to generate per-sample metrics for training tracking.
 
     Creates Metric objects that are later aggregated by 'MetricsAggregator'. This separation
     of concerns ensures metrics are correctly aggregated even with multiple dataloader
@@ -56,11 +56,11 @@ class MetricTransform(Transform):
         # Create a partial to make it easier to create new metrics
         self.new_metric = partial(Metric, dataset_name=dataset_name)
 
-    def _generate_metrics(self, sample: Mapping[str, Any]) -> list[Metric]:
+    def _generate_metrics(self, sample: dict[str, Any]) -> list[Metric]:
         """Generate metrics for a single sample. Must be implemented by subclasses.
 
         Args:
-            sample (Mapping[str, Any]): The sample dictionary to generate metrics from
+            sample (dict[str, Any]): The sample dictionary to generate metrics from
 
         Returns:
             list[Metric]: List of metrics generated for this sample
@@ -70,7 +70,7 @@ class MetricTransform(Transform):
         """
         raise NotImplementedError("Subclasses must implement _generate_metrics method")
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Apply transform to sample, adding generated metrics."""
         if self.dataset_name is None or self.new_metric is None:
             raise RuntimeError(
@@ -111,7 +111,7 @@ class DefaultTrainingMetricTransform(MetricTransform):
         >>> # ]
     """
 
-    def _generate_metrics(self, sample: Mapping[str, Any]) -> list[Metric]:
+    def _generate_metrics(self, sample: dict[str, Any]) -> list[Metric]:
         if self.new_metric is None:
             raise RuntimeError(
                 "set_dataset_name() must be called before using the transform."
