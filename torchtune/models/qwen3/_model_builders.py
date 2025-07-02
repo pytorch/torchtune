@@ -7,7 +7,8 @@ from typing import List, Optional
 
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
-from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
+from torchtune.models.qwen3._component_builders import lora_qwen3, qwen3
+
 from torchtune.models.qwen3._tokenizer import QWEN3_SPECIAL_TOKENS, Qwen3Tokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
@@ -28,7 +29,7 @@ def qwen3_0_6b_base() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 0.6B base model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=28,
         num_heads=16,
@@ -57,7 +58,7 @@ def qwen3_0_6b_instruct() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 0.6B instruct model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=28,
         num_heads=16,
@@ -86,7 +87,7 @@ def qwen3_1_7b_base() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 1.7B base model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=28,
         num_heads=16,
@@ -115,7 +116,7 @@ def qwen3_1_7b_instruct() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 1.7B instruct model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=28,
         num_heads=16,
@@ -144,7 +145,7 @@ def qwen3_4b_base() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 4B base model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=36,
         num_heads=32,
@@ -173,7 +174,7 @@ def qwen3_4b_instruct() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 4B instruct model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=36,
         num_heads=32,
@@ -202,7 +203,7 @@ def qwen3_8b_base() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 8B base model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=36,
         num_heads=32,
@@ -230,7 +231,7 @@ def qwen3_8b_instruct() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 8B instruct model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=36,
         num_heads=32,
@@ -258,7 +259,7 @@ def qwen3_14b_base() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 14B model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=40,
         num_heads=40,
@@ -286,7 +287,7 @@ def qwen3_14b_instruct() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 14B instruct model
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=40,
         num_heads=40,
@@ -314,7 +315,7 @@ def qwen3_32b() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Qwen3 32B instruct model (there's no base variant for the 32B)
     """
-    return qwen2(
+    return qwen3(
         vocab_size=151936,
         num_layers=64,
         num_heads=64,
@@ -419,7 +420,7 @@ def lora_qwen3_0_6b_base(
     Note:
         Qwen3 0.6B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -485,7 +486,7 @@ def lora_qwen3_0_6b_instruct(
     Note:
         The base and instruct versions have the exact same arch for all Qwen3 model sizes, except for `max_seq_len`. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -552,7 +553,7 @@ def lora_qwen3_1_7b_base(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -619,7 +620,7 @@ def lora_qwen3_1_7b_instruct(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -685,7 +686,7 @@ def lora_qwen3_4b_base(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -751,7 +752,7 @@ def lora_qwen3_4b_instruct(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -817,7 +818,7 @@ def lora_qwen3_8b_base(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -882,7 +883,7 @@ def lora_qwen3_8b_instruct(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -947,7 +948,7 @@ def lora_qwen3_14b_base(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -1012,7 +1013,7 @@ def lora_qwen3_14b_instruct(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -1077,7 +1078,7 @@ def lora_qwen3_32b(
         The base and instruct versions have slightly different architectures for all Qwen3 model sizes
         except 0.5B and 3B. Make sure to select the correct model builder for the weights.
     """
-    return lora_qwen2(
+    return lora_qwen3(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
