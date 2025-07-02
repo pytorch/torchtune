@@ -156,6 +156,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
     def load_teacher_checkpoint(self, cfg: DictConfig) -> dict[str, Any]:
         """
@@ -328,6 +329,12 @@ class KDRecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -673,7 +680,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, full_tensors: bool) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
@@ -685,13 +692,15 @@ class KDRecipeDistributed(FTRecipeInterface):
                 dataloader_state_dict=self._dataloader.state_dict(),
             ),
             epoch=epoch,
+            full_tensors=full_tensors,
+            dir_prefix=self.checkpoint_dir_prefix,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
         )
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -833,6 +842,15 @@ class KDRecipeDistributed(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # Save checkpoint if specified by user
+                    is_final_step = (
+                        (curr_epoch == self.total_epochs - 1)
+                        and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                    )
+
+                    if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Reset running stats for the next step
                     running_class_loss = 0
                     running_kd_loss = 0
@@ -857,7 +875,8 @@ class KDRecipeDistributed(FTRecipeInterface):
                 self._profiler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+        
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
         self._profiler.stop()
 
