@@ -124,3 +124,4 @@ def qwen2_5_vl_tune_to_hf(
             converted_state_dict[new_key] = value
 
     return converted_state_dict
+

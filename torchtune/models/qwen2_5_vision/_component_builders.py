@@ -28,12 +28,7 @@ from torchtune.models.qwen2_5_vision._positional_embeddings import (
 """
 Component builders for the Qwen 2.5 VL model and its constituent models.
 torchtune provides composable building blocks. Builder functions help
-stitch these building blocks into higher-level components. This design has
-two benefits:
-- The building blocks themselves are very flexible. For example, ``GroupedQueryAttention``
-can take either nn.Linear or nn.LoRALinear for ``q_proj``.
-- Builder functions expose a set of configurable params which keep the constructors of
-the building blocks simple.
+stitch these building blocks into higher-level components. 
 """
 
 
@@ -54,11 +49,8 @@ def qwen2_5_vl_text_decoder(
     """
     Build the text decoder for Qwen2.5-VL model following TorchTune patterns.
     
-    This builds a standard transformer decoder with multimodal RoPE (MRoPE)
+    This builds a standard transformer decoder with multimodal RoPE (M-RoPE)
     for handling 3D position embeddings in vision-language sequences.
-    
-    To use with 3D position_ids, pass them as the `input_pos` parameter
-    when calling the decoder forward method.
     
     Args:
         vocab_size (int): Size of vocabulary. Default: 152064
@@ -72,14 +64,10 @@ def qwen2_5_vl_text_decoder(
         rope_base (float): RoPE base frequency. Default: 1000000.0
         norm_eps (float): RMS norm epsilon. Default: 1e-6
         mrope_section (List[int]): MRoPE sections [temporal, height, width]. Default: [16, 24, 24]
+        tie_word_embeddings (bool): Whether to tie word embeddings. Default: False
         
     Returns:
-        TransformerDecoder: Text decoder with multimodal RoPE support
-        
-    Example:
-        >>> decoder = qwen2_5_vl_text_decoder()
-        >>> # For multimodal usage, pass 3D position_ids as input_pos
-        >>> output = decoder(tokens, input_pos=position_ids_3d)  # position_ids_3d: [3, b, s]
+        TransformerDecoder: Text decoder with multimodal RoPE support.
     """
     head_dim = embed_dim // num_heads 
 
@@ -157,7 +145,24 @@ def qwen2_5_vision_encoder(
     temporal_patch_size: int,
 ) -> Qwen2_5_VisionTransformer:
     """
-    TODO: docstring 
+    Build the vision encoder for Qwen2.5-VL model, including vision-language merger.
+
+    Args:
+        embed_dim (int): Embedding dimension.
+        num_layers (int): Number of transformer layers.
+        activation (Callable): Activation function.
+        intermediate_size (int): Intermediate size.
+        num_heads (int): Number of attention heads.
+        in_channels (int): Number of input channels.
+        out_hidden_size (int): Output hidden size.
+        patch_size (int): Patch size.
+        spatial_merge_size (int): Spatial merge size.
+        window_size (int): Window size.
+        full_att_block_indexes (List[int]): Full attention block indexes.
+        temporal_patch_size (int): Temporal patch size.
+
+    Returns:
+        Qwen2_5_VisionTransformer: Instantiation of Qwen2.5-VL vision transformer.
     """
     if embed_dim % num_heads != 0:
         raise ValueError(
@@ -169,7 +174,6 @@ def qwen2_5_vision_encoder(
     rope = Qwen2_5_VisionRotaryEmbedding(head_dim // 2, spatial_merge_unit=spatial_merge_size**2)
     attn_bias = True
 
-    # transformer layer # TODO: check if need custom attn
     self_attn = MultiHeadAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,

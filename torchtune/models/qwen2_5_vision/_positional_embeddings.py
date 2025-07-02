@@ -14,14 +14,20 @@ def rotate_half(x: torch.Tensor) -> torch.Tensor:
 class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
     """
     M-RoPE (Multimodal Rotary Embeddings) for Qwen2.5-VL.
+
+    Initially described in https://arxiv.org/pdf/2409.12191.
+
     Extends standard 1D RoPE to three axes: time, height, width.
-    
-    Args:
+
+    Unlike the huggingface implementation, this implementation caches the RoPE tables
+    for each position and each of the three dimensions.
+        Args:
         head_dim (int):      dimensionality per head (e.g. 128)
-        max_seq_len (int):   maximum temporal length to expect (default 4096)
+        max_seq_len (int):   maximum temporal length to expect (default 128000)
+        max_height (int):    maximum height to expect (default 4096)
+        max_width (int):     maximum width to expect (default 4096)
         base (float):        geometric base for theta (default 1e6)
-        mrope_section (List[int]):
-                            # of frequency-pairs for [time, height, width]
+        mrope_section (List[int]): number of frequency-pairs for [time, height, width] (default [16, 24, 24])
     """
 
     def __init__(
@@ -83,6 +89,8 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         self,
         x: torch.Tensor,
         input_pos: torch.LongTensor,
+        *,
+        window_index: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Compute M-RoPE cos/sin tables for a batch of queries/keys.
@@ -90,9 +98,18 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         Args:
             x:             [B, s_x, n_heads, head_dim]
             input_pos:     [3, B, L] — the time, height, width indices
+            window_index:  Optional tensor for window indexing (not used in M-RoPE)
 
         Returns:
             q_out: [B, s_x, n_heads, head_dim]
+
+        Notation used for tensor shapes:
+            - B: batch size
+            - s_x: sequence length
+            - n_heads: number of attention heads
+            - head_dim: dimension of each head
+            - L: sequence length
+            - D: head dimension
         """
         sections = self.mrope_section * 2
 
@@ -192,8 +209,7 @@ class Qwen2_5_VisionRotaryEmbedding(nn.Module):
                 If none, assume the index of the token is its position id. Default is None.
             window_index (Optional[torch.Tensor]): Optional tensor which contains the window index
                 of each token. During training, this is used to indicate the window index
-                of each token when packed, shape [b, s]. # TODO: check if this is correct
-
+                of each token when packed, shape [b, s]. 
 
         Returns:
             torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
@@ -205,7 +221,7 @@ class Qwen2_5_VisionRotaryEmbedding(nn.Module):
             - h_d: head dim
         """
         # input tensor has shape [b, s, n_h, h_d]
-        seq_len = x.size(1) # [1, 1024, 16, 80]
+        seq_len = x.size(1) 
 
         # extract the values based on whether input_pos is set or not
         rope_cache = (
@@ -215,7 +231,6 @@ class Qwen2_5_VisionRotaryEmbedding(nn.Module):
         rope_cache = rope_cache.flatten(1) # [s, h_d]
 
         # rearrange indices to match window index
-        assert window_index is not None
         rope_cache = rope_cache.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
         rope_cache = rope_cache[window_index, :, :]
         rope_cache = rope_cache.reshape(seq_len, -1)

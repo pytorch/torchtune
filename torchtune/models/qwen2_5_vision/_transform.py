@@ -15,7 +15,6 @@ import math
 
 from torchtune.data import Message
 from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
-from torchtune.models.clip._transform import CLIPImageTransform
 from torchtune.models.qwen2_5._tokenizer import Qwen2_5Tokenizer
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 from torchtune.modules.transforms import Transform
@@ -33,21 +32,6 @@ class Qwen2_5_VLImageTransform:
     This class accepts images of any size and dynamically resizes, normalizes and patches it
     based on the image size constraints and patch size.
 
-    The algorithm will NOT distort the image to fit a certain aspect ratio, because
-    that leads to a significant degradation in image quality.
-
-    For example, if an input image is of size 300x800, and we have:
-    - patch_size = 14
-    - merge_size = 2
-    - min_pixels = 3136 (56 * 56)
-    - max_pixels = 1003520 (28 * 28 * 1280)
-
-    The image will be:
-    1. Resized to fit within min_pixels and max_pixels constraints
-    2. Divided into 14x14 patches
-    3. Patches will be merged in 2x2 groups
-    4. Final output will be a sequence of merged patches
-
     Args:
         image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, uses OPENAI_CLIP_MEAN. Default None.
@@ -60,28 +44,10 @@ class Qwen2_5_VLImageTransform:
         max_pixels (int): Maximum number of pixels for the longer edge. Default 1003520 (28 * 28 * 1280).
         size (Optional[Dict[str, int]]): Size configuration with 'shortest_edge' and 'longest_edge' keys.
             If provided, overrides min_pixels and max_pixels. Default None.
-        dtype (torch.dtype): Data type of the output image. Default torch.bfloat16.
+        dtype (torch.dtype): Data type of the output image. Default torch.float32.
         resample (str): Resampling method used when resizing images. Supports any enum of
             ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
             Default 'bicubic'.
-
-    Examples:
-        >>> image_transform = Qwen2_5_VLImageTransform(
-        ...    image_mean=None,
-        ...    image_std=None,
-        ...    patch_size=14,
-        ...    merge_size=2,
-        ...    temporal_patch_size=2,
-        ...    min_pixels=3136,
-        ...    max_pixels=1003520,
-        ...    resample="bilinear",
-        ...)
-        >>> # create random image
-        >>> image = (np.random.rand(100,200,3) * 255).astype(np.uint8)
-        >>> image = PIL.Image.fromarray(image)
-        >>> output = image_transform({"image": image})
-        >>> print(output["pixel_values"].shape)  # [num_patches, channels * temporal_patch_size * patch_size * patch_size]
-        >>> print(output["image_grid_thw"])  # [grid_t, grid_h, grid_w]
     """
 
     def __init__(
@@ -223,7 +189,6 @@ class Qwen2_5_VLImageTransform:
         return sample
 
 class Qwen2_5_VLTransform(ModelTokenizer, Transform):
-    # TODO: update docstring
     """
     Transform for Qwen 2.5 Vision model that handles both text tokenization and image processing.
 
@@ -240,16 +205,8 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             Default None to use OPENAI_CLIP_MEAN.
         image_std (Optional[List[float]]): Standard deviations for each channel, used for normalization.
             Default None to use OPENAI_CLIP_STD.
-        dtype (torch.dtype): Data type of transformed image. Default torch.bfloat16.
+        dtype (torch.dtype): Data type of transformed image. Default torch.float32.
         prompt_template (Optional[_TemplateType]): template used to format the messages based on their role.
-
-    Examples:
-        >>> model_transform = Qwen25VisionTransform("/path/to/tokenizer.model", tile_size=224, patch_size=14)
-        >>> transformed_data = model_transform({"messages": user_message, "images": [img1, img2]})
-        >>> print(transformed_data["tokens"])
-        [1, 31587, 29644, 102, 2]
-        >>> print(transformed_data["images"][0].shape)
-        torch.Size([4, 3, 224, 224])
     """
 
     def __init__(
