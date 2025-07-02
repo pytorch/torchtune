@@ -108,6 +108,10 @@ class HfIterableDataset(TuneIterableDataset):
     def dataset_name(self) -> str:
         return self._dataset_name
 
+    @property
+    def sampling_weight(self) -> float:
+        return self._weight
+
     def _apply_transforms(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Apply transforms if they exist, otherwise return sample unchanged."""
         if self._message_transform is not None:

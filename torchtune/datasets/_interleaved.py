@@ -17,14 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 class InterleavedDataset(TuneIterableDataset):
-    """Infinitely interleaves multiple TuneIterableDatasets according to a list of weights.
-    - The weights are normalized to sum to 1.0.
+    """Infinitely interleaves multiple TuneIterableDatasets according to their sampling weights.
+    - The weights are extracted from each dataset's sampling_weight property and normalized to sum to 1.0.
     - This dataset is responsible for managing the state of its child datasets
     to ensure correct checkpointing and resumption.
 
     Args:
         datasets (list[TuneIterableDataset]): list of TuneIterableDatasets to interleave.
-        weights (list[float]): list of weights for each dataset. Must sum to 1.0.
         seed (int): Seed for sampling.
         dataset_name (str): Name of the dataset. If None, defaults to "interleaved_dataset".
 
@@ -35,7 +34,6 @@ class InterleavedDataset(TuneIterableDataset):
     def __init__(
         self,
         datasets: list[TuneIterableDataset],
-        weights: list[float],
         seed: int,
         dataset_name: str = "interleaved_dataset",
     ):
@@ -62,8 +60,16 @@ class InterleavedDataset(TuneIterableDataset):
 
         self._sampling_generator = torch.Generator().manual_seed(seed)
 
+        # Extract weights from datasets' sampling_weight property
+        weights = []
+        for ds in datasets:
+            weight = ds.sampling_weight
+            if isinstance(weight, dict):
+                # For composite datasets, sum up their weights
+                weight = sum(weight.values())
+            weights.append(weight)
+
         # Normalize weights to sum to 1
-        # TODO: make it a property? rely on ds.weight?
         total_weight = sum(weights)
         self._weights = torch.tensor(
             [w / total_weight for w in weights], dtype=torch.float
@@ -77,6 +83,10 @@ class InterleavedDataset(TuneIterableDataset):
     @property
     def dataset_name(self) -> str:
         return self._dataset_name
+
+    @property
+    def sampling_weight(self) -> dict[str, float]:
+        return {name: weight.item() for name, weight in zip(self._dataset_names, self._weights)}
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         """Interleave samples from child infinite datasets"""

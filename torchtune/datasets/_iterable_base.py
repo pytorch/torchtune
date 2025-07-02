@@ -24,6 +24,18 @@ class TuneIterableDataset(IterableDataset, ABC):
         """A unique identifier for the dataset, used for namespacing in metrics and checkpoints."""
         pass
 
+    @property
+    @abstractmethod
+    def sampling_weight(self) -> float | dict[str, float]:
+        """
+        Returns the sampling weight for this dataset when used in multi-dataset scenarios.
+        
+        For leaf datasets: returns a float representing the relative weight.
+        For composite datasets: returns a dict mapping child dataset names to their weights.
+        Used by interleaving logic to determine sampling probabilities.
+        """
+        pass
+
     @abstractmethod
     def __iter__(self) -> Iterator[dict[str, Any]]:
         """

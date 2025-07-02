@@ -101,29 +101,34 @@ class TestInterleavedDataset:
     def test_initialization_validation(self, dataset_factory, small_dataset_file):
         """Tests that the dataset raises errors for invalid configurations, like duplicate names."""
         # Test duplicate dataset names
-        ds1 = dataset_factory(small_dataset_file, dataset_name="duplicate")
-        ds2 = dataset_factory(small_dataset_file, dataset_name="duplicate")
+        ds1 = dataset_factory(small_dataset_file, dataset_name="duplicate", weight=0.5)
+        ds2 = dataset_factory(small_dataset_file, dataset_name="duplicate", weight=0.5)
 
         with pytest.raises(ValueError, match="Duplicate dataset names detected"):
-            InterleavedDataset(datasets=[ds1, ds2], weights=[0.5, 0.5], seed=SEED)
+            InterleavedDataset(datasets=[ds1, ds2], seed=SEED)
 
         # Test weight normalization (should work with warning)
-        ds3 = dataset_factory(small_dataset_file, dataset_name="ds3")
-        ds4 = dataset_factory(small_dataset_file, dataset_name="ds4")
+        ds3 = dataset_factory(small_dataset_file, dataset_name="ds3", weight=0.5)
+        ds4 = dataset_factory(small_dataset_file, dataset_name="ds4", weight=1.5)
 
         with patch("logging.Logger.warning") as mock_warning:
             interleaved = InterleavedDataset(
                 datasets=[ds3, ds4],
-                weights=[0.5, 1.5],
                 seed=SEED,
                 dataset_name="test_interleaved",  # Sum = 2.0 != 1.0
             )
 
-            # Check that weights were normalized
-            assert torch.allclose(interleaved._weights, torch.tensor([0.25, 0.75]))
-            mock_warning.assert_called_once()
 
             assert interleaved.dataset_name == "test_interleaved"
+
+            # Test sampling_weight property returns normalized weights
+            sampling_weights = interleaved.sampling_weight
+            assert isinstance(sampling_weights, dict)
+            assert "ds3" in sampling_weights
+            assert "ds4" in sampling_weights
+            assert abs(sampling_weights["ds3"] - 0.25) < 1e-6
+            assert abs(sampling_weights["ds4"] - 0.75) < 1e-6
+            assert abs(sum(sampling_weights.values()) - 1.0) < 1e-6
 
     def test_sampling_ratios(
         self, dataset_factory, small_dataset_file, medium_dataset_file
@@ -132,12 +137,11 @@ class TestInterleavedDataset:
         # Create two datasets with distinct ID ranges
         # ds1 has IDs 0-22 (small dataset)
         # ds2 has IDs 100-134 (medium dataset with offset)
-        ds1 = dataset_factory(small_dataset_file, dataset_name="ds1")
-        ds2 = dataset_factory(medium_dataset_file, dataset_name="ds2")
+        ds1 = dataset_factory(small_dataset_file, dataset_name="ds1", weight=0.7)
+        ds2 = dataset_factory(medium_dataset_file, dataset_name="ds2", weight=0.3)
 
         # Test with 70/30 weighting
-        weights = [0.7, 0.3]
-        interleaved = InterleavedDataset([ds1, ds2], weights, seed=SEED)
+        interleaved = InterleavedDataset([ds1, ds2], seed=SEED)
 
         # Collect 300 samples
         sample_count = 300
@@ -162,10 +166,10 @@ class TestInterleavedDataset:
         self, dataset_factory, small_dataset_file, medium_dataset_file
     ):
         """Tests that metrics from all child datasets are collected and aggregated."""
-        ds1 = dataset_factory(small_dataset_file, dataset_name="ds1")
-        ds2 = dataset_factory(medium_dataset_file, dataset_name="ds2")
+        ds1 = dataset_factory(small_dataset_file, dataset_name="ds1", weight=0.2)
+        ds2 = dataset_factory(medium_dataset_file, dataset_name="ds2", weight=0.8)
 
-        interleaved = InterleavedDataset([ds1, ds2], [0.2, 0.8], seed=SEED)
+        interleaved = InterleavedDataset([ds1, ds2], seed=SEED)
         aggregator = MetricsAggregator()
 
         # Process some samples
@@ -203,9 +207,9 @@ class TestInterleavedDataset:
         """Tests that interleaved dataset checkpointing preserves sampling state."""
 
         def create_interleaved():
-            ds1 = dataset_factory(small_dataset_file, dataset_name="ds1")
-            ds2 = dataset_factory(medium_dataset_file, dataset_name="ds2")
-            return InterleavedDataset([ds1, ds2], [0.7, 0.3], seed=SEED)
+            ds1 = dataset_factory(small_dataset_file, dataset_name="ds1", weight=0.7)
+            ds2 = dataset_factory(medium_dataset_file, dataset_name="ds2", weight=0.3)
+            return InterleavedDataset([ds1, ds2], seed=SEED)
 
         # Original run
         interleaved1 = create_interleaved()
@@ -291,6 +295,7 @@ class TestDistributedInterleavedDataset(FSDPTest):
                     shuffle_buffer_size=0,  # No shuffle for determinism
                     metric_transform=DefaultTrainingMetricTransform(),
                     num_shards_per_rank=2,
+                    weight=0.8,
                 )
                 ds2 = HfIterableDataset(
                     path="json",
@@ -300,10 +305,11 @@ class TestDistributedInterleavedDataset(FSDPTest):
                     shuffle_buffer_size=0,  # No shuffle for determinism
                     metric_transform=DefaultTrainingMetricTransform(),
                     num_shards_per_rank=2,
+                    weight=0.2,
                 )
 
-                # Create interleaved dataset with 70/30 weighting
-                return InterleavedDataset([ds1, ds2], [0.8, 0.2], seed=SEED)
+                # Create interleaved dataset with 80/20 weighting
+                return InterleavedDataset([ds1, ds2], seed=SEED)
 
             def create_dataloader(dataset):
                 loader = StatefulDataLoader(

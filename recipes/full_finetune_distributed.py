@@ -775,7 +775,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # 1. Create all datasets
         iterable_datasets = []
-        weights = []
         cfg_dataset_list = cfg_dataset
         if not isinstance(cfg_dataset_list, ListConfig):
             cfg_dataset_list = [cfg_dataset_list]
@@ -783,13 +782,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         for ds_cfg in cfg_dataset_list:
             ds = config.instantiate(ds_cfg, model_transform=self._tokenizer)
             iterable_datasets.append(ds)
-            weights.append(ds_cfg.get("weight", 1.0))
 
         # 2. Interleave datasets if any
         if len(iterable_datasets) > 1:
             ds = InterleavedDataset(
                 datasets=iterable_datasets,
-                weights=weights,
                 seed=self.seed,
             )
         else:

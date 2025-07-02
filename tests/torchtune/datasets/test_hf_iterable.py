@@ -105,13 +105,18 @@ class TestHfIterableDataset:
 
         # Should generate name from path and split
         assert dataset.dataset_name == "json_train"
+        # Test default sampling weight
+        assert dataset.sampling_weight == 1.0
+        assert isinstance(dataset.sampling_weight, float)
 
-        # Test giving a name
+        # Test giving a name and custom weight
+        custom_weight = 2.5
         dataset2 = HfIterableDataset(
             path="json",
             data_files=small_dataset_file,
             split="train",
             dataset_name="my_dataset",
+            weight=custom_weight,
             seed=SEED,
             metric_transform=DefaultTrainingMetricTransform(),
             num_shards_per_rank=4,
@@ -119,6 +124,8 @@ class TestHfIterableDataset:
 
         # Should generate name from path and split
         assert dataset2.dataset_name == "my_dataset"
+        # Test custom sampling weight
+        assert dataset2.sampling_weight == custom_weight
 
     @pytest.mark.parametrize("num_epochs", [0.5, 1.0, 2.5])
     def test_epoch_boundaries_and_checkpointing(
@@ -198,9 +205,11 @@ class TestHfIterableDataset:
         first_epoch_samples = epoch_samples[:SMALL_DATASET_SIZE]
         second_epoch_samples = epoch_samples[SMALL_DATASET_SIZE:]
 
-        # Shuffled epochs should have different order
+        # Extract IDs for comparison
         first_epoch_ids = [sample["id"] for sample in first_epoch_samples]
         second_epoch_ids = [sample["id"] for sample in second_epoch_samples]
+
+        # Shuffled epochs should have different order
         assert first_epoch_ids != list(
             range(SMALL_DATASET_SIZE)
         ), f"Shuffled should not be sorted, got {first_epoch_ids}"
