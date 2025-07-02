@@ -29,7 +29,7 @@ def qwen2_5_vl_3b(
     image_size: int = 336,
 ) -> Qwen25VL:
     """
-    Builder for creating a Qwen2.5-VL 3B base model with vision capabilities.
+    Builder for creating a Qwen2.5-VL 3B instruct model with vision capabilities.
     
     Args:
         decoder_trainable (bool): Whether the language model decoder should be trainable. Default: False
@@ -92,7 +92,7 @@ def qwen2_5_vl_7b(
     image_size: int = 336,
 ) -> Qwen25VL:
     """
-    Builder for creating a Qwen2.5-VL 7B base model with vision capabilities.
+    Builder for creating a Qwen2.5-VL 7B instruct model with vision capabilities.
     
     Args:
         decoder_trainable (bool): Whether the language model decoder should be trainable. Default: False
@@ -150,7 +150,7 @@ def qwen2_5_vl_7b(
         fusion_trainable=fusion_trainable,
     )
 
-def qwen2_5_vl_72b(
+def qwen2_5_vl_32b(
     *,
     decoder_trainable: bool = True,
     encoder_trainable: bool = False,
@@ -158,7 +158,7 @@ def qwen2_5_vl_72b(
     image_size: int = 336,
 ) -> Qwen25VL:
     """
-    Builder for creating a Qwen2.5-VL 72B base model with vision capabilities.
+    Builder for creating a Qwen2.5-VL 32B instruct model with vision capabilities.
     
     Args:
         decoder_trainable (bool): Whether the language model decoder should be trainable. Default: False
@@ -174,10 +174,76 @@ def qwen2_5_vl_72b(
         embed_dim=1280,
         num_layers=32,
         activation=nn.SiLU(),
-        intermediate_size=3420,
+        intermediate_size=3456,
         num_heads=16,
         in_channels=3,
-        out_hidden_size=3584,
+        out_hidden_size=5120,
+        patch_size=14,
+        spatial_merge_size=2,
+        window_size=112,
+        full_att_block_indexes=[7, 15, 23, 31],
+        temporal_patch_size=2,
+    )
+
+    decoder = qwen2_5_vl_decoder(
+        vocab_size=152064, 
+        num_layers=64,
+        num_kv_heads=8, 
+        embed_dim=5120,
+        intermediate_dim=27648,
+        max_seq_len=32768,
+        attn_dropout=0.0,
+        rope_base=1000000.0,
+        norm_eps=1e-6,
+        mrope_section=[16, 24, 24],
+        tie_word_embeddings=False,
+    )
+
+    return Qwen25VL(
+        decoder=decoder,
+        encoders={"image": encoder},
+        encoder_tokens={
+            "image": QWEN2_5_SPECIAL_TOKENS["<|image_pad|>"],
+        },
+        image_token_id=QWEN2_5_SPECIAL_TOKENS["<|image_pad|>"],
+        vision_start_token_id=QWEN2_5_SPECIAL_TOKENS["<|vision_start|>"],
+        spatial_merge_size=2,
+        tokens_per_second=2,  
+        encoders_trainable={
+            "image": encoder_trainable,
+        },
+        decoder_trainable=decoder_trainable,
+        fusion_trainable=fusion_trainable,
+    )
+
+def qwen2_5_vl_72b(
+    *,
+    decoder_trainable: bool = True,
+    encoder_trainable: bool = False,
+    fusion_trainable: bool = True,
+    image_size: int = 336,
+) -> Qwen25VL:
+    """
+    Builder for creating a Qwen2.5-VL 72B instruct model with vision capabilities.
+    
+    Args:
+        decoder_trainable (bool): Whether the language model decoder should be trainable. Default: False
+        encoder_trainable (bool): Whether the vision encoder should be trainable. Default: False
+        fusion_trainable (bool): Whether the fusion layers should be trainable. Default: False
+        image_size (int): Input image size for the vision encoder. Default: 336
+        
+    Returns:
+        Qwen25VLEarlyFusionModel: Qwen2.5-VL 72B model instance
+    """
+
+    encoder = qwen2_5_vision_encoder(
+        embed_dim=1280,
+        num_layers=32,
+        activation=nn.SiLU(),
+        intermediate_size=3456,
+        num_heads=16,
+        in_channels=3,
+        out_hidden_size=8192,
         patch_size=14,
         spatial_merge_size=2,
         window_size=112,
@@ -189,7 +255,7 @@ def qwen2_5_vl_72b(
         vocab_size=152064, 
         num_layers=80,
         num_kv_heads=8, 
-        embed_dim=3584,
+        embed_dim=8192,
         intermediate_dim=29568,
         max_seq_len=32768,
         attn_dropout=0.0,
