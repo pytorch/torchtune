@@ -8,6 +8,7 @@ from typing import List, Optional
 import torch
 from torch import nn
 import torch.nn.functional as F
+import os
 
 from torchtune.modules.transformer import _get_clones
 from torchtune.modules.model_fusion import register_fusion_module
@@ -158,7 +159,9 @@ class Qwen2_5_VisionTransformer(nn.Module):
             `torch.Tensor`: hidden_states.
         """
         hidden_states = self.patch_embed(hidden_states)
+
         rope_index = self.get_rope_index(grid_thw)
+
         window_index, cu_window_seqlens = self.get_window_index(grid_thw)
         cu_window_seqlens = torch.tensor(
             cu_window_seqlens,
@@ -191,7 +194,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
             for i in range(1, len(cu_seqlens_now)):
                 attention_mask[..., cu_seqlens_now[i - 1] : cu_seqlens_now[i], cu_seqlens_now[i - 1] : cu_seqlens_now[i]] = 0
 
-            hidden_states = blk(hidden_states, input_pos=rope_index, mask=attention_mask)
+            hidden_states = blk(hidden_states, input_pos=rope_index, mask=attention_mask, window_index=window_index)
 
         hidden_states = self.merger(hidden_states)
         reverse_indices = torch.argsort(window_index)

@@ -2,6 +2,7 @@ from typing import Optional, List, Tuple
 
 import torch
 from torch import nn
+import os
 
 
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
@@ -204,34 +205,34 @@ class Qwen2_5_VisionRotaryEmbedding(nn.Module):
             - h_d: head dim
         """
         # input tensor has shape [b, s, n_h, h_d]
-        seq_len = x.size(1)
+        seq_len = x.size(1) # [1, 1024, 16, 80]
 
         # extract the values based on whether input_pos is set or not
         rope_cache = (
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )
         # merge height and width into one dimension
-        rope_cache = rope_cache.flatten(1) # [s, h_d, 2]
+        rope_cache = rope_cache.flatten(1) # [s, h_d]
 
         # rearrange indices to match window index
+        assert window_index is not None
         rope_cache = rope_cache.reshape(seq_len // self.spatial_merge_unit, self.spatial_merge_unit, -1)
         rope_cache = rope_cache[window_index, :, :]
         rope_cache = rope_cache.reshape(seq_len, -1)
 
         # reshape input; the last dimension is used for computing the output.
-        # Cast to float to match the reference implementation
-        # tensor has shape [b, s, n_h, h_d // 2, 2]
-        xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
+        x_float = x.float()
+        half_dim = x_float.shape[-1] // 2
+        x1 = x_float[..., :half_dim]
+        x2 = x_float[..., half_dim:]
+        xshaped = torch.stack([x1, x2], dim=-1)
 
         # reshape the cache for broadcasting
-        # tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,
-        # otherwise has shape [1, s, 1, h_d // 2, 2]
         rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
 
-        # tensor has shape [b, s, n_h, h_d // 2, 2]
         x_out = torch.stack(
             [
-                xshaped[..., 0] * rope_cache[..., 0]
+                xshaped[..., 0] * rope_cache[..., 0] 
                 - xshaped[..., 1] * rope_cache[..., 1],
                 xshaped[..., 1] * rope_cache[..., 0]
                 + xshaped[..., 0] * rope_cache[..., 1],

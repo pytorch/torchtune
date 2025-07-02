@@ -95,7 +95,7 @@ class Qwen2_5_VLImageTransform:
         size: Optional[Dict[str, int]] = None,
         min_pixels: Optional[int] = None,
         max_pixels: Optional[int] = None,
-        dtype: torch.dtype = torch.bfloat16,
+        dtype: torch.dtype = torch.float32,
         resample: str = "bicubic",
     ) -> None:
         self.patch_size = patch_size
@@ -262,7 +262,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         max_seq_len: Optional[int] = None,
         image_mean: Optional[List[float]] = None,
         image_std: Optional[List[float]] = None,
-        dtype: torch.dtype = torch.bfloat16,
+        dtype: torch.dtype = torch.float32,
         prompt_template: Optional[_TemplateType] = None,
     ):
         special_tokens = (
