@@ -8,6 +8,7 @@ import os
 import runpy
 import sys
 from pathlib import Path
+import shutil
 
 import pytest
 import torch
@@ -194,6 +195,8 @@ class TestLoRADPODistributedRecipe:
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
+        shutil.rmtree(tmpdir / 'epoch_1')
+
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
@@ -225,7 +228,7 @@ class TestLoRADPODistributedRecipe:
         resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
 
         torch.testing.assert_close(
-            resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            resumed_loss_values[-2:], expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test

@@ -741,8 +741,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     # Accumulate running metrics across all devices
                     torch.distributed.all_reduce(running_loss)
 
-                    # if num_tokens.device.type == "cpu":
-                    #     num_tokens = num_tokens.to(self._device)
+                    if num_tokens.device.type != self._device.type:
+                        num_tokens = num_tokens.to(self._device)
 
                     torch.distributed.all_reduce(num_tokens)
 
