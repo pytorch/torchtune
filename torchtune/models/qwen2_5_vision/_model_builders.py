@@ -9,13 +9,13 @@ import torch.nn as nn
 from torchtune.data._prompt_templates import _TemplateType
 
 from torchtune.models.qwen2_5_vision._component_builders import (
-    qwen2_5_vl_text_decoder,
+    qwen2_5_vl_decoder,
     qwen2_5_vision_encoder,
 )
 
 from torchtune.models.qwen2_5_vision._transform import Qwen2_5_VLTransform
 from torchtune.models.qwen2_5._tokenizer import QWEN2_5_SPECIAL_TOKENS
-from torchtune.models.qwen2_5_vision._mrope_early_fusion import Qwen25VLEarlyFusionModel
+from torchtune.models.qwen2_5_vision._fusion import Qwen25VL
 
 """
 Model builders build specific instantiations using component builders. 
@@ -27,7 +27,7 @@ def qwen2_5_vl_3b(
     encoder_trainable: bool = True,
     fusion_trainable: bool = False,
     image_size: int = 336,
-) -> Qwen25VLEarlyFusionModel:
+) -> Qwen25VL:
     """
     Builder for creating a Qwen2.5-VL 3B base model with vision capabilities.
     
@@ -53,7 +53,7 @@ def qwen2_5_vl_3b(
         temporal_patch_size=2,
     )
 
-    decoder = qwen2_5_vl_text_decoder(
+    decoder = qwen2_5_vl_decoder(
         vocab_size=152064, 
         num_layers=36,
         num_kv_heads=2, 
@@ -67,7 +67,7 @@ def qwen2_5_vl_3b(
         tie_word_embeddings=True,
     )
 
-    return Qwen25VLEarlyFusionModel(
+    return Qwen25VL(
         decoder=decoder,
         encoders={"image": encoder},
         encoder_tokens={
@@ -90,7 +90,7 @@ def qwen2_5_vl_7b(
     encoder_trainable: bool = True,
     fusion_trainable: bool = False,
     image_size: int = 336,
-) -> Qwen25VLEarlyFusionModel:
+) -> Qwen25VL:
     """
     Builder for creating a Qwen2.5-VL 7B base model with vision capabilities.
     
@@ -119,7 +119,7 @@ def qwen2_5_vl_7b(
         temporal_patch_size=2,
     )
 
-    decoder = qwen2_5_vl_text_decoder(
+    decoder = qwen2_5_vl_decoder(
         vocab_size=152064, 
         num_layers=28,
         num_kv_heads=4, 
@@ -133,7 +133,7 @@ def qwen2_5_vl_7b(
         tie_word_embeddings=False,
     )
 
-    return Qwen25VLEarlyFusionModel(
+    return Qwen25VL(
         decoder=decoder,
         encoders={"image": encoder},  
         encoder_tokens={
@@ -156,7 +156,7 @@ def qwen2_5_vl_72b(
     encoder_trainable: bool = True,
     fusion_trainable: bool = False,
     image_size: int = 336,
-) -> Qwen25VLEarlyFusionModel:
+) -> Qwen25VL:
     """
     Builder for creating a Qwen2.5-VL 72B base model with vision capabilities.
     
@@ -185,7 +185,7 @@ def qwen2_5_vl_72b(
         temporal_patch_size=2,
     )
 
-    decoder = qwen2_5_vl_text_decoder(
+    decoder = qwen2_5_vl_decoder(
         vocab_size=152064, 
         num_layers=80,
         num_kv_heads=8, 
@@ -199,7 +199,7 @@ def qwen2_5_vl_72b(
         tie_word_embeddings=False,
     )
 
-    return Qwen25VLEarlyFusionModel(
+    return Qwen25VL(
         decoder=decoder,
         encoders={"image": encoder},
         encoder_tokens={

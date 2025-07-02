@@ -6,7 +6,7 @@ from ._model_builders import (
 )
 
 from ._component_builders import (
-    qwen2_5_vl_text_decoder,
+    qwen2_5_vl_decoder,
     qwen2_5_vision_encoder,
 )
 
@@ -21,7 +21,7 @@ from ._collate import qwen2_5_vl_padded_collate_images
 from ._convert_weights import qwen2_5_vl_hf_to_tune
 
 __all__ = [
-    "qwen2_5_vl_text_decoder",
+    "qwen2_5_vl_decoder",
     "qwen2_5_vision_encoder",
     "qwen2_5_vl_72b",
     "qwen2_5_vl_7b",

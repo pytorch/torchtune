@@ -4,7 +4,7 @@ from torch import nn
 from torchtune.modules.model_fusion._early_fusion import EarlyFusionModel
 from torchtune.modules import TransformerDecoder
 
-class Qwen25VLEarlyFusionModel(EarlyFusionModel):
+class Qwen25VL(EarlyFusionModel):
     """
     Extended EarlyFusionModel for Qwen2.5-VL that handles multimodal position encoding.
     Integrates the get_rope_index() functionality to compute 3D position IDs for 

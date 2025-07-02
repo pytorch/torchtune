@@ -32,7 +32,7 @@ stitch these building blocks into higher-level components.
 """
 
 
-def qwen2_5_vl_text_decoder(
+def qwen2_5_vl_decoder(
     vocab_size: int = 152064,
     num_layers: int = 28,
     num_heads: int = 28,
@@ -47,9 +47,7 @@ def qwen2_5_vl_text_decoder(
     tie_word_embeddings: bool = False,
 ) -> TransformerDecoder:
     """
-    Build the text decoder for Qwen2.5-VL model following TorchTune patterns.
-    
-    This builds a standard transformer decoder with multimodal RoPE (M-RoPE)
+    same architecture as Qwen 2.5 text decoder, just with multimodal RoPE (M-RoPE)
     for handling 3D position embeddings in vision-language sequences.
     
     Args:
