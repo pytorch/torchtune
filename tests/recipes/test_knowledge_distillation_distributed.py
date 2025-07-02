@@ -47,6 +47,7 @@ class TestKDDistributedRecipe:
             f"epochs={epochs}",
             "dtype=fp32",
             "max_steps_per_epoch=2",
+            "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=1",

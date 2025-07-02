@@ -238,6 +238,18 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             model_state_dict=teacher_checkpoint_dict[training.MODEL_KEY],
         )
 
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        self._logger.info("Tokenizer is initialized from file.")
+
+        self._optimizer = self._setup_optimizer(
+            cfg_optimizer=cfg.optimizer,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if training.OPT_KEY in checkpoint_dict
+                else None
+            ),
+        )
+
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
             # using the DistributedCheckpointer.
@@ -258,18 +270,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-
-        self._tokenizer = config.instantiate(cfg.tokenizer)
-        self._logger.info("Tokenizer is initialized from file.")
-
-        self._optimizer = self._setup_optimizer(
-            cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
-        )
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
