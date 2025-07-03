@@ -144,11 +144,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             cfg.device, offload_ops_to_cpu=True
         )
 
-        self._logger = utils.get_logger(cfg.log_level)
-        self._logger.info(f'{self.distributed_backend=}')
-        self._logger.info(f'{self.fsdp_cpu_offload=}')
-        self._logger.info(f'{self._enable_async_checkpointing=}')
-        init_process_group(self.distributed_backend, timeout=timedelta(seconds=20))
+        init_process_group(self.distributed_backend)
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
@@ -161,6 +157,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self.save_every_n_steps = cfg.get("save_every_n_steps")
+        self._logger = utils.get_logger(cfg.log_level)
         
 
         if (

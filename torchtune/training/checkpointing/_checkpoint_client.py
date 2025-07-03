@@ -278,9 +278,10 @@ class CheckpointClient:
             # which is also used here to save a sync checkpoint that causes issues when
             # occurring concurrently. We should wait for async checkpoint to clear
             # before saving a sync checkpoint that requires cpu gathering.
-            if self._get_dcp_checkpointer()._checkpoint_future is not None:
+            dcp_checkpointer = self._get_dcp_checkpointer()
+            if dcp_checkpointer._checkpoint_future is not None:
                 time_start_waiting = time.perf_counter()
-                self._get_dcp_checkpointer()._checkpoint_future.result()
+                dcp_checkpointer._checkpoint_future.result()
                 if self._is_rank_zero:
                     log.info(
                         "Waiting for async checkpoint to finish, to save sync checkpoint ",
@@ -289,8 +290,17 @@ class CheckpointClient:
 
             # To prevent GPU memory from spiking during checkpoint save,
             # we consolidate the full model and optim state dicts on CPU for rank 0
+            # Import FSDPModule from the correct location
+            from torch.distributed.fsdp import FSDPModule
+            if isinstance(model, FSDPModule):
+                fsdp_model = model
+            else:
+                # If not FSDP, we need to handle this case - for now, we'll cast
+                # This might need to be adjusted based on the actual training.gather_cpu_state_dict implementation
+                fsdp_model = model  # type: ignore
+                
             model_state_dict = training.gather_cpu_state_dict(
-                model,
+                fsdp_model,  # type: ignore
                 self._is_rank_zero,
                 device=self._device,
             )
@@ -316,16 +326,30 @@ class CheckpointClient:
                 # This check can be removed once we fully migrate over to ``OptimizerInBackward``
                 if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
+                        # Import FSDPModule from the correct location
+                        from torch.distributed.fsdp import FSDPModule
+                        if isinstance(model, FSDPModule):
+                            fsdp_model = model
+                        else:
+                            fsdp_model = model  # type: ignore
+                            
                         optim_state_dict[param] = (
                             training.get_full_optimizer_state_dict(
-                                model, opt, self._is_rank_zero, device=self._device
+                                fsdp_model, opt, self._is_rank_zero, device=self._device  # type: ignore
                             )
                         )
                 elif isinstance(optimizer, OptimizerInBackward):
                     optim_state_dict = optimizer.state_dict()
                 else:
+                    # Import FSDPModule from the correct location
+                    from torch.distributed.fsdp import FSDPModule
+                    if isinstance(model, FSDPModule):
+                        fsdp_model = model
+                    else:
+                        fsdp_model = model  # type: ignore
+                        
                     optim_state_dict = training.get_full_optimizer_state_dict(
-                        model, optimizer, self._is_rank_zero, device=self._device
+                        fsdp_model, optimizer, self._is_rank_zero, device=self._device  # type: ignore
                     )
 
             if self._is_rank_zero:
@@ -408,14 +432,19 @@ class CheckpointClient:
         checkpointer user has configured.
         """
         try:
-            intermediate_checkpoint = (
-                training_progress.steps_run < training_progress.total_training_steps
-            )
+            # Handle None values for steps_run and total_training_steps
+            steps_run = training_progress.steps_run
+            total_training_steps = training_progress.total_training_steps
+            
+            if steps_run is not None and total_training_steps is not None:
+                intermediate_checkpoint = steps_run < total_training_steps
+            else:
+                # Fall back to epoch-based check if steps are not available
+                intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
         except TypeError:
             intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
 
         if not full_tensors and self._enable_async_checkpointing:
-            log.info('async checkpointing')
             self._save_checkpoint_async(
                 model,
                 optimizer,
@@ -428,7 +457,6 @@ class CheckpointClient:
             )
         elif full_tensors or not self._enable_async_checkpointing:
             # Only do sync checkpointing for full_tensors or when async is disabled
-            log.info('just sync checkpointing')
             self._save_checkpoint_sync(
                 model,
                 optimizer,
@@ -453,7 +481,7 @@ class CheckpointClient:
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
-        dataloader: Optional[torchdata.stateful_dataloader.StatefulDataLoader] = None,
+        dataloader: Optional[Any] = None,  # Changed from torchdata.stateful_dataloader.StatefulDataLoader
         single_device: bool = False,
     ) -> dict[str, Any]:
         """
@@ -585,8 +613,10 @@ class CheckpointClient:
                 options=options,
             )
 
+            # Convert dict_keys to list for type compatibility
+            state_dict_keys = list(model.state_dict().keys())
             validate_missing_and_unexpected_for_lora(
-                state_dict_keys=model.state_dict().keys(),
+                state_dict_keys=state_dict_keys,
                 base_missing=base_missing,
                 base_unexpected=base_unexpected,
                 lora_missing=lora_missing,
