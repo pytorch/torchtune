@@ -7,12 +7,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Iterator
 
-from torch.utils.data import IterableDataset
-
-
-class TuneIterableDataset(IterableDataset, ABC):
-    """
-    Abstract base class for all torchtune iterable datasets.
+class TuneIterableDataset(ABC):
+    """Abstract base class for all torchtune iterable datasets.
     It defines the minimal, consistent interface required for all dataset
     implementations to ensure they are compatible with the training loop,
     checkpointing, and metric logging systems.
@@ -25,22 +21,19 @@ class TuneIterableDataset(IterableDataset, ABC):
         pass
 
     @property
-    @abstractmethod
     def sampling_weight(self) -> float | dict[str, float]:
-        """
-        Returns the sampling weight for this dataset when used in multi-dataset scenarios.
+        """Returns the sampling weight for this dataset, especially useful in multi-dataset scenarios.
         
         For leaf datasets: returns a float representing the relative weight.
         For composite datasets: returns a dict mapping child dataset names to their weights.
-        Used by interleaving logic to determine sampling probabilities.
         """
-        pass
+        return 1.0
 
     @abstractmethod
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        """
-        Returns an infinite iterator over the dataset. Each implementation is responsible
-        for its own iteration logic, including shuffling and making it an infinite stream.
+        """Returns an infinite iterator over the dataset. Each implementation is responsible
+        for its own iteration logic, including shuffling, distribution of data across ranks,
+        and making it an infinite stream.
         """
         pass
 
