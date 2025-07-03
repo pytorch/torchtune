@@ -25,7 +25,10 @@ from torchtune.modules.peft import (
     get_merged_lora_ckpt,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.training.checkpointing._checkpointer import DistributedCheckpointer
+from torchtune.training.checkpointing._checkpointer import (
+    DistributedCheckpointer,
+    FullModelHFCheckpointer,
+)
 from torchtune.training.memory import OptimizerInBackwardWrapper
 
 log = utils.get_logger("DEBUG")
@@ -232,8 +235,12 @@ class CheckpointClient:
         """
         intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
         checkpointer = self._get_checkpointer()
-        is_not_distributed_checkpointer = not isinstance(
+        is_distributed_checkpointer = isinstance(
             checkpointer, DistributedCheckpointer
+        ) or (
+            isinstance(checkpointer, FullModelHFCheckpointer)
+            and checkpointer._enable_dcp
+            and checkpointer._intermediate_hf_dir_dcp is not None
         )
 
         # final dict passed onto the checkpointer
@@ -248,7 +255,7 @@ class CheckpointClient:
         model_state_dict = {}
         optim_state_dict = {}
 
-        if is_not_distributed_checkpointer and not single_device:
+        if not is_distributed_checkpointer and not single_device:
             # this logic is needed because staging an async checkpoint needs cpu
             # which is also used here to save a sync checkpoint that causes issues when
             # occurring concurrently. We should wait for async checkpoint to clear
@@ -274,7 +281,7 @@ class CheckpointClient:
                 log.info(
                     f"Getting full model state dict took {time.perf_counter() - cp_start:.2f} secs"
                 )
-        elif is_not_distributed_checkpointer:
+        elif not is_distributed_checkpointer:
             model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
         else:
             model_state_dict = model.state_dict()
@@ -284,7 +291,7 @@ class CheckpointClient:
                 log.info("Getting optimizer state dict...")
                 optim_start = time.perf_counter()
 
-            if is_not_distributed_checkpointer:
+            if not is_distributed_checkpointer:
                 # This check can be removed once we fully migrate over to ``OptimizerInBackward``
                 if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
@@ -348,7 +355,7 @@ class CheckpointClient:
 
         # Now that we have the model and optim state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
-        if is_not_distributed_checkpointer and not single_device:
+        if not is_distributed_checkpointer and not single_device:
             if self._is_rank_zero:
                 _save_checkpoint_helper()
 
