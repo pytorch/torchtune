@@ -3,7 +3,6 @@ from ._model_builders import (
     qwen2_5_vl_32b,
     qwen2_5_vl_7b,
     qwen2_5_vl_3b,
-    qwen2_5_vl_transform,
 )
 
 from ._component_builders import (
@@ -28,7 +27,6 @@ __all__ = [
     "qwen2_5_vl_32b",
     "qwen2_5_vl_7b",
     "qwen2_5_vl_3b",
-    "qwen2_5_vl_transform",
     "Qwen25VLRotaryPositionalEmbeddings",
     "Qwen25VisionRotaryPositionalEmbeddings",
     "Qwen2_5_VLTransform",
