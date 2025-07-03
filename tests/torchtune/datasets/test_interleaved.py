@@ -107,10 +107,16 @@ class TestInterleavedDataset:
         with pytest.raises(ValueError, match="Duplicate dataset names detected"):
             InterleavedDataset(datasets=[ds1, ds2], seed=SEED)
 
-        # Test weight normalization (should work with warning)
+        # Test nested interleaved datasets are rejected
         ds3 = dataset_factory(small_dataset_file, dataset_name="ds3", weight=0.5)
         ds4 = dataset_factory(small_dataset_file, dataset_name="ds4", weight=1.5)
+        nested_interleaved = InterleavedDataset([ds3, ds4], seed=SEED, dataset_name="nested")
+        
+        with pytest.raises(ValueError, match="returned a dict for sampling_weight"):
+            # This should fail because nested_interleaved.sampling_weight returns a dict
+            InterleavedDataset([nested_interleaved, ds3], seed=SEED)
 
+        # Test weight normalization (should work with warning)
         with patch("logging.Logger.warning") as mock_warning:
             interleaved = InterleavedDataset(
                 datasets=[ds3, ds4],

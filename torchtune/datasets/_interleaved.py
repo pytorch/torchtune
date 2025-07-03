@@ -68,13 +68,16 @@ class InterleavedDataset(TuneIterableDataset):
         self._sampling_log: deque[tuple[int, str]] = deque(maxlen=self._sampling_log_maxlen)
         self._iteration_count = 0
 
-        # Extract weights from datasets' sampling_weight property
+        # Extract weights from child datasets
         weights = []
         for ds in datasets:
             weight = ds.sampling_weight
             if isinstance(weight, dict):
-                # For composite datasets, sum up their weights
-                weight = sum(weight.values())
+                raise ValueError(
+                    f"Child dataset '{ds.dataset_name}' returned a dict for sampling_weight, "
+                    f"indicating it's a composite dataset (likely InterleavedDataset). "
+                    f"Nested interleaving is not supported. Please flatten the dataset hierarchy."
+                )
             weights.append(weight)
 
         # Normalize weights to sum to 1
