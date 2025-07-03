@@ -58,7 +58,6 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         self.rope_init()
 
     def rope_init(self) -> None:
-        # standard RoPE: inv_freq[i] = 1 / base^(2i / head_dim)
         theta = 1.0 / (
             self.base
             ** (
@@ -70,11 +69,11 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         self.register_buffer("theta", theta, persistent=False)
         self.attention_scaling = attention_scaling
 
-        self._build_cache("time", self.max_seq_len)
-        self._build_cache("height", self.max_height)
-        self._build_cache("width", self.max_width)
+        self.build_rope_cache("time", self.max_seq_len)
+        self.build_rope_cache("height", self.max_height)
+        self.build_rope_cache("width", self.max_width)
 
-    def _build_cache(self, name: str, length: int):
+    def build_rope_cache(self, name: str, length: int):
         # positions 0…length-1
         p = torch.arange(length, device=self.theta.device, dtype=self.theta.dtype)
         # [length, head_dim/2]
@@ -143,7 +142,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         x_out = (x * cos) + (rotate_half(x) * sin)
         return x_out.to(x.dtype)
 
-class Qwen2_5_VisionRotaryEmbedding(nn.Module):
+class Qwen25VisionRotaryPositionalEmbeddings(nn.Module):
     """
     2D Rope for Qwen 2.5 VL's Vision Transformer
 
@@ -169,7 +168,7 @@ class Qwen2_5_VisionRotaryEmbedding(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self.spatial_merge_unit = spatial_merge_unit # TODO: should this be an attr or just merge size
+        self.spatial_merge_unit = spatial_merge_unit
         self.rope_init()
 
     def rope_init(self):

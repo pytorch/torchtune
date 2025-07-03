@@ -22,7 +22,7 @@ from torchtune.modules import (
 )
 from torchtune.models.qwen2_5_vision._positional_embeddings import (
     Qwen25VLRotaryPositionalEmbeddings,
-    Qwen2_5_VisionRotaryEmbedding,
+    Qwen25VisionRotaryPositionalEmbeddings,
 )
 
 """
@@ -169,7 +169,7 @@ def qwen2_5_vision_encoder(
 
     head_dim = embed_dim // num_heads
 
-    rope = Qwen2_5_VisionRotaryEmbedding(head_dim // 2, spatial_merge_unit=spatial_merge_size**2)
+    rope = Qwen25VisionRotaryPositionalEmbeddings(head_dim // 2, spatial_merge_unit=spatial_merge_size**2)
     attn_bias = True
 
     self_attn = MultiHeadAttention(
