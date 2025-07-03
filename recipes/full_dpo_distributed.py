@@ -10,6 +10,7 @@ from functools import partial
 from typing import Any, Optional, Union
 from warnings import warn
 
+import hashlib
 import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
@@ -228,6 +229,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         """
         try:
             self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self.global_step = ckpt_dict[training.STEPS_KEY]
+            if torch.distributed.get_rank() == 0:
+                self._logger.info(f"{self.epochs_run=}")
+                self._logger.info(f"{self.global_step=}")
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -340,6 +345,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            dataloader_state_dict=(
+                checkpoint_dict[training.DATALOADER_KEY]
+                if training.DATALOADER_KEY in checkpoint_dict
+                else None
+            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -357,13 +367,19 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
 
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
             self.checkpoint_dir_prefix = "epoch"
         else:
             self.checkpoint_dir_prefix = "step"
+
+        if (
+            self._resume_from_checkpoint
+            and self.global_step % self._steps_per_epoch == 0
+        ):
+            list(self._dataloader)
+
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -660,6 +676,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -693,6 +710,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
+
         if self._is_rank_zero:
             self._logger.info("Dataset and Sampler are initialized.")
 
@@ -703,6 +723,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         epoch: int,
         full_tensors: bool,
     ) -> None:
+        training_progress_epoch = epoch
+        if self.global_step % self._steps_per_epoch == 0:
+            training_progress_epoch += 1
+
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=(
@@ -712,11 +736,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             ),
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=self.epochs_run,
+                epochs_run=training_progress_epoch,
                 total_epochs=self.total_epochs,
+                steps_run=self.global_step,
                 max_steps_per_epoch=self.max_steps_per_epoch,
+                dataloader_state_dict=self._dataloader.state_dict(),
             ),
             epoch=epoch,
+            single_device=False,
             full_tensors=full_tensors,
             dir_prefix=self.checkpoint_dir_prefix,
         )
@@ -982,7 +1009,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
 
         self._profiler.stop()
-        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+
+        self.save_checkpoint(epoch=self.total_epochs - 1, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

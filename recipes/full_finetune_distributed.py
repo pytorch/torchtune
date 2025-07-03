@@ -1141,8 +1141,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
 
         self._profiler.stop()
-        if not self._enable_async_checkpointing:
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+
+        self.save_checkpoint(epoch=self.total_epochs - 1, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
