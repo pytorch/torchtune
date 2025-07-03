@@ -11,6 +11,7 @@ from functools import partial
 from typing import Any, Optional, Union
 from warnings import warn
 
+import hashlib
 import torch
 from omegaconf import DictConfig, ListConfig
 
@@ -176,6 +177,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         """
         try:
             self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self.global_step = ckpt_dict[training.STEPS_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -311,6 +313,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            dataloader_state_dict=checkpoint_dict.get(training.DATALOADER_KEY, None),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -335,6 +338,12 @@ class KDRecipeDistributed(FTRecipeInterface):
             self.checkpoint_dir_prefix = "epoch"
         else:
             self.checkpoint_dir_prefix = "step"
+
+        if (
+            self._resume_from_checkpoint
+            and self.global_step % self._steps_per_epoch == 0
+        ):
+            list(self._dataloader)
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -632,6 +641,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -676,18 +686,26 @@ class KDRecipeDistributed(FTRecipeInterface):
             drop_last=True,
         )
 
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
+
         utils.log_rank_zero(self._logger, "Dataset and Sampler are initialized.")
 
         return dataloader
 
     def save_checkpoint(self, epoch: int, full_tensors: bool) -> None:
+        training_progress_epoch = epoch
+        if self.global_step % self._steps_per_epoch == 0:
+            training_progress_epoch += 1
+
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=self.epochs_run,
+                epochs_run=training_progress_epoch,
                 total_epochs=self.total_epochs,
+                steps_run=self.global_step,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
             ),
