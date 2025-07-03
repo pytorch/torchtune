@@ -201,31 +201,19 @@ class Qwen25VL(EarlyFusionModel):
             video_grid_thw (Optional[torch.LongTensor]): video grid dimensions  
             second_per_grid_ts (Optional[torch.Tensor]): time intervals for video grids
             attention_mask (Optional[torch.Tensor]): attention mask for computing positions
-            cache_position (Optional[torch.LongTensor]): cache positions for generation
-            past_key_values (Optional[List[torch.FloatTensor]]): past key values for generation
         """
-        
         # Compute multimodal position encoding if not provided
         if input_pos is None:
-            # Check if we're in prefill stage (first forward pass) or generation stage
-            prefill_stage = self.rope_deltas is None
+            position_ids, rope_deltas = self._get_rope_index(
+                input_ids=tokens,
+                image_grid_thw=image_grid_thw,
+                video_grid_thw=video_grid_thw,
+                second_per_grid_ts=second_per_grid_ts,
+                attention_mask=attention_mask,
+            )
+            self.rope_deltas = rope_deltas
             
-            if prefill_stage:
-                position_ids, rope_deltas = self._get_rope_index(
-                    input_ids=tokens,
-                    image_grid_thw=image_grid_thw,
-                    video_grid_thw=video_grid_thw,
-                    second_per_grid_ts=second_per_grid_ts,
-                    attention_mask=attention_mask,
-                )
-                self.rope_deltas = rope_deltas
-                
-                input_pos = position_ids # [3, B, L]
-            else:
-                batch_size, seq_length = tokens.shape
-                input_pos = torch.arange(seq_length, device=tokens.device)
-                input_pos = input_pos.view(1, -1).expand(batch_size, -1)
-                input_pos = input_pos.add(self.rope_deltas)
+            input_pos = position_ids # [3, B, L]
 
         return super().forward(
             tokens=tokens,
