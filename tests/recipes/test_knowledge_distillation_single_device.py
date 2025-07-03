@@ -226,7 +226,7 @@ class TestKDSingleDeviceRecipe:
         """.split()
         cmd_2 = (
             cmd_2
-            + self._get_test_config_overrides(epochs=3)
+            + self._get_test_config_overrides()
             + model_config
             + teacher_config
         )
@@ -235,14 +235,12 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        expected_loss_values = self._fetch_expected_loss_values("llama3")[2:]
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        # only take the first loss
-        num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
-        loss_values = loss_values[0::num_losses][:2]
+        expected_loss_values = self._fetch_expected_loss_values("llama3")
+        # because there're 3 losses: loss, class_loss, and kd_loss
+        loss_values = get_loss_values_from_metric_logger(log_file)[::3]
 
         torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+            loss_values[:2], expected_loss_values[2:], rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test

@@ -442,11 +442,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            dataloader_state_dict=(
-                state_dict[training.DATALOADER_KEY]
-                if training.DATALOADER_KEY in state_dict
-                else None
-            ),
+            dataloader_state_dict=state_dict.get(training.DATALOADER_KEY, None),
         )
 
         # Setup validation dataloader if validation dataset is provided
@@ -1141,8 +1137,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
 
         self._profiler.stop()
-        if not self._enable_async_checkpointing:
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+
+        self.save_checkpoint(epoch=self.total_epochs - 1, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
