@@ -4,7 +4,7 @@ from torchtune.data import left_pad_sequence, padded_collate_sft, CROSS_ENTROPY_
 
 def qwen2_5_vl_padded_collate_images(
     batch: List[Dict[str, Any]],
-    padding_idx: int = 151655,
+    padding_idx: int = 151643,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_direction: str = "right",
     pad_to_multiple_of: int = 1,
