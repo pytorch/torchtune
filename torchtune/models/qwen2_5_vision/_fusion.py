@@ -187,8 +187,6 @@ class Qwen25VL(EarlyFusionModel):
         video_grid_thw: Optional[torch.LongTensor] = None,
         second_per_grid_ts: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
-        cache_position: Optional[torch.LongTensor] = None,
-        past_key_values: Optional[List[torch.FloatTensor]] = None,
         **kwargs: Dict[str, Any],
     ) -> torch.Tensor:
         """
@@ -210,11 +208,7 @@ class Qwen25VL(EarlyFusionModel):
         # Compute multimodal position encoding if not provided
         if input_pos is None:
             # Check if we're in prefill stage (first forward pass) or generation stage
-            prefill_stage = (
-                (cache_position is not None and cache_position[0] == 0)
-                or (past_key_values is None or len(past_key_values) == 0)
-                or self.rope_deltas is None
-            )
+            prefill_stage = self.rope_deltas is None
             
             if prefill_stage:
                 position_ids, rope_deltas = self._get_rope_index(
@@ -229,16 +223,9 @@ class Qwen25VL(EarlyFusionModel):
                 input_pos = position_ids # [3, B, L]
             else:
                 batch_size, seq_length = tokens.shape
-                delta = (
-                    (cache_position[0] + self.rope_deltas).to(tokens.device)
-                    if cache_position is not None
-                    else 0
-                )
                 input_pos = torch.arange(seq_length, device=tokens.device)
                 input_pos = input_pos.view(1, -1).expand(batch_size, -1)
-                if cache_position is not None:
-                    delta = delta.repeat_interleave(batch_size // delta.shape[0], dim=0)
-                input_pos = input_pos.add(delta)
+                input_pos = input_pos.add(self.rope_deltas)
 
         return super().forward(
             tokens=tokens,

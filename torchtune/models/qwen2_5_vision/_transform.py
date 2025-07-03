@@ -5,10 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import torch
-from torchvision.transforms import v2, InterpolationMode
+from torchvision.transforms import InterpolationMode
 from torchvision.transforms.v2 import functional as F
 from PIL import Image
 import math
@@ -16,10 +16,9 @@ import math
 from torchtune.data import Message
 from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
 from torchtune.models.qwen2_5._tokenizer import Qwen2_5Tokenizer
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
-from torchtune.models.qwen2_5_vision._vision_utils import smart_resize
 
 logger = logging.getLogger(__name__)
 
