@@ -188,6 +188,7 @@ def qwen2_5_vl_32b(
     decoder = qwen2_5_vl_decoder(
         vocab_size=152064, 
         num_layers=64,
+        num_heads=40,
         num_kv_heads=8, 
         embed_dim=5120,
         intermediate_dim=27648,
@@ -254,6 +255,7 @@ def qwen2_5_vl_72b(
     decoder = qwen2_5_vl_decoder(
         vocab_size=152064, 
         num_layers=80,
+        num_heads=64,
         num_kv_heads=8, 
         embed_dim=8192,
         intermediate_dim=29568,
