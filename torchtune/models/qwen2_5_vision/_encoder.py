@@ -12,32 +12,6 @@ from torchtune.modules.transformer import _get_clones
 from torchtune.modules.model_fusion import register_fusion_module
 from torchtune.modules.rms_norm import RMSNorm
 
-class Qwen2_5_VisionMLP(nn.Module):
-    """
-    MLP for Qwen 2.5 Vision Transformer AND Decoder - bias is false in both
-    """
-
-    def __init__(
-        self,
-        *,
-        gate_proj: nn.Module,
-        down_proj: nn.Module,
-        up_proj: Optional[nn.Module] = None,
-        activation: nn.Module = nn.SiLU(),
-    ):
-        super().__init__()
-        self.gate_proj = gate_proj
-        self.down_proj = down_proj
-        self.up_proj = up_proj
-        self.act_fn = activation
-
-    def forward(self, x: torch.Tensor):
-        x_gate, _ = self.gate_proj(x)
-        x_gate = self.act_fn(x_gate)
-        x_up, _ = self.up_proj(x)
-        x_down, _ = self.down_proj(x_gate * x_up)
-        return x_down
-    
 
 class Qwen2_5_VisionPatchEmbed(nn.Module):
     def __init__(

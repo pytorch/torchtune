@@ -10,7 +10,6 @@ from torch import nn
 from torchtune.models.qwen2_5_vision._encoder import (
     Qwen2_5_VisionPatchEmbed,
     Qwen2_5_VLPatchMerger,
-    Qwen2_5_VisionMLP,
     Qwen2_5_VisionTransformer,
 )
 from torchtune.modules import (
@@ -137,6 +136,7 @@ def qwen2_5_vl_text_decoder(
     )
 
 
+
 def qwen2_5_vision_encoder(
     embed_dim: int,
     num_layers: int,
@@ -178,12 +178,11 @@ def qwen2_5_vision_encoder(
         attn_dropout=0.0,
         is_causal=False,
     )
-    mlp = qwen2_5_vision_mlp(
-        in_dim=embed_dim,
-        hidden_dim=intermediate_size,
-        out_dim=embed_dim,
+    mlp = FeedForward(
+        gate_proj=nn.Linear(embed_dim, intermediate_size, bias=True),
+        down_proj=nn.Linear(intermediate_size, embed_dim, bias=True),
+        up_proj=nn.Linear(embed_dim, intermediate_size, bias=True),
         activation=activation(),
-        mlp_bias=True,
     )
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,

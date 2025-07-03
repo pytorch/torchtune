@@ -9,38 +9,35 @@ from typing import Dict
 import torch
 
 from torchtune.models.convert_weights import get_mapped_key
+from torchtune.models.qwen2._convert_weights import _FROM_HF as _FROM_HF_QWEN2
 
 # state dict key mappings from HF's format to torchtune's format
 _FROM_HF = {
-    "model.embed_tokens.weight": "tok_embeddings.weight",
-    "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
-    "model.layers.{}.self_attn.q_proj.bias": "layers.{}.attn.q_proj.bias",
-    "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
-    "model.layers.{}.self_attn.k_proj.bias": "layers.{}.attn.k_proj.bias",
-    "model.layers.{}.self_attn.v_proj.weight": "layers.{}.attn.v_proj.weight",
-    "model.layers.{}.self_attn.v_proj.bias": "layers.{}.attn.v_proj.bias",
-    "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attn.output_proj.weight",
-    "model.layers.{}.self_attn.rotary_emb.inv_freq": None,
-    "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
-    "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
-    "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
-    "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
-    "model.norm.weight": "norm.scale",
-    "lm_head.weight": "output.weight",
-    # TODO: Add vision weights
+    "visual.blocks.{}.attn.proj.bias": "visual.layers.{}.attn.output_proj.bias",
+    "visual.blocks.{}.attn.proj.weight": "visual.layers.{}.attn.output_proj.weight",
+    "visual.blocks.{}.attn.qkv.bias": "visual.layers.{}.attn.q_proj.bias",
+    "visual.blocks.{}.attn.qkv.weight": "visual.layers.{}.attn.q_proj.weight",
+    "visual.blocks.{}.mlp.down_proj.bias": "visual.layers.{}.mlp.w2.bias",
+    "visual.blocks.{}.mlp.down_proj.weight": "visual.layers.{}.mlp.w2.weight",
+    "visual.blocks.{}.mlp.gate_proj.bias": "visual.layers.{}.mlp.w1.bias",
+    "visual.blocks.{}.mlp.gate_proj.weight": "visual.layers.{}.mlp.w1.weight",
+    "visual.blocks.{}.mlp.up_proj.bias": "visual.layers.{}.mlp.w3.bias",
+    "visual.blocks.{}.mlp.up_proj.weight": "visual.layers.{}.mlp.w3.weight",
+    "visual.blocks.{}.norm1.weight": "visual.layers.{}.sa_norm.scale",
+    "visual.blocks.{}.norm2.weight": "visual.layers.{}.mlp_norm.scale",
+    "visual.merger.ln_q.weight": "visual.merger.ln_q.scale",
+    "visual.merger.mlp.{}.bias": "visual.merger.mlp.{}.bias",
+    "visual.merger.mlp.{}.weight": "visual.merger.mlp.{}.weight",
+    "visual.patch_embed.proj.weight": "visual.patch_embed.proj.weight"
 }
 
+_FROM_HF.update(_FROM_HF_QWEN2)
 
 QWEN2_TIED_KEY = "lm_head.weight"
 
 
-def qwen2_hf_to_tune(
+def qwen2_5_vl_hf_to_tune(
     state_dict: Dict[str, torch.Tensor],
-    num_heads: int = 32,
-    num_kv_heads: int = 32,
-    dim: int = 4096,
-    head_dim: int = None,
     tie_word_embeddings: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
@@ -64,29 +61,31 @@ def qwen2_hf_to_tune(
         Dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
-    if head_dim is None:
-        head_dim = dim // num_heads
 
     for key, value in state_dict.items():
-        if (
+        if "qkv" in key:
+            (
+                q,
+                k,
+                v,
+            ) = value.chunk(3, dim=0)
+            converted_state_dict[new_key] = q
+            converted_state_dict[new_key.replace("q_proj", "k_proj")] = k
+            converted_state_dict[new_key.replace("q_proj", "v_proj")] = v
+        elif (
             tie_word_embeddings and QWEN2_TIED_KEY in key
         ):  # Skip loading the output projection weights
             continue
-        if "rotary_emb.inv_freq" in key:  # Skip loading the position embeddings
+        elif "rotary_emb.inv_freq" in key:  # Skip loading the position embeddings
             continue
-
-        new_key = get_mapped_key(key, _FROM_HF)
-        converted_state_dict[new_key] = value
+        else:
+            new_key = get_mapped_key(key, _FROM_HF)
+            converted_state_dict[new_key] = value
     return converted_state_dict
 
 
-def qwen2_tune_to_hf(
+def qwen2_5_vl_tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
-    num_heads: int = 32,
-    num_kv_heads: int = 32,
-    dim: int = 4096,
-    head_dim: int = None,
-    tie_word_embeddings: bool = False,
 ):
     """
     Convert a state dict from torchtune's format to HF's format. This function
@@ -108,11 +107,16 @@ def qwen2_tune_to_hf(
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 
-    if head_dim is None:
-        head_dim = dim // num_heads
-
     for key, value in state_dict.items():
         new_key = get_mapped_key(key, inverted_mapping_dict)
-        converted_state_dict[new_key] = value
+        if "q_proj" in key:
+            q = value
+            k = state_dict[key.replace("q_proj", "k_proj")]
+            v = state_dict[key.replace("q_proj", "v_proj")]
+            qkv = torch.cat([q, k, v], dim=0)
+            # q_proj maps to qkv_proj; no need to string replace
+            converted_state_dict[new_key] = qkv
+        else:
+            converted_state_dict[new_key] = value
 
     return converted_state_dict
