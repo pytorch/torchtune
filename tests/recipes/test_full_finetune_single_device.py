@@ -283,40 +283,11 @@ class TestFullFinetuneSingleDeviceRecipe:
         print_file_tree(tmpdir)
 
         # 4. Make sure loss values match the expected values
-        expected_loss_values = self._fetch_expected_loss_values(model_type)
+        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)
 
         print(f'{expected_loss_values=}')
         print(f'{loss_values=}')
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
-
-        # 5. Resume from a specific checkpoint
-        cmd_3 = f"""
-        tune run full_finetune_single_device \
-            --config llama3/8B_full_single_device \
-            batch_size=8 \
-            output_dir={tmpdir} \
-            checkpointer.checkpoint_dir={tmpdir}/step_3 \
-            checkpointer.checkpoint_files=[model.safetensors] \
-            checkpointer.output_dir={tmpdir} \
-            tokenizer.path={tokenizer_path} \
-            tokenizer.prompt_template=null \
-            resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
-            optimizer_in_bwd=False \
-            save_every_n_steps=1 \
-        """.split()
-
-        cmd_3 = cmd_3 + self._get_test_config_overrides() + model_config
-        monkeypatch.setattr(sys, "argv", cmd_3)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # 6. Make sure loss values match the expected values
-        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
-        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )

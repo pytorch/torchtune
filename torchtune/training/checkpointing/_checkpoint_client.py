@@ -142,7 +142,7 @@ class CheckpointClient:
     ) -> None:
         """
         Checkpoint the training state asynchronously as a distributed checkpoint. Saving
-        asnchronously unblocks the training sooner to continue for the next epoch.
+        asynchronously unblocks the training sooner to continue for the next epoch.
         The constructed checkpoint state dict contains the following information:
         - Model weights with key training.MODEL_KEY
         - Relevant recipe state, including optimizer, if training is not complete

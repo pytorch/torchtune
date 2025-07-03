@@ -211,7 +211,7 @@ class TestFullDPODistributedRecipe:
             metric_logger.filename={resumed_log_file} \
             enable_async_checkpointing=True \
         """.split()
-        cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=1) + model_config
+        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
