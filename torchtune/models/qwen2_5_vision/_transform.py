@@ -15,7 +15,7 @@ import math
 
 from torchtune.data import Message
 from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
-from torchtune.models.qwen2_5._tokenizer import Qwen2_5Tokenizer
+from torchtune.models.qwen2_5_vision._tokenizer import Qwen2_5_VLTokenizer
 from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
@@ -256,10 +256,9 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             if prompt_template is not None
             else None
         )
-        self.tokenizer = Qwen2_5Tokenizer(
+        self.tokenizer = Qwen2_5_VLTokenizer(
             path=path,
             merges_file=merges_file,
-            #special_tokens=special_tokens,
             max_seq_len=max_seq_len,
             prompt_template=template,
         )
@@ -329,7 +328,6 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         Returns:
             str: The decoded string.
         """
-        # Handle truncate_at_eos manually since Qwen2_5Tokenizer doesn't support it
         if truncate_at_eos and self.tokenizer.eos_id in token_ids:
             eos_index = token_ids.index(self.tokenizer.eos_id)
             token_ids = token_ids[:eos_index]

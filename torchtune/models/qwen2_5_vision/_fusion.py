@@ -16,7 +16,6 @@ class Qwen25VL(EarlyFusionModel):
         decoder: TransformerDecoder,
         encoders: Dict[str, nn.Module],
         encoder_tokens: Dict[str, int],
-        # Qwen2.5-VL specific parameters
         image_token_id: int = 151655,
         video_token_id: int = 151656,
         vision_start_token_id: int = 151652, 
@@ -35,13 +34,12 @@ class Qwen25VL(EarlyFusionModel):
             fusion_trainable=fusion_trainable,
         )
         
-        # Qwen2.5-VL specific configuration
         self.image_token_id = image_token_id
         self.video_token_id = video_token_id  
         self.vision_start_token_id = vision_start_token_id
         self.spatial_merge_size = spatial_merge_size
         self.tokens_per_second = tokens_per_second
-        self.rope_deltas = None  # Cache for rope deltas
+        self.rope_deltas = None
 
     def _get_rope_index(
         self,
@@ -182,7 +180,6 @@ class Qwen25VL(EarlyFusionModel):
         mask: Optional[torch.Tensor] = None,
         encoder_input: Optional[Dict[str, Dict[str, Any]]] = None,
         input_pos: Optional[torch.Tensor] = None,
-        # Qwen2.5-VL specific parameters
         image_grid_thw: Optional[torch.LongTensor] = None,
         video_grid_thw: Optional[torch.LongTensor] = None,
         second_per_grid_ts: Optional[torch.Tensor] = None,
@@ -202,7 +199,6 @@ class Qwen25VL(EarlyFusionModel):
             second_per_grid_ts (Optional[torch.Tensor]): time intervals for video grids
             attention_mask (Optional[torch.Tensor]): attention mask for computing positions
         """
-        # Compute multimodal position encoding if not provided
         if input_pos is None:
             position_ids, rope_deltas = self._get_rope_index(
                 input_ids=tokens,

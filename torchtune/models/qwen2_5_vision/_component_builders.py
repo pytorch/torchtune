@@ -112,7 +112,7 @@ def qwen2_5_vl_decoder(
     # Create embeddings and output projection
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     if tie_word_embeddings:
-        output_proj = TiedLinear(embed_dim, vocab_size, bias=False)
+        output_proj = TiedLinear(tok_embeddings)
     else:
         output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     
