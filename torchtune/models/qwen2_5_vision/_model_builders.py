@@ -44,7 +44,7 @@ def qwen2_5_vl_3b(
         intermediate_size=3420,
         num_heads=16,
         in_channels=3,
-        out_hidden_size=3584,
+        out_hidden_size=2048,
         patch_size=14,
         spatial_merge_size=2,
         window_size=112,
@@ -53,11 +53,12 @@ def qwen2_5_vl_3b(
     )
 
     decoder = qwen2_5_vl_decoder(
-        vocab_size=152064, 
+        vocab_size=151936, 
         num_layers=36,
+        num_heads=16,
         num_kv_heads=2, 
-        embed_dim=3584,
-        intermediate_dim=4864,
+        embed_dim=2048,
+        intermediate_dim=11008,
         max_seq_len=32768,
         attn_dropout=0.0,
         rope_base=1000000.0,
