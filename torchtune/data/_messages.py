@@ -49,14 +49,15 @@ class Message:
 
         masked (bool): whether the message is masked in the sample. If True, do not use
             in loss calculation. Default: False
-        ipython (bool): whether the message is a tool call. Default: False
+        tool (bool): whether the message is a tool call. Default: False
+        tool_calls (Optional[list]): list of tool calls related to this message. Default: None
         eot (bool): whether the message corresponds to the end of a turn, where control is handed over
             to the assistant from the user or the user from the assistant. Default: True. Should be true
             in most cases except for:
 
             - For multiple consecutive assistant messages (i.e., tool calls
               by assistant), only the last assistant message will have ``eot=True``
-            - All ipython messages (tool call returns) should set ``eot=False``.
+            - All tool messages (tool call returns) should set ``eot=False``.
 
     Note:
         Message class expects any image content to be a ``torch.Tensor``, as output
@@ -68,13 +69,15 @@ class Message:
         role: Role,
         content: Union[str, list[dict[str, Any]]],
         masked: bool = False,
-        ipython: bool = False,
+        tool: bool = False,
+        tool_calls: Optional[list] = None,
         eot: bool = True,
     ):
         self.role = role
         self.content = self._convert_to_list_of_dict(content)
         self.masked = masked
-        self.ipython = ipython
+        self.tool = tool
+        self.tool_calls = tool_calls
         self.eot = eot
 
         self._validate_message()
@@ -106,7 +109,8 @@ class Message:
             role=d["role"],
             content=d["content"],
             masked=d.get("masked", False),
-            ipython=d.get("ipython", False),
+            tool_calls=d.get("tool_calls", []),
+            tool=d.get("tool", False),
             eot=d.get("eot", True),
         )
 
@@ -135,11 +139,12 @@ class Message:
         )
 
     def _validate_message(self) -> None:
-        if self.ipython and self.contains_media:
+        # Sometime existence of tool call is checked via self.tool_calls without self.tool.
+        if self.tool or self.tool_calls and self.contains_media:
             raise ValueError(
                 f"Media tokens in tool calls are not supported. Both are set in message: {self.text_content}"
             )
-        if self.ipython and self.role != "assistant":
+        if self.tool or self.tool_calls and self.role != "assistant":
             raise ValueError(
                 f"Only assistant messages can be tool calls. Found role {self.role} in message: {self.text_content}"
             )
