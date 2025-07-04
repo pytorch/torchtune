@@ -330,8 +330,34 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        def print_file_tree(start_path='.', indent=''):
+            for i, item in enumerate(sorted(os.listdir(start_path))):
+                path = os.path.join(start_path, item)
+                is_last = (i == len(os.listdir(start_path)) - 1)
+                pointer = '└── ' if is_last else '├── '
+                print(indent + pointer + item)
+                if os.path.isdir(path):
+                    extension = '    ' if is_last else '│   '
+                    print_file_tree(path, indent + extension)
+
+        print_file_tree(tmpdir)
+        print("BREAK")
+
         # Resume training
         shutil.rmtree(tmpdir / "epoch_1")
+
+        def print_file_tree(start_path='.', indent=''):
+            for i, item in enumerate(sorted(os.listdir(start_path))):
+                path = os.path.join(start_path, item)
+                is_last = (i == len(os.listdir(start_path)) - 1)
+                pointer = '└── ' if is_last else '├── '
+                print(indent + pointer + item)
+                if os.path.isdir(path):
+                    extension = '    ' if is_last else '│   '
+                    print_file_tree(path, indent + extension)
+
+        print_file_tree(tmpdir)
+        print("BREAK")
 
         cmd_2 = f"""
         tune run lora_finetune_single_device \
@@ -354,14 +380,14 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             enable_activation_offloading=False \
             enable_async_checkpointing=True \
         """.split()
-        cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
+        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        expected_loss_values = self._fetch_expected_loss_values("llama3")[2:]
-        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
+        expected_loss_values = self._fetch_expected_loss_values("llama3")
+        loss_values = get_loss_values_from_metric_logger(log_file)
 
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5

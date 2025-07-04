@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import hashlib
 import sys
 import time
 
@@ -38,6 +39,17 @@ from torchtune.training.checkpointing._checkpoint_client import (
 )
 
 from tqdm import tqdm
+
+
+def hash_batch(batch):
+    # Assume batch is a dict with 'labels' and data keys like 'input_ids' or 'tokens'
+    h = hashlib.sha256()
+    # Get the main data tensor (input_ids or tokens)
+    data = batch.get("input_ids", batch.get("tokens"))
+    labels = batch["labels"]
+    h.update(data.cpu().numpy().tobytes())
+    h.update(labels.cpu().numpy().tobytes())
+    return h.hexdigest()
 
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -676,25 +688,30 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         num_tokens = 0
                         t0 = time.perf_counter()
 
-                    # Stop tracking CUDA memory now that active steps are complete
-                    if (
-                        curr_epoch == 0
-                        and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
-                        and self._device.type == "cuda"
-                    ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        # Stop tracking CUDA memory now that active steps are complete
+                        if (
+                            curr_epoch == 0
+                            and self.profiler_profile_memory
+                            and idx
+                            == self.profiler_wait_steps
+                            + self.profiler_warmup_steps
+                            + self.profiler_active_steps
+                            and self._device.type == "cuda"
+                        ):
+                            torch.cuda.memory._record_memory_history(enabled=None)
 
-                    # Step the profiler
-                    # Note we are stepping each batch, which might not include optimizer step in the trace
-                    # if the schedule cycle doesn't align with gradient accumulation.
-                    prof.step()
+                        # Step the profiler
+                        # Note we are stepping each batch, which might not include optimizer step in the trace
+                        # if the schedule cycle doesn't align with gradient accumulation.
+                        prof.step()
 
-                    if self.global_step % self.save_every_n_steps == 0:
-                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+                        is_final_step = (
+                            (curr_epoch == self.total_epochs - 1)
+                            and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
+                        )
+
+                        if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                            self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     if (
                         (idx + 1) // self._gradient_accumulation_steps
@@ -702,14 +719,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-                start_save_checkpoint = time.perf_counter()
-                self._logger.info("Starting checkpoint save...")
-                self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
-                self._logger.info(
-                    "Checkpoint saved in {:.2f} seconds.".format(
-                        time.perf_counter() - start_save_checkpoint
-                    )
+            start_save_checkpoint = time.perf_counter()
+            self._logger.info("Starting checkpoint save...")
+            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+            self._logger.info(
+                "Checkpoint saved in {:.2f} seconds.".format(
+                    time.perf_counter() - start_save_checkpoint
                 )
+            )
 
     def cleanup(self) -> None:
         self._metric_logger.close()
