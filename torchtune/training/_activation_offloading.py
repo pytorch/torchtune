@@ -92,13 +92,13 @@ class OffloadActivations(saved_tensors_hooks):
         if torch.accelerator.is_available():
             self.s0 = torch.accelerator.current_stream()
         else:
-            raise RuntimeError(
+            raise ValueError(
                 "enable_activation_offloading should only be True when training on CUDA or XPU"
             )
 
         # for streaming
         if self.use_streams:
-            self.s1 = torch.Stream() # comms stream
+            self.s1 = torch.Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:
                 raise ValueError(
@@ -228,7 +228,9 @@ class OffloadActivations(saved_tensors_hooks):
 
             maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
             if modified:
-                gpu_tensor = maybe_gpu_tensor.to(torch.accelerator.current_accelerator(), non_blocking=True)
+                gpu_tensor = maybe_gpu_tensor.to(
+                    torch.accelerator.current_accelerator(), non_blocking=True
+                )
                 maybe_gpu_tensor = gpu_tensor
 
             # clear tensor from tracking
@@ -283,7 +285,9 @@ class OffloadActivations(saved_tensors_hooks):
                 else:
                     # Kick off the process to bring tensors back
                     with self.s1:
-                        gpu_tensor = maybe_gpu_tensor.to(torch.accelerator.current_accelerator(), non_blocking=True)
+                        gpu_tensor = maybe_gpu_tensor.to(
+                            torch.accelerator.current_accelerator(), non_blocking=True
+                        )
                         maybe_gpu_tensor = gpu_tensor
 
                     # Tell comp stream to wait for the info to be loaded before executing
