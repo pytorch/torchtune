@@ -185,6 +185,7 @@ class MultiHeadAttention(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
+        window_index: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -239,7 +240,7 @@ class MultiHeadAttention(nn.Module):
 
         # Apply positional embeddings
         if self.pos_embeddings is not None:
-            q = self.pos_embeddings(q, input_pos=input_pos)
+            q = self.pos_embeddings(q, input_pos=input_pos, window_index=window_index)
 
         # [b, n_h, s_x, h_d]
         q = q.transpose(1, 2)
@@ -267,7 +268,7 @@ class MultiHeadAttention(nn.Module):
             k = k.view(b, s_y, -1, self.head_dim)
             v = v.view(b, s_y, -1, self.head_dim)
             if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos)
+                k = self.pos_embeddings(k, input_pos=input_pos, window_index=window_index)
 
             # k,v shape: [b, n_kv, s_y, h_d]
             k = k.transpose(1, 2)

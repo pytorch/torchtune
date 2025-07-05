@@ -372,9 +372,9 @@ def qwen2_5_tokenizer(
         Qwen2_5Tokenizer: Instantiation of the Qwen2.5 tokenizer
     """
     special_tokens = (
-        QWEN2_5_SPECIAL_TOKENS
-        if special_tokens_path is None
-        else parse_hf_tokenizer_json(special_tokens_path)
+        parse_hf_tokenizer_json(special_tokens_path)
+        if special_tokens_path is not None
+        else None
     )
 
     if prompt_template is not None:

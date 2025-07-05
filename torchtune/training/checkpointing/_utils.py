@@ -122,6 +122,7 @@ class ModelType(Enum):
     PHI4: str = "phi4"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
+    QWEN2_5_VL: str = "qwen2_5_vl"
     CLIP_TEXT: str = "clip_text"
     T5_ENCODER: str = "t5_encoder"
     QWEN3: str = "qwen3"
