@@ -24,7 +24,7 @@ The metrics module provides a robust system for tracking and aggregating trainin
 │  • Uses pluggable AggregationHandlers              │
 │  • Handles distributed reduction                   │
 └─────────────────────┬──────────────────────────────┘
-                      │ {prefix_dataset/metric: value}
+                      │ {prefix}_{dataset_name}/{metric_name} # prefix is "train", "val", etc.
 ┌─────────────────────▼──────────────────────────────┐
 │                 Logging System                     │
 │  • W&B, TensorBoard, etc.                          │
