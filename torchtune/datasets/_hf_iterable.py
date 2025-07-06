@@ -17,12 +17,12 @@ from torchtune.data.metrics import (
     DefaultTrainingMetricTransform,
     Metric,
 )
-from torchtune.datasets._iterable_base import TuneIterableDataset
+from torchtune.datasets._iterable_base import DatasetInfo, InfiniteTuneIterableDataset
 
 logger = logging.getLogger(__name__)
 
 
-class HfIterableDataset(TuneIterableDataset):
+class HfIterableDataset(InfiniteTuneIterableDataset):
     """HuggingFace dataset implementation with composable metrics.
 
     This is an infinite dataset. After exhausting the dataset, it will restart from the beginning.
@@ -46,6 +46,7 @@ class HfIterableDataset(TuneIterableDataset):
             of world_size * dataloader_workers.
         dataset_name (Optional[str]): Name of the dataset. If None, a default name is generated
             from the path, source, and split.
+        weight (Optional[float]): Weight for this dataset. Defaults to 1.0.
         filter_fn (Optional[Callable]): Filter function to apply to the dataset.
         filter_kwargs (Optional[dict[str, Any]]): Keyword arguments to pass to the filter function.
         load_dataset_kwargs (dict[str, Any]): Keyword arguments to pass to the load_dataset function.
@@ -74,12 +75,12 @@ class HfIterableDataset(TuneIterableDataset):
         self._message_transform = message_transform
         self._model_transform = model_transform
         self._output_transform = output_transform
-        self._weight = weight  # TODO: make it a property?
+        self._weight = weight
 
         # Create default transform if not provided
         self._metric_transform = metric_transform or DefaultTrainingMetricTransform()
 
-        # Auto-generate dataset name if not provided, ensuring it's always a string.
+        # Auto-generate dataset name if not provided, ensuring it's always a string
         if dataset_name is None:
             path = load_dataset_kwargs.get("path", None)
             source = load_dataset_kwargs.get("source", None)
@@ -88,13 +89,14 @@ class HfIterableDataset(TuneIterableDataset):
             for item in [path, source, split]:
                 if item is not None:
                     name_parts.append(str(item).replace("/", "_"))
-            self._dataset_name: str = "_".join(name_parts)
-        else:
-            self._dataset_name: str = dataset_name
+            dataset_name = "_".join(name_parts)
+
+        # Build the hierarchical info object for this dataset
+        self._info = DatasetInfo(name=dataset_name, weight=weight)
 
         # Set dataset name on the transform if it supports it
         if hasattr(self._metric_transform, "set_dataset_name"):
-            self._metric_transform.set_dataset_name(self._dataset_name)
+            self._metric_transform.set_dataset_name(dataset_name)
 
         # Internal state for resumption
         self._num_epochs = 0
@@ -105,12 +107,9 @@ class HfIterableDataset(TuneIterableDataset):
         )
 
     @property
-    def dataset_name(self) -> str:
-        return self._dataset_name
-
-    @property
-    def sampling_weight(self) -> float:
-        return self._weight
+    def info(self) -> DatasetInfo:
+        """Returns info for this leaf dataset, which has no children."""
+        return self._info
 
     def _apply_transforms(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Apply transforms if they exist, otherwise return sample unchanged."""
@@ -227,7 +226,7 @@ class HfIterableDataset(TuneIterableDataset):
                     # especially useful when interleaving multiple datasets, but
                     # also necessary to track dataset-level metrics.
                     metric_num_epochs = Metric(
-                        dataset_name=self.dataset_name,
+                        dataset_name=self.info.name,
                         name="num_epochs",
                         value=self._num_epochs,
                         agg_type=AggregationType.MAX,
@@ -243,14 +242,14 @@ class HfIterableDataset(TuneIterableDataset):
                 pass  # Iterator is exhausted, which is expected.
             except Exception as e:
                 logger.warning(
-                    f"Dataset {self.dataset_name} encountered an unexpected error: {e}."
+                    f"Dataset {self.info.name} encountered an unexpected error: {e}."
                 )
                 raise
 
             # Check if we got zero samples - this might indicate an issue
             if samples_yielded == 0:
                 logger.warning(
-                    f"Dataset {self.dataset_name} epoch {self._num_epochs} yielded 0 samples - potential issue!"
+                    f"Dataset {self.info.name} epoch {self._num_epochs} yielded 0 samples - potential issue!"
                 )
 
             # Epoch complete - increment and continue infinite loop

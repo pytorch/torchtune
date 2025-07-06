@@ -5,9 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from typing import Any, Iterator
 
 from torch.utils.data import IterableDataset
+
+
+@dataclass(frozen=True)
+class DatasetInfo:
+    """Represents hierarchical information about a dataset, including its name,
+    sampling weight and children. Children is a common case when composing datasets,
+    e.g. Packed(InterleavedDataset([ds1, ds2])).
+    """
+    name: str
+    weight: float = 1.0
+    children: tuple["DatasetInfo", ...] = field(default_factory=tuple)
 
 
 class TuneIterableDataset(IterableDataset, ABC):
@@ -19,22 +31,32 @@ class TuneIterableDataset(IterableDataset, ABC):
 
     @property
     @abstractmethod
-    def dataset_name(self) -> str:
-        """A unique identifier for the dataset, used for namespacing in metrics and checkpoints."""
+    def info(self) -> DatasetInfo:
+        """Returns a hierarchical structure of all dataset information, including
+        this dataset and its children."""
         pass
 
-    @property
-    def sampling_weight(self) -> float | dict[str, float]:
-        """Returns the sampling weight for this dataset, especially useful in multi-dataset scenarios.
+    def _validate_unique_dataset_names(self) -> None:
+        """Traverses the DatasetInfo tree and raises ValueError on duplicate names."""
+        root_info = self.info
+        names = []
+        to_process = [root_info]
 
-        For leaf datasets: returns a float representing the relative weight.
-        For composite datasets: returns a dict mapping child dataset names to their weights.
-        """
-        return 1.0
+        while to_process:
+            node = to_process.pop(0)
+            names.append(node.name)
+            to_process.extend(node.children)
+
+        # Check for duplicates after traversing the whole tree
+        duplicates = [name for name in set(names) if names.count(name) > 1]
+        if duplicates:
+            raise ValueError(
+                f"Duplicate dataset names found in hierarchy: {duplicates=}, all names={names}"
+            )
 
     @abstractmethod
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        """Returns an infinite iterator over the dataset. Each implementation is responsible
+        """Returns an iterator over the dataset. Each implementation is responsible
         for its own iteration logic, including shuffling, distribution of data across ranks,
         and making it an infinite stream."""
         pass
@@ -48,3 +70,8 @@ class TuneIterableDataset(IterableDataset, ABC):
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Load state from a state dictionary, used when resuming from a checkpoint."""
         pass
+
+class InfiniteTuneIterableDataset(TuneIterableDataset):
+    """Abstract base class for infinite datasets, which yield samples indefinitely.
+    It only purpose is to make it explicit that the dataset is expected to be infinite."""
+    pass

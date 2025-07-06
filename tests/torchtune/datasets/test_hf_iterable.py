@@ -104,10 +104,9 @@ class TestHfIterableDataset:
         )
 
         # Should generate name from path and split
-        assert dataset.dataset_name == "json_train"
+        assert dataset.info.name == "json_train"
         # Test default sampling weight
-        assert dataset.sampling_weight == 1.0
-        assert isinstance(dataset.sampling_weight, float)
+        assert dataset.info.weight == 1.0
 
         # Test giving a name and custom weight
         custom_weight = 2.5
@@ -122,10 +121,10 @@ class TestHfIterableDataset:
             num_shards_per_rank=4,
         )
 
-        # Should generate name from path and split
-        assert dataset2.dataset_name == "my_dataset"
+        # Should use provided name and weight
+        assert dataset2.info.name == "my_dataset"
         # Test custom sampling weight
-        assert dataset2.sampling_weight == custom_weight
+        assert dataset2.info.weight == custom_weight
 
     @pytest.mark.parametrize("num_epochs", [0.5, 1.0, 2.5])
     def test_epoch_boundaries_and_checkpointing(
