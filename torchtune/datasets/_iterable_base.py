@@ -71,7 +71,10 @@ class TuneIterableDataset(IterableDataset, ABC):
         """Load state from a state dictionary, used when resuming from a checkpoint."""
         pass
 
+
 class InfiniteTuneIterableDataset(TuneIterableDataset):
     """Abstract base class for infinite datasets, which yield samples indefinitely.
-    It only purpose is to make it explicit that the dataset is expected to be infinite."""
+    It only purpose is to make it explicit that the dataset is expected to be infinite, i.e.
+    it never exhausts. This is helpful to avoid complexity due to some rank hanging because
+    of lack of data"""
     pass

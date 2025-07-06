@@ -145,13 +145,22 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         # Load and shard dataset
         ds = load_dataset(**load_dataset_kwargs)
 
-        # Use to_iterable_dataset for streaming datasets
-        if not load_dataset_kwargs.get("streaming", False):
-
+        # Use to_iterable_dataset for non-streaming datasets
+        is_streaming = load_dataset_kwargs.get("streaming", False)
+        if is_streaming:
+            logger.warning(
+                f"Streaming datasets were not yet tested for distributed training. "
+                f"split_dataset_by_node is applied, but no resharding was done manually. "
+                f"Dataset '{self.info.name}' has "
+                f"{getattr(ds, 'num_shards', 'unknown')}, and your training has {world_size} ranks."
+                f"See: https://huggingface.co/docs/datasets/en/package_reference/main_classes?#datasets.IterableDataset.shard"
+                f"Consider setting streaming=False, which should also be faster."
+            )
+        if not is_streaming:
             # Define number of shards based on (world_size, num of shards per GPU, dataloader workers)
             # E.g. world_size=2, num_shards_per_rank=16, dataloader_workers=3
-            # we will try 2*16 = 32 shards. Since 32 is not a multiple of 3, we will do 36 shards.
-            # Each rank gets 16 shards, each dataloader worker in that rankgets 6 shards.
+            # we will try 2*16 = 32 shards. Since 32 is not a multiple of 6, we will do 36 shards.
+            # Each rank gets 18 shards, each dataloader worker in that rank gets 6 shards.
             worker_info = torch.utils.data.get_worker_info()
             num_dataloader_workers = worker_info.num_workers if worker_info else 1
 
@@ -171,14 +180,12 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
 
             # If the dataset is not streaming and has a defined length,
             # we cannot have num_shards > dataset_size.
-            if not load_dataset_kwargs.get("streaming", False) and hasattr(
-                ds, "__len__"
-            ):
+            if hasattr(ds, "__len__"):
                 dataset_size = len(ds)
                 if num_shards > dataset_size:
                     raise ValueError(
                         f"Number of shards ({num_shards}) is greater than the dataset size ({dataset_size})."
-                        f"Please decrease num_shards_per_rank."
+                        f"Please decrease one of {num_shards_per_rank=} or {num_dataloader_workers=} or {world_size=}."
                     )
 
             ds = ds.to_iterable_dataset(num_shards=num_shards)
@@ -210,8 +217,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         """
 
         while True:  # Infinite iteration
-            epoch_seed = self._seed + self._num_epochs
-            self._ds.set_epoch(epoch_seed)
+            self._ds.set_epoch(self._num_epochs)
             epoch_iterator = iter(self._ds)
             samples_yielded = 0
 
@@ -262,7 +268,6 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         hf_state = self._ds.state_dict()
         state = {
             "num_epochs": self._num_epochs,
-            "seed": self._seed,
             "hf_dataset_state": hf_state,
         }
         return state
