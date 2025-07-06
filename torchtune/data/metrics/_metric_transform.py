@@ -6,8 +6,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 
 from torchtune.modules.transforms import Transform
 
@@ -41,7 +40,6 @@ class MetricTransform(Transform):
     def __init__(self):
         # dataset_name is set by the dataset using set_dataset_name
         self.dataset_name: Optional[str] = None
-        self.new_metric: Optional[Callable] = None
 
     def set_dataset_name(self, dataset_name: str) -> None:
         """Called by dataset to set the namespace for metrics.
@@ -53,8 +51,6 @@ class MetricTransform(Transform):
             dataset_name (str): Name of the dataset for metric namespacing
         """
         self.dataset_name = dataset_name
-        # Create a partial to make it easier to create new metrics
-        self.new_metric = partial(Metric, dataset_name=dataset_name)
 
     def _generate_metrics(self, sample: dict[str, Any]) -> list[Metric]:
         """Generate metrics for a single sample. Must be implemented by subclasses.
@@ -72,7 +68,7 @@ class MetricTransform(Transform):
 
     def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Apply transform to sample, adding generated metrics."""
-        if self.dataset_name is None or self.new_metric is None:
+        if self.dataset_name is None:
             raise RuntimeError(
                 "set_dataset_name() must be called before using the transform."
             )
@@ -112,7 +108,7 @@ class DefaultTrainingMetricTransform(MetricTransform):
     """
 
     def _generate_metrics(self, sample: dict[str, Any]) -> list[Metric]:
-        if self.new_metric is None:
+        if self.dataset_name is None:
             raise RuntimeError(
                 "set_dataset_name() must be called before using the transform."
             )
@@ -123,11 +119,22 @@ class DefaultTrainingMetricTransform(MetricTransform):
 
         # Create metrics for this sample
         return [
-            self.new_metric(name="samples_seen", value=1, agg_type=AggregationType.SUM),
-            self.new_metric(
-                name="tokens_seen", value=token_len, agg_type=AggregationType.SUM
+            Metric(
+                dataset_name=self.dataset_name,
+                name="samples_seen",
+                value=1,
+                agg_type=AggregationType.SUM,
             ),
-            self.new_metric(
-                name="seq_len", value=token_len, agg_type=AggregationType.DISTRIBUTION
+            Metric(
+                dataset_name=self.dataset_name,
+                name="tokens_seen",
+                value=token_len,
+                agg_type=AggregationType.SUM,
+            ),
+            Metric(
+                dataset_name=self.dataset_name,
+                name="seq_len",
+                value=token_len,
+                agg_type=AggregationType.DISTRIBUTION,
             ),
         ]
