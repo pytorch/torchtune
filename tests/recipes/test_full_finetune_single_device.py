@@ -212,18 +212,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        def print_file_tree(start_path='.', indent=''):
-            for i, item in enumerate(sorted(os.listdir(start_path))):
-                path = os.path.join(start_path, item)
-                is_last = (i == len(os.listdir(start_path)) - 1)
-                pointer = '└── ' if is_last else '├── '
-                print(indent + pointer + item)
-                if os.path.isdir(path):
-                    extension = '    ' if is_last else '│   '
-                    print_file_tree(path, indent + extension)
-
-        print_file_tree(tmpdir)
-
         # 2. Find the checkpoint at the end of the first epoch
         suffix = ".safetensors"
         model_ckpt_fname = (
@@ -231,21 +219,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
         assert os.path.exists(os.path.join(tmpdir, prev_ckpt_dir, model_ckpt_fname)), "Checkpoint file does not exist"
 
-        print(f'{final_ckpt_dir=}')
-
         shutil.rmtree(tmpdir / final_ckpt_dir)
-
-        def print_file_tree(start_path='.', indent=''):
-            for i, item in enumerate(sorted(os.listdir(start_path))):
-                path = os.path.join(start_path, item)
-                is_last = (i == len(os.listdir(start_path)) - 1)
-                pointer = '└── ' if is_last else '├── '
-                print(indent + pointer + item)
-                if os.path.isdir(path):
-                    extension = '    ' if is_last else '│   '
-                    print_file_tree(path, indent + extension)
-
-        print_file_tree(tmpdir)
 
         # 3. Resume training w/ the checkpoint from epoch boundary
         cmd_2 = f"""
@@ -270,24 +244,10 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        def print_file_tree(start_path='.', indent=''):
-            for i, item in enumerate(sorted(os.listdir(start_path))):
-                path = os.path.join(start_path, item)
-                is_last = (i == len(os.listdir(start_path)) - 1)
-                pointer = '└── ' if is_last else '├── '
-                print(indent + pointer + item)
-                if os.path.isdir(path):
-                    extension = '    ' if is_last else '│   '
-                    print_file_tree(path, indent + extension)
-
-        print_file_tree(tmpdir)
-
         # 4. Make sure loss values match the expected values
         expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)
 
-        print(f'{expected_loss_values=}')
-        print(f'{loss_values=}')
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
