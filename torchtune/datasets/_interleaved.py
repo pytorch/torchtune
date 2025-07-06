@@ -4,17 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from collections import deque
 import logging
 import math
+from collections import deque
 from typing import Any, Iterator
 
 import torch
 
-from torchtune.datasets._iterable_base import (
-    DatasetInfo,
-    InfiniteTuneIterableDataset,
-)
+from torchtune.datasets._iterable_base import DatasetInfo, InfiniteTuneIterableDataset
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +28,6 @@ class InterleavedDataset(InfiniteTuneIterableDataset):
         weight (float): Weight for this dataset. Defaults to 1.0.
         dataset_name (str): Name of the dataset. Defaults to "interleaved_dataset".
         sampling_log_maxlen (int): Maximum length of the sampling log.
-        
-    Raises:
-        ValueError: If duplicate dataset names are detected in the hierarchy.
     """
 
     def __init__(
@@ -69,7 +63,7 @@ class InterleavedDataset(InfiniteTuneIterableDataset):
         self._normalized_weights = torch.tensor(
             [w / total_weight for w in child_weights], dtype=torch.float
         )
-        
+
         # Track sampling decisions for debugging and analysis
         self._sampling_log: deque[tuple[int, str]] = deque(
             maxlen=self._sampling_log_maxlen
@@ -88,7 +82,7 @@ class InterleavedDataset(InfiniteTuneIterableDataset):
 
         while True:
             # Sample a child dataset based on the normalized weights
-            ds_idx = torch.multinomial(
+            ds_idx: int = torch.multinomial(
                 self._normalized_weights,
                 1,
                 replacement=True,

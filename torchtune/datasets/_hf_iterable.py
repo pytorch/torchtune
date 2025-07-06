@@ -16,6 +16,7 @@ from torchtune.data.metrics import (
     AggregationType,
     DefaultTrainingMetricTransform,
     Metric,
+    MetricTransform,
 )
 from torchtune.datasets._iterable_base import DatasetInfo, InfiniteTuneIterableDataset
 
@@ -38,7 +39,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         model_transform (Optional[Callable]): Take messages and prepares it for the model. Usually the tokenizer.
         output_transform (Optional[Callable]): Takes tokenized inputs and prepares it for the recipe. Usually
             does some label manipulation, e.g. ignore index. Think of it as recipe-dependent, e.g. SFT, RL, DPO, etc.
-        metric_transform (Optional[Callable]): Takes the sample and computes metrics, e.g. token count.
+        metric_transform (Optional[MetricTransform]): Takes the sample and computes metrics, e.g. token count.
             If None, a default transform is used. To stop tracking metrics, set it to lambda x: x.
         shuffle_buffer_size (Optional[int]): Size of the shuffle buffer. If None or 0, no shuffling is done.
         seed (int): Seed for shuffling.
@@ -59,7 +60,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         message_transform: Optional[Callable] = None,
         model_transform: Optional[Callable] = None,
         output_transform: Optional[Callable] = None,
-        metric_transform: Optional[Callable] = None,
+        metric_transform: Optional[MetricTransform] = None,
         shuffle_buffer_size: Optional[int] = 1000,
         weight: Optional[float] = 1.0,
         seed: int = 42,
@@ -75,7 +76,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         self._message_transform = message_transform
         self._model_transform = model_transform
         self._output_transform = output_transform
-        self._weight = weight
+        self._weight = weight if weight is not None else 1.0
 
         # Create default transform if not provided
         self._metric_transform = metric_transform or DefaultTrainingMetricTransform()
@@ -92,7 +93,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
             dataset_name = "_".join(name_parts)
 
         # Build the hierarchical info object for this dataset
-        self._info = DatasetInfo(name=dataset_name, weight=weight)
+        self._info = DatasetInfo(name=dataset_name, weight=self._weight)
 
         # Set dataset name on the transform if it supports it
         if hasattr(self._metric_transform, "set_dataset_name"):

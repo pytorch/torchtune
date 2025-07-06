@@ -17,6 +17,7 @@ class DatasetInfo:
     sampling weight and children. Children is a common case when composing datasets,
     e.g. Packed(InterleavedDataset([ds1, ds2])).
     """
+
     name: str
     weight: float = 1.0
     children: tuple["DatasetInfo", ...] = field(default_factory=tuple)
@@ -77,4 +78,5 @@ class InfiniteTuneIterableDataset(TuneIterableDataset):
     It only purpose is to make it explicit that the dataset is expected to be infinite, i.e.
     it never exhausts. This is helpful to avoid complexity due to some rank hanging because
     of lack of data"""
+
     pass

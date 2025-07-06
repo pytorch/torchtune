@@ -1049,7 +1049,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     dataset_metrics = self._metrics_aggregator.get_metrics_for_logging(
                         prefix="train"
                     )
-                    
+
                     if self._is_rank_zero:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
@@ -1067,11 +1067,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         if dataset_metrics:
                             log_dict.update(dataset_metrics)
                         if self._log_peak_memory_stats:
-                            log_dict.update(training.get_memory_stats(device=self._device))
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
                         if self._clip_grad_norm is not None:
                             log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(log_dict, step=self.global_step)
-
 
                 # Save checkpoint if specified by user
                 if (

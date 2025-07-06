@@ -464,7 +464,7 @@ class TestDistributedInterleavedDataset(FSDPTest):
             temp_dir = None
 
         # Broadcast temp directory to all ranks
-        temp_dir_list = [temp_dir]
+        temp_dir_list = [temp_dir] if temp_dir is not None else [""]
         dist.broadcast_object_list(temp_dir_list, src=0)
         temp_dir = temp_dir_list[0]
         tmp_path = Path(temp_dir)
