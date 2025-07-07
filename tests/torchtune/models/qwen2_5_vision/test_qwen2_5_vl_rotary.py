@@ -66,13 +66,13 @@ class TestQwen25VLRotaryEmbeddings:
     def test_forward_values(self, rope, inputs, position_ids):
         """Test forward pass produces expected values."""
         output = rope(inputs, position_ids)
-        
+
         # Reference values computed using HF-style reference implementation
         # These values were validated against the reference M-RoPE implementation
         # to ensure correctness (max difference: 0.00e+00)
         expected_mean = torch.tensor(0.077044)
         expected_std = torch.tensor(1.051715)
-        
+
         torch.testing.assert_close(output.mean(), expected_mean, atol=1e-4, rtol=1e-4)
         torch.testing.assert_close(output.std(), expected_std, atol=1e-3, rtol=1e-3)
 
@@ -85,25 +85,27 @@ class TestQwen25VLRotaryEmbeddings:
     def test_different_positions(self, rope):
         """Test with different position values."""
         inputs = torch.randn(1, 3, 1, HEAD_DIM)
-        
+
         # Test with varying positions
         pos_time = torch.tensor([[0, 5, 10]])
         pos_height = torch.tensor([[1, 3, 7]])
         pos_width = torch.tensor([[2, 4, 8]])
         position_ids = torch.stack([pos_time, pos_height, pos_width], dim=0)
-        
+
         output = rope(inputs, position_ids)
         assert output.shape == inputs.shape
         assert not torch.isnan(output).any()
 
     def test_gradient_flow(self, rope, position_ids):
         """Test gradients flow through the module."""
-        inputs = torch.randn(BATCH_SIZE, SEQ_LEN, NUM_HEADS, HEAD_DIM, requires_grad=True)
-        
+        inputs = torch.randn(
+            BATCH_SIZE, SEQ_LEN, NUM_HEADS, HEAD_DIM, requires_grad=True
+        )
+
         output = rope(inputs, position_ids)
         loss = output.sum()
         loss.backward()
-        
+
         assert inputs.grad is not None
         assert not torch.isnan(inputs.grad).any()
 
@@ -117,13 +119,13 @@ class TestQwen25VLRotaryEmbeddings:
             base=BASE,
             mrope_section=[1, 2, 3],  # Different configuration
         )
-        
+
         inputs = torch.randn(1, 2, 1, 12)
         pos_time = torch.tensor([[0, 1]])
         pos_height = torch.tensor([[1, 2]])
         pos_width = torch.tensor([[1, 3]])
         position_ids = torch.stack([pos_time, pos_height, pos_width], dim=0)
-        
+
         output = rope(inputs, position_ids)
         assert output.shape == inputs.shape
-        assert not torch.isnan(output).any() 
+        assert not torch.isnan(output).any()

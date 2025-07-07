@@ -8,9 +8,9 @@ from typing import Callable
 from torch import nn
 
 from torchtune.models.qwen2_5_vision._encoder import (
-    Qwen2_5_VisionPatchEmbed,
-    Qwen2_5_VLPatchMerger,
-    Qwen2_5_VisionTransformer,
+    Qwen25VisionPatchEmbed,
+    Qwen25VLPatchMerger,
+    Qwen25VisionTransformer,
 )
 from torchtune.modules import (
     MultiHeadAttention,
@@ -141,7 +141,7 @@ def qwen2_5_vision_encoder(
     window_size: int,
     full_att_block_indexes: list[int],
     temporal_patch_size: int,
-) -> Qwen2_5_VisionTransformer:
+) -> Qwen25VisionTransformer:
     """
     Build the vision encoder for Qwen2.5-VL model, including vision-language merger.
 
@@ -160,7 +160,7 @@ def qwen2_5_vision_encoder(
         temporal_patch_size (int): Temporal patch size.
 
     Returns:
-        Qwen2_5_VisionTransformer: Instantiation of Qwen2.5-VL vision transformer.
+        Qwen25VisionTransformer: Instantiation of Qwen2.5-VL vision transformer.
     """
     if embed_dim % num_heads != 0:
         raise ValueError(
@@ -200,20 +200,20 @@ def qwen2_5_vision_encoder(
         mlp_scale=None,
     )
     
-    patch_embed = Qwen2_5_VisionPatchEmbed(
+    patch_embed = Qwen25VisionPatchEmbed(
         patch_size=patch_size,
         temporal_patch_size=temporal_patch_size,
         in_channels=in_channels,
         embed_dim=embed_dim,
     )
 
-    merger = Qwen2_5_VLPatchMerger(
+    merger = Qwen25VLPatchMerger(
         dim=out_hidden_size,
         context_dim=embed_dim,
         spatial_merge_size=spatial_merge_size,
     )
 
-    return Qwen2_5_VisionTransformer(
+    return Qwen25VisionTransformer(
         patch_size=patch_size,
         num_layers=num_layers,
         layer=transformer_layer,

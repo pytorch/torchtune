@@ -1,6 +1,18 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Any
+
 import torch
-from torchtune.data import left_pad_sequence, padded_collate_sft, CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import (
+    CROSS_ENTROPY_IGNORE_IDX,
+    left_pad_sequence,
+    padded_collate_sft,
+)
+
 
 def qwen2_5_vl_padded_collate_images(
     batch: list[dict[str, Any]],
@@ -15,7 +27,7 @@ def qwen2_5_vl_padded_collate_images(
     compresses images and grid_thw into single batch, due to encoder input
     signature.
     """
-   
+
     if pad_direction not in ["left", "right"]:
         raise ValueError(
             f"pad_direction should be one of 'left' or 'right' but found {pad_direction}"
@@ -49,20 +61,17 @@ def qwen2_5_vl_padded_collate_images(
     if "labels" in collated_text:
         batch_dict["labels"] = collated_text["labels"]
 
-
     # compress images and grid_thw into single batch
     batch_images = []
     batch_grid_thw = []
     for sample in batch:
         sample_images = sample["encoder_input"]["image"]["hidden_states"]
         i, n, p = sample_images.shape
-        sample_images = sample_images.reshape(i*n, p)
-        
+        sample_images = sample_images.reshape(i * n, p)
+
         # Stack multiple images per sample in num_images dimension
         batch_images.append(sample_images)
-        batch_grid_thw.append(
-            sample["encoder_input"]["image"]["grid_thw"]
-        )
+        batch_grid_thw.append(sample["encoder_input"]["image"]["grid_thw"])
 
     if "image" in batch[0]["encoder_input"]:
         batch_dict["encoder_input"] = {
@@ -73,4 +82,3 @@ def qwen2_5_vl_padded_collate_images(
         }
 
     return batch_dict
-

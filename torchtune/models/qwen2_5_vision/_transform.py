@@ -5,20 +5,22 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import math
 from typing import Any, Mapping, Optional
 
 import torch
-from torchvision.transforms import InterpolationMode
-from torchvision.transforms.v2 import functional as F
 from PIL import Image
-import math
 
 from torchtune.data import Message
-from torchtune.data._prompt_templates import _TemplateType, _get_prompt_template
-from torchtune.models.qwen2_5_vision._tokenizer import Qwen2_5_VLTokenizer
-from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
+from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
+from torchtune.models.qwen2_5_vision._tokenizer import Qwen25VLTokenizer
 from torchtune.modules.transforms import Transform
-from torchtune.modules.transforms.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import (
+    ModelTokenizer,
+    parse_hf_tokenizer_json,
+)
+from torchvision.transforms import InterpolationMode
+from torchvision.transforms.v2 import functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +28,13 @@ logger = logging.getLogger(__name__)
 OPENAI_CLIP_MEAN = [0.48145466, 0.4578275, 0.40821073]
 OPENAI_CLIP_STD = [0.26862954, 0.26130258, 0.27577711]
 
+
 def smart_resize(
-    height: int, width: int, factor: int = 28, min_pixels: int = 56 * 56, max_pixels: int = 12845056
+    height: int,
+    width: int,
+    factor: int = 28,
+    min_pixels: int = 56 * 56,
+    max_pixels: int = 12845056,
 ):
     """Rescales the image so that the following conditions are met:
     1. Both dimensions (height and width) are divisible by 'factor'.
@@ -51,7 +58,7 @@ def smart_resize(
     return h_bar, w_bar
 
 
-class Qwen2_5_VLImageTransform:
+class Qwen25VLImageTransform:
     """
     This class accepts images of any size and dynamically resizes, normalizes and patches it
     based on the image size constraints and patch size.
@@ -64,14 +71,16 @@ class Qwen2_5_VLImageTransform:
         patch_size (int): Size of the patches to divide the image into. Default 14.
         merge_size (int): Size of the patch merging factor. Default 2.
         temporal_patch_size (int): Size of the temporal patch merging factor. Default 2.
-        min_pixels (int): Minimum number of pixels for the shorter edge. Default 3136 (56 * 56).
-        max_pixels (int): Maximum number of pixels for the longer edge. Default 1003520 (28 * 28 * 1280).
         size (Optional[dict[str, int]]): Size configuration with 'shortest_edge' and 'longest_edge' keys.
-            If provided, overrides min_pixels and max_pixels. Default None.
+        min_pixels (Optional[int]): Minimum number of pixels for the shorter edge. Default 3136 (56 * 56).
+        max_pixels (Optional[int]): Maximum number of pixels for the longer edge. Default 1003520 (28 * 28 * 1280).
         dtype (torch.dtype): Data type of the output image. Default torch.float32.
         resample (str): Resampling method used when resizing images. Supports any enum of
             ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
             Default 'bicubic'.
+
+    Raises:
+        ValueError: If size is provided but does not contain 'shortest_edge' and 'longest_edge' keys.
     """
 
     def __init__(
@@ -91,11 +100,13 @@ class Qwen2_5_VLImageTransform:
         self.patch_size = patch_size
         self.merge_size = merge_size
         self.temporal_patch_size = temporal_patch_size
-        
+
         # Handle size configuration - prioritize size dict over individual params
         if size is not None:
             if "shortest_edge" not in size or "longest_edge" not in size:
-                raise ValueError("size must contain 'shortest_edge' and 'longest_edge' keys.")
+                raise ValueError(
+                    "size must contain 'shortest_edge' and 'longest_edge' keys."
+                )
             self.size = size.copy()
         else:
             self.size = {"shortest_edge": 56 * 56, "longest_edge": 12845056}
@@ -111,7 +122,7 @@ class Qwen2_5_VLImageTransform:
 
         self.dtype = dtype
         self.resample = getattr(InterpolationMode, resample.upper())
-        
+
         # Use OPENAI_CLIP defaults if not provided (matches HuggingFace)
         self.mean = image_mean if image_mean is not None else OPENAI_CLIP_MEAN
         self.std = image_std if image_std is not None else OPENAI_CLIP_STD
@@ -142,7 +153,7 @@ class Qwen2_5_VLImageTransform:
         if isinstance(image, Image.Image) and image.mode != "RGB":
             image = image.convert("RGB")
         image = F.to_image(image)
-        
+
         # Convert to float and rescale to [0, 1] - this matches HF's rescaling step
         image = F.to_dtype(image, dtype=torch.float32, scale=True)
 
@@ -151,35 +162,38 @@ class Qwen2_5_VLImageTransform:
 
         # Calculate resize dimensions
         resized_height, resized_width = smart_resize(
-            height, 
+            height,
             width,
             factor=self.patch_size * self.merge_size,
             min_pixels=self.min_pixels,
-            max_pixels=self.max_pixels
+            max_pixels=self.max_pixels,
         )
 
         # Resize image
         image = F.resize(
-            image,
-            size=(resized_height, resized_width),
-            interpolation=self.resample
+            image, size=(resized_height, resized_width), interpolation=self.resample
         )
 
-        # Normalize with OPENAI_CLIP values 
+        # Normalize with OPENAI_CLIP values
         image = F.normalize(image, mean=self.mean, std=self.std)
 
         image = image.to(dtype=self.dtype)
 
         patches = image.unsqueeze(0)
-        
+
         if patches.shape[0] % self.temporal_patch_size != 0:
-            repeats_needed = self.temporal_patch_size - (patches.shape[0] % self.temporal_patch_size)
+            repeats_needed = self.temporal_patch_size - (
+                patches.shape[0] % self.temporal_patch_size
+            )
             last_frame = patches[-1:].repeat(repeats_needed, 1, 1, 1)
             patches = torch.cat([patches, last_frame], dim=0)
 
         # Calculate grid dimensions
         grid_t = patches.shape[0] // self.temporal_patch_size
-        grid_h, grid_w = resized_height // self.patch_size, resized_width // self.patch_size
+        grid_h, grid_w = (
+            resized_height // self.patch_size,
+            resized_width // self.patch_size,
+        )
         channels = patches.shape[1]
 
         patches = patches.reshape(
@@ -195,24 +209,27 @@ class Qwen2_5_VLImageTransform:
         )
 
         patches = patches.permute(0, 3, 6, 4, 7, 2, 1, 5, 8)
-        
+
         flatten_patches = patches.reshape(
             grid_t * grid_h * grid_w,
-            channels * self.temporal_patch_size * self.patch_size * self.patch_size
+            channels * self.temporal_patch_size * self.patch_size * self.patch_size,
         )
 
-        num_patches = grid_h * grid_w 
+        num_patches = grid_h * grid_w
         num_image_tokens = num_patches // self.merge_size**2
 
-        sample.update({
-            "pixel_values": flatten_patches,
-            "image_grid_thw": torch.tensor([[grid_t, grid_h, grid_w]]),
-            "num_image_tokens": num_image_tokens,
-        })
+        sample.update(
+            {
+                "pixel_values": flatten_patches,
+                "image_grid_thw": torch.tensor([[grid_t, grid_h, grid_w]]),
+                "num_image_tokens": num_image_tokens,
+            }
+        )
 
         return sample
 
-class Qwen2_5_VLTransform(ModelTokenizer, Transform):
+
+class Qwen25VLTransform(ModelTokenizer, Transform):
     """
     Transform for Qwen 2.5 Vision model that handles both text tokenization and image processing.
 
@@ -256,15 +273,15 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             if prompt_template is not None
             else None
         )
-        self.tokenizer = Qwen2_5_VLTokenizer(
+        self.tokenizer = Qwen25VLTokenizer(
             path=path,
             merges_file=merges_file,
             max_seq_len=max_seq_len,
             prompt_template=template,
         )
-        
+
         # Initialize the Qwen2.5 VL image transform
-        self.image_transform = Qwen2_5_VLImageTransform(
+        self.image_transform = Qwen25VLImageTransform(
             image_mean=image_mean,
             image_std=image_std,
             patch_size=patch_size,
@@ -331,7 +348,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         if truncate_at_eos and self.tokenizer.eos_id in token_ids:
             eos_index = token_ids.index(self.tokenizer.eos_id)
             token_ids = token_ids[:eos_index]
-        
+
         return self.tokenizer.decode(token_ids, skip_special_tokens=skip_special_tokens)
 
     def transform_image(
@@ -339,7 +356,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
     ) -> tuple[torch.Tensor, torch.Tensor, int]:
         """
         Transform an image into flattened patches for the vision encoder.
-        This method applies the transformations defined in `Qwen2_5_VLImageTransform`.
+        This method applies the transformations defined in `Qwen25VLImageTransform`.
 
         Args:
             image (Image.Image): The input image.
@@ -354,7 +371,11 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         """
         sample = {"image": image}
         transformed = self.image_transform(sample, inference=inference)
-        return transformed["pixel_values"], transformed["image_grid_thw"], transformed["num_image_tokens"]
+        return (
+            transformed["pixel_values"],
+            transformed["image_grid_thw"],
+            transformed["num_image_tokens"],
+        )
 
     def tokenize_message(
         self,
@@ -423,16 +444,24 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             for content in message.content:
                 if content["type"] == "image":
                     image = content["content"]
-                    
-                    pixel_values, image_grid_thw, num_image_tokens = self.transform_image(image, inference=inference)
-                    
+
+                    (
+                        pixel_values,
+                        image_grid_thw,
+                        num_image_tokens,
+                    ) = self.transform_image(image, inference=inference)
+
                     content["num_image_tokens"] = num_image_tokens
-                    
+
                     encoder_input["image"]["hidden_states"].append(pixel_values)
                     encoder_input["image"]["grid_thw"].append(image_grid_thw)
-                    
-        encoder_input["image"]["hidden_states"] = torch.stack(encoder_input["image"]["hidden_states"], dim=0)
-        encoder_input["image"]["grid_thw"] = torch.cat(encoder_input["image"]["grid_thw"], dim=0)
+
+        encoder_input["image"]["hidden_states"] = torch.stack(
+            encoder_input["image"]["hidden_states"], dim=0
+        )
+        encoder_input["image"]["grid_thw"] = torch.cat(
+            encoder_input["image"]["grid_thw"], dim=0
+        )
 
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)

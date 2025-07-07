@@ -610,7 +610,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 tie_word_embeddings=self._config["tie_word_embeddings"],
             )
         elif self._model_type == ModelType.QWEN2_5_VL:
-            from torchtune.models.qwen2_5_vision._convert_weights import qwen2_5_vl_hf_to_tune
+            from torchtune.models.qwen2_5_vision._convert_weights import (
+                qwen2_5_vl_hf_to_tune,
+            )
 
             converted_state_dict[training.MODEL_KEY] = qwen2_5_vl_hf_to_tune(
                 merged_state_dict,
@@ -755,7 +757,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     tie_word_embeddings=self._config["tie_word_embeddings"],
                 )
             elif self._model_type == ModelType.QWEN2_5_VL:
-                from torchtune.models.qwen2_5_vision._convert_weights import qwen2_5_vl_tune_to_hf
+                from torchtune.models.qwen2_5_vision._convert_weights import (
+                    qwen2_5_vl_tune_to_hf,
+                )
 
                 state_dict[training.MODEL_KEY] = qwen2_5_vl_tune_to_hf(
                     state_dict[training.MODEL_KEY],

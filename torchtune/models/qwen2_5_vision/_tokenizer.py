@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import math
 from typing import Optional
 
 from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
@@ -14,13 +13,10 @@ from torchtune.models.qwen2._tokenizer import (
     IM_END,
 )
 
-from torchtune.models.qwen2_5._tokenizer import (
-    QWEN2_5_SPECIAL_TOKENS,
-    Qwen2_5Tokenizer,
-)
+from torchtune.models.qwen2_5._tokenizer import QWEN2_5_SPECIAL_TOKENS, Qwen2_5Tokenizer
 
 
-class Qwen2_5_VLTokenizer(Qwen2_5Tokenizer): 
+class Qwen25VLTokenizer(Qwen2_5Tokenizer):
     """
     This class constructs a Qwen2.5-VL tokenizer, inheriting from Qwen2_5Tokenizer.
 
@@ -66,7 +62,6 @@ class Qwen2_5_VLTokenizer(Qwen2_5Tokenizer):
         self.video_pad_id = self.special_tokens["<|video_pad|>"]
         self.vision_start_token_id = self.special_tokens["<|vision_start|>"]
         self.vision_end_token_id = self.special_tokens["<|vision_end|>"]
-
 
     def tokenize_messages(
         self,
@@ -117,13 +112,13 @@ class Qwen2_5_VLTokenizer(Qwen2_5Tokenizer):
                     )
                 elif item["type"] == "image":
                     num_image_tokens = item.get("num_image_tokens")
-                    
+
                     tokens.append(self.vision_start_token_id)
                     tokens.extend([self.image_pad_id] * num_image_tokens)
                     tokens.append(self.vision_end_token_id)
                 elif item["type"] == "video":
                     num_video_tokens = item.get("num_video_tokens")
-                    
+
                     tokens.append(self.vision_start_token_id)
                     tokens.extend([self.video_pad_id] * num_video_tokens)
                     tokens.append(self.vision_end_token_id)
@@ -163,5 +158,3 @@ class Qwen2_5_VLTokenizer(Qwen2_5Tokenizer):
             )
 
         return tokenized_messages, mask
-
-

@@ -19,7 +19,7 @@ output_dir: /tmp/torchtune/qwen2_5_72B/full # /tmp may be deleted by your system
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.qwen2_5_vision.Qwen2_5_VLTransform
+  _component_: torchtune.models.qwen2_5_vision.Qwen25VLTransform
   path: /tmp/Qwen2.5-VL-3B-Instruct/vocab.json
   merges_file: /tmp/Qwen2.5-VL-3B-Instruct/merges.txt
   max_seq_len: null

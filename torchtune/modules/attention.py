@@ -210,6 +210,8 @@ class MultiHeadAttention(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            window_index (Optional[torch.Tensor]): Optional tensor which contains the window index
+                of each token. Default is None.
 
         Raises:
             ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
@@ -268,7 +270,9 @@ class MultiHeadAttention(nn.Module):
             k = k.view(b, s_y, -1, self.head_dim)
             v = v.view(b, s_y, -1, self.head_dim)
             if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos, window_index=window_index)
+                k = self.pos_embeddings(
+                    k, input_pos=input_pos, window_index=window_index
+                )
 
             # k,v shape: [b, n_kv, s_y, h_d]
             k = k.transpose(1, 2)

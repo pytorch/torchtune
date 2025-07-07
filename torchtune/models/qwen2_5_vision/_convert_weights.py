@@ -26,7 +26,7 @@ _FROM_HF = {
     "visual.merger.ln_q.weight": "encoders.image.merger.ln_q.scale",
     "visual.merger.mlp.{}.bias": "encoders.image.merger.mlp.{}.bias",
     "visual.merger.mlp.{}.weight": "encoders.image.merger.mlp.{}.weight",
-    "visual.patch_embed.proj.weight": "encoders.image.patch_embed.proj.weight"
+    "visual.patch_embed.proj.weight": "encoders.image.patch_embed.proj.weight",
 }
 _FROM_HF_QWEN2 = {k: "decoder." + str(v) for k, v in _FROM_HF_QWEN2.items()}
 
@@ -49,11 +49,6 @@ def qwen2_5_vl_hf_to_tune(
 
     Args:
         state_dict (dict[str, torch.Tensor]): State dict in HF's format.
-        num_heads (int): Number of heads in the model.
-        num_kv_heads (int): Number of heads in the key/value projection layers.
-        dim (int): Dimension of the model.
-        head_dim (int): Dimension of the head. If not provided, it will be calculated
-            as dim // num_heads.
         tie_word_embeddings (bool): Whether the model's input and output word embeddings should be tied.
 
     Returns:
@@ -116,4 +111,3 @@ def qwen2_5_vl_tune_to_hf(
             converted_state_dict[new_key] = value
 
     return converted_state_dict
-
