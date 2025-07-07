@@ -13,25 +13,48 @@ from torchtune.modules.attention_utils import packed_block_causal_mask
 
 
 def collate_packed(
-    batch: list[dict[str, torch.Tensor]], mask_fn: callable, device: str
-) -> dict[str, torch.Tensor]:
+    batch: list[dict[str, Any]], mask_fn: callable, device: str
+) -> dict[str, Any]:
     """
     Generic collate function for packed samples from an IterablePackedDataset.
 
-    This function handles tensor stacking and delegates attention mask creation
-    to a provided `mask_fn`.
+    Stacks tensors from all samples in the batch, while keeping non-tensor values
+    as lists. Handles metrics by extending them into a single list. Delegates 
+    attention mask creation to a provided `mask_fn` callable that expects 
+    `document_ids` and `device` parameters to generate masks on-the-fly for 
+    packed sequences.
+
+    Args:
+        batch (list[dict[str, Any]]): A list of dictionaries containing samples.
+        mask_fn (callable): A function that generates attention masks for packed sequences.
+        device (str): The device to use for the tensors.
+
+    Returns:
+        dict[str, Any]: A dictionary containing the collated samples.
+
+    Raises:
+        ValueError: If all samples do not have the same keys.
     """
     if not batch:
         return {}
 
-    # Assumes all samples in the batch have the same keys, which are all tensors.
-    keys_to_stack = batch[0].keys()
+    # Verify all samples have the same keys
+    first_sample_keys = batch[0].keys()
+    for sample in batch:
+        if sample.keys() != first_sample_keys:
+            raise ValueError(f"All samples must have the same keys. Expected {first_sample_keys}, got {sample.keys()}")
+        
+    keys_to_stack = first_sample_keys
     collated = {}
+
     for key in keys_to_stack:
         if isinstance(batch[0][key], torch.Tensor):
             collated[key] = torch.stack([sample[key] for sample in batch], dim=0)
+        elif key == "metrics":
+            collated[key] = []
+            for sample in batch:
+                collated[key].extend(sample[key])
         else:
-            # TODO: Remove? i dont see a situation where it would not be a tensor.
             collated[key] = [sample[key] for sample in batch]
 
     # Delegate mask creation to the provided specialized function

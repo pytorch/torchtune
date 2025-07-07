@@ -802,7 +802,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         base_collate_fn = _get_component_from_path(collate_fn)
         if cfg_packing_strategy:
 
-            packing_strategy = config.instantiate(
+            packer = config.instantiate(
                 cfg_packing_strategy,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
@@ -810,13 +810,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             ds = IterablePackedDataset(
                 dataset=ds,
-                strategy=packing_strategy,
+                packer=packer,
                 target_tokens_per_pack=self._tokenizer.max_seq_len,
             )
 
             base_collate_fn = partial(
                 base_collate_fn,
-                mask_fn=packing_strategy.create_block_mask,
+                mask_fn=packer.create_block_mask,
                 device=self._device,
             )
 

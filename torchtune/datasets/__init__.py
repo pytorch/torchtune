@@ -20,7 +20,7 @@ from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._interleaved import InterleavedDataset
 from torchtune.datasets._iterable_packed import (
     IterablePackedDataset,
-    TextPackingStrategy,
+    TextPacker,
 )
 from torchtune.datasets._iterable_base import (
     DatasetInfo,
@@ -68,5 +68,5 @@ __all__ = [
     "TuneIterableDataset",
     "wikitext_dataset",
     "IterablePackedDataset",
-    "TextPackingStrategy",
+    "TextPacker",
 ]

@@ -26,15 +26,15 @@ SampleType = TypeVar("SampleType")
 PackType = dict[str, torch.Tensor | list[Metric]]
 
 
-class PackingStrategy(ABC, Generic[SampleType]):
+class Packer(ABC, Generic[SampleType]):
     """
-    Strategy to be used in IterablePackedDataset and with FlexAttention.
+    Packer to be used in IterablePackedDataset and with FlexAttention.
     """
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
         if not _SUPPORTS_FLEX_ATTENTION:
             raise RuntimeError(
-                "The IterablePackedDataset and its strategies require Flex Attention support, "
+                "The IterablePackedDataset and its packers require Flex Attention support, "
                 "which is not available in the current environment."
             )
         self.padding_idx = padding_idx
@@ -43,7 +43,7 @@ class PackingStrategy(ABC, Generic[SampleType]):
     @abstractmethod
     def set_dataset_name(self, dataset_name: str) -> None:
         """
-        Sets the dataset name on the strategy.
+        Sets the dataset name on the packer.
 
         Args:
             dataset_name (str): The name of the dataset.
@@ -154,7 +154,7 @@ class PackingStrategy(ABC, Generic[SampleType]):
         The core logic for the block attention mask, to be passed to
         `torch.nn.attention.flex_attention.create_block_mask`.
 
-        This method is implemented by each strategy to define the specific
+        This method is implemented by each packer to define the specific
         attention pattern (e.g., standard causal, DPO, etc.).
 
         Args:
@@ -191,12 +191,12 @@ class IterablePackedDataset(
     TuneIterableDataset[PackType], Stateful, Generic[SampleType]
 ):
     """
-    IterablePackedDataset takes any TuneIterableDataset and a PackingStrategy, packs documents until
+    IterablePackedDataset takes any TuneIterableDataset and a Packer, packs documents until
     the 'target_tokens_per_pack' is reached and yields a dictionary of tensors.
 
     Args:
         dataset (TuneIterableDataset[SampleType]): The TuneIterableDataset to pack.
-        strategy (PackingStrategy[SampleType]): The PackingStrategy to use for packing.
+        packer (Packer[SampleType]): The Packer to use for packing.
         target_tokens_per_pack (int): The target number of tokens per pack.
         buffer_size (int): The size of the buffer to use for packing.
         dataset_name (str): The name of the dataset. If None, a defaults to IterablePackedDataset.
@@ -205,19 +205,19 @@ class IterablePackedDataset(
     def __init__(
         self,
         dataset: TuneIterableDataset[SampleType],
-        strategy: PackingStrategy[SampleType],
+        packer: Packer[SampleType],
         target_tokens_per_pack: int,
         buffer_size: int = 50,
         dataset_name: str = "IterablePackedDataset",
     ):
         self.dataset = dataset
-        self.strategy = strategy
+        self.packer = packer
         self.target_tokens_per_pack = target_tokens_per_pack
         self.buffer_size = buffer_size
         self._dataset_name = dataset_name
 
-        # Set dataset name on the strategy
-        self.strategy.set_dataset_name(dataset_name)
+        # Set dataset name on the packer
+        self.packer.set_dataset_name(dataset_name)
 
         self._reset_packer_state()
 
@@ -260,7 +260,7 @@ class IterablePackedDataset(
         while len(self._buffer) < self.buffer_size and not self._exhausted:
             try:
                 sample = next(iterator)
-                sample_size = self.strategy.get_sample_size(sample)
+                sample_size = self.packer.get_sample_size(sample)
 
                 # Drop samples that are too large
                 if sample_size > self.target_tokens_per_pack:
@@ -314,7 +314,7 @@ class IterablePackedDataset(
         """
         # Start a new pack if necessary
         if self._current_pack is None:
-            self._current_pack = self.strategy.create_empty_pack()
+            self._current_pack = self.packer.create_empty_pack()
             self._current_pack_size = 0
             self._current_doc_id_in_pack = 0
 
@@ -328,7 +328,7 @@ class IterablePackedDataset(
             if selected_sample_idx is not None:
                 sample, sample_size = self._buffer[selected_sample_idx]
                 del self._buffer[selected_sample_idx]
-                docs_consumed = self.strategy.add_sample_to_pack(
+                docs_consumed = self.packer.add_sample_to_pack(
                     self._current_pack, sample, self._current_doc_id_in_pack
                 )
                 self._current_doc_id_in_pack += docs_consumed
@@ -339,7 +339,7 @@ class IterablePackedDataset(
 
         # If the pack has any content, finalize and return it
         if self._current_pack_size > 0:
-            final_pack = self.strategy.finalize_pack(
+            final_pack = self.packer.finalize_pack(
                 self._current_pack,
                 self.target_tokens_per_pack,
                 self._current_doc_id_in_pack,
@@ -410,9 +410,9 @@ class IterablePackedDataset(
         self._resuming = True
 
 
-class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
+class TextPacker(Packer[dict[str, list[int]]]):
     """
-    Strategy for packing standard text samples for causal language modeling. It is designed
+    Packer for packing standard text samples for causal language modeling. It is designed
     to be used with the IterablePackedDataset.
     - Each sample is treated as a separate document.
     - `input_pos` restarts from 0 for each sample.
@@ -508,12 +508,12 @@ class TextPackingStrategy(PackingStrategy[dict[str, list[int]]]):
 # NOTE: For demonstration purposes only.
 
 
-class DPOPackingStrategy(PackingStrategy[dict[str, list[int]]]):
+class DPOPacker(Packer[dict[str, list[int]]]):
     """
-    Strategy for packing DPO samples with a shared prompt. It packs a DPO
+    Packer for packing DPO samples with a shared prompt. It packs a DPO
     sample as three logical documents: a shared prompt, a chosen response,
     and a rejected response. This structure is encoded in the `document_ids`
-    metadata, allowing the strategy to build the correct attention pattern
+    metadata, allowing the packer to build the correct attention pattern
     (e.g., both responses can attend to the prompt, but not to each other).
 
     ASSUMPTION: The input DPO sample dict contains pre-tokenized:

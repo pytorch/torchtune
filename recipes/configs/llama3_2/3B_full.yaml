@@ -42,10 +42,10 @@ dataset:
     weight: 0.2
     split: train[:5%] # simulate 1 epoch quickly
 
-# On-the-fly packing strategy
+# On-the-fly packing
 # Set packing_strategy: null to disable packing
 packing_strategy:
-  _component_: torchtune.datasets.TextPackingStrategy
+  _component_: torchtune.datasets.TextPacker
 
 seed: 42
 
