@@ -18,15 +18,12 @@ from torchtune.datasets._hf_iterable import HfIterableDataset
 from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._interleaved import InterleavedDataset
-from torchtune.datasets._iterable_packed import (
-    IterablePackedDataset,
-    TextPacker,
-)
 from torchtune.datasets._iterable_base import (
     DatasetInfo,
     InfiniteTuneIterableDataset,
     TuneIterableDataset,
 )
+from torchtune.datasets._iterable_packed import IterablePackedDataset, TextPacker
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset

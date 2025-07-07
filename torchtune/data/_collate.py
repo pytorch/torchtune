@@ -19,9 +19,9 @@ def collate_packed(
     Generic collate function for packed samples from an IterablePackedDataset.
 
     Stacks tensors from all samples in the batch, while keeping non-tensor values
-    as lists. Handles metrics by extending them into a single list. Delegates 
-    attention mask creation to a provided `mask_fn` callable that expects 
-    `document_ids` and `device` parameters to generate masks on-the-fly for 
+    as lists. Handles metrics by extending them into a single list. Delegates
+    attention mask creation to a provided `mask_fn` callable that expects
+    `document_ids` and `device` parameters to generate masks on-the-fly for
     packed sequences.
 
     Args:
@@ -42,8 +42,10 @@ def collate_packed(
     first_sample_keys = batch[0].keys()
     for sample in batch:
         if sample.keys() != first_sample_keys:
-            raise ValueError(f"All samples must have the same keys. Expected {first_sample_keys}, got {sample.keys()}")
-        
+            raise ValueError(
+                f"All samples must have the same keys. Expected {first_sample_keys}, got {sample.keys()}"
+            )
+
     keys_to_stack = first_sample_keys
     collated = {}
 

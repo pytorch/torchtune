@@ -15,9 +15,9 @@ from torch.nn.attention.flex_attention import (
 )
 from torchdata.stateful_dataloader import Stateful
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data._metrics import AggregationType, Metric
+from torchtune.data.metrics import AggregationType, Metric
 
-from torchtune.datasets import TuneIterableDataset
+from torchtune.datasets._iterable_base import DatasetInfo, InfiniteTuneIterableDataset
 from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class Packer(ABC, Generic[SampleType]):
         >>> packer.add_sample_to_pack(pack, sample, next_doc_id=0)
         >>> final_pack = packer.finalize_pack(pack, target_tokens_per_pack=5, next_doc_id=1)
         >>> mask = packer.create_block_mask(final_pack["document_ids"].unsqueeze(0), device="cpu")
-    
+
     Raises:
         RuntimeError: If FlexAttention is not supported in the current environment.
     """
@@ -83,11 +83,11 @@ class Packer(ABC, Generic[SampleType]):
     def create_empty_pack(self) -> dict[str, list[Any]]:
         """
         Creates an empty pack structure for accumulating samples.
-        
+
         Returns:
             dict[str, list[Any]]: An empty structure that can accumulate sample data
                 and be converted to tensors by finalize_pack().
-        
+
         Example:
             >>> packer.create_empty_pack()
             {"tokens": [], "labels": []}
@@ -129,18 +129,18 @@ class Packer(ABC, Generic[SampleType]):
 
         Example:
             >>> packer = TextPacker(padding_idx=0, ignore_idx=-100)
-            >>> pack = {"tokens": [torch.tensor([1, 2])], 
-            ...         "labels": [torch.tensor([3, 4])], 
-            ...         "document_ids": [torch.tensor([0, 0])], 
-            ...         "input_pos": [torch.tensor([0, 1])], 
+            >>> pack = {"tokens": [torch.tensor([1, 2])],
+            ...         "labels": [torch.tensor([3, 4])],
+            ...         "document_ids": [torch.tensor([0, 0])],
+            ...         "input_pos": [torch.tensor([0, 1])],
             ...         "metrics": []}
-            >>> sample = {"tokens": torch.tensor([5, 6]), 
+            >>> sample = {"tokens": torch.tensor([5, 6]),
             ...         "labels": torch.tensor([7, 8])}
             >>> added_docs = packer.add_sample_to_pack(pack, sample, next_doc_id=1)
             >>> print(pack)
             {"tokens": [torch.tensor([1, 2]), torch.tensor([5, 6])],
-             "labels": [torch.tensor([3, 4]), torch.tensor([7, 8])], 
-             "document_ids": [torch.tensor([0, 0]), torch.tensor([1, 1])], 
+             "labels": [torch.tensor([3, 4]), torch.tensor([7, 8])],
+             "document_ids": [torch.tensor([0, 0]), torch.tensor([1, 1])],
              "input_pos": [torch.tensor([0, 1]), torch.tensor([0, 1])], "metrics": []}
             >>> print(added_docs)
             1
@@ -164,17 +164,17 @@ class Packer(ABC, Generic[SampleType]):
 
         Example:
             >>> packer = TextPacker(padding_idx=999, ignore_idx=-100)
-            >>> pack = {"tokens": [torch.tensor([1, 2])], 
-            ...         "labels": [torch.tensor([3, 4])], 
-            ...         "document_ids": [torch.tensor([0, 0])], 
+            >>> pack = {"tokens": [torch.tensor([1, 2])],
+            ...         "labels": [torch.tensor([3, 4])],
+            ...         "document_ids": [torch.tensor([0, 0])],
             ...         "input_pos": [torch.tensor([0, 1])], "metrics": []}
             >>> target_tokens_per_pack = 4
             >>> next_doc_id = 1
             >>> result = packer.finalize_pack(pack, target_tokens_per_pack, next_doc_id)
             >>> print(result)
             {"tokens": torch.tensor([1, 2, 999, 999]),
-             "labels": torch.tensor([3, 4, -100, -100]), 
-             "document_ids": torch.tensor([0, 0, 1, 1]), 
+             "labels": torch.tensor([3, 4, -100, -100]),
+             "document_ids": torch.tensor([0, 0, 1, 1]),
              "input_pos": torch.tensor([0, 1, 0, 0]), "metrics": [...]}
         """
         pass
@@ -238,11 +238,9 @@ class Packer(ABC, Generic[SampleType]):
         )
 
 
-class IterablePackedDataset(
-    TuneIterableDataset[PackType], Stateful, Generic[SampleType]
-):
+class IterablePackedDataset(InfiniteTuneIterableDataset, Stateful, Generic[SampleType]):
     """
-    Wraps a `TuneIterableDataset` to combine multiple samples into a single,
+    Wraps a `InfiniteTuneIterableDataset` to combine multiple samples into a single,
     fixed-size "pack". This is highly efficient for training as it minimizes
     padding and ensures consistent batch shapes.
 
@@ -259,7 +257,7 @@ class IterablePackedDataset(
     allowing training to be resumed seamlessly.
 
     Args:
-        dataset (TuneIterableDataset[SampleType]): The `TuneIterableDataset` to pack.
+        dataset (InfiniteTuneIterableDataset): The `InfiniteTuneIterableDataset` to pack.
         packer (Packer[SampleType]): The `Packer` that defines the packing
             strategy for the dataset format (e.g. `TextPacker`).
         target_tokens_per_pack (int): The target number of tokens for each pack.
@@ -267,12 +265,12 @@ class IterablePackedDataset(
             best fit. A larger buffer may improve packing efficiency at the
             cost of memory. Buffer samples are discarded if resuming from a checkpoint.
             Default is 100.
-        dataset_name (str): The name of the dataset, used for metrics.
+        dataset_name (str): The name of this packed dataset, used for metrics. Defaults to "IterablePackedDataset".
     """
 
     def __init__(
         self,
-        dataset: TuneIterableDataset[SampleType],
+        dataset: InfiniteTuneIterableDataset,
         packer: Packer[SampleType],
         target_tokens_per_pack: int,
         buffer_size: int = 100,
@@ -289,10 +287,15 @@ class IterablePackedDataset(
 
         self._reset_packer_state()
 
+        # Validate that the dataset names are unique
+        self._validate_unique_dataset_names()
+
     @property
-    def dataset_name(self) -> str:
-        """Returns the dataset name, used for metrics tracking."""
-        return self._dataset_name
+    def info(self) -> DatasetInfo:
+        """Returns hierarchical dataset information including child dataset info."""
+        return DatasetInfo(
+            name=self._dataset_name, weight=1.0, children=(self.dataset.info,)
+        )
 
     def _reset_packer_state(self) -> None:
         """Resets the packer's internal state for a new or resumed iteration."""
@@ -494,7 +497,6 @@ class TextPacker(Packer[dict[str, torch.Tensor]]):
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
         super().__init__(padding_idx, ignore_idx)
-        self.dataset_name = "packed_dataset"  # Default name
 
     def set_dataset_name(self, dataset_name: str) -> None:
         """
@@ -525,7 +527,7 @@ class TextPacker(Packer[dict[str, torch.Tensor]]):
         # Append tensors directly to pack lists
         pack["tokens"].append(sample["tokens"])
         pack["labels"].append(sample["labels"])
-        
+
         # Generate metadata as tensors
         pack["document_ids"].append(
             torch.full((seq_len,), next_doc_id, dtype=torch.long, device="cpu")
@@ -559,16 +561,14 @@ class TextPacker(Packer[dict[str, torch.Tensor]]):
             pack["document_ids"].append(
                 torch.full((num_padding,), next_doc_id, dtype=torch.long)
             )
-            pack["input_pos"].append(
-                torch.zeros(num_padding, dtype=torch.long)
-            )
+            pack["input_pos"].append(torch.zeros(num_padding, dtype=torch.long))
 
         # Add padding percentage metric
         if target_tokens_per_pack > 0:
             padding_pct = round(num_padding * 100 / target_tokens_per_pack, 2)
             padding_metric = Metric(
                 dataset_name=self.dataset_name,
-                name="pct_of_tokens_padded",
+                metric_name="pct_of_tokens_padded",
                 value=padding_pct,
                 agg_type=AggregationType.MEAN,
             )
@@ -576,10 +576,26 @@ class TextPacker(Packer[dict[str, torch.Tensor]]):
 
         # Concatenate all tensor lists efficiently
         result = {
-            "tokens": torch.cat(pack["tokens"]) if pack["tokens"] else torch.empty(0, dtype=torch.long),
-            "labels": torch.cat(pack["labels"]) if pack["labels"] else torch.empty(0, dtype=torch.long),
-            "document_ids": torch.cat(pack["document_ids"]) if pack["document_ids"] else torch.empty(0, dtype=torch.long),
-            "input_pos": torch.cat(pack["input_pos"]) if pack["input_pos"] else torch.empty(0, dtype=torch.long),
+            "tokens": (
+                torch.cat(pack["tokens"])
+                if pack["tokens"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "labels": (
+                torch.cat(pack["labels"])
+                if pack["labels"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "document_ids": (
+                torch.cat(pack["document_ids"])
+                if pack["document_ids"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "input_pos": (
+                torch.cat(pack["input_pos"])
+                if pack["input_pos"]
+                else torch.empty(0, dtype=torch.long)
+            ),
             "metrics": pack["metrics"],
         }
 
@@ -623,7 +639,6 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
         super().__init__(padding_idx, ignore_idx)
-        self.dataset_name = "packed_dataset"  # Default name
 
     def set_dataset_name(self, dataset_name: str) -> None:
         """
@@ -674,8 +689,7 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
         # 2. Create labels: [ignore_idx for prompt, chosen_labels, rejected_labels]
         labels = torch.cat(
             [
-                torch.full(
-                    (prompt_len,), self.ignore_idx, dtype=torch.long),
+                torch.full((prompt_len,), self.ignore_idx, dtype=torch.long),
                 sample["chosen_response_only_labels"],
                 sample["rejected_response_only_labels"],
             ]
@@ -684,12 +698,9 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
         # 3. Create document IDs: prompt(next_doc_id), chosen(next_doc_id+1), rejected(next_doc_id+2)
         document_ids = torch.cat(
             [
-                torch.full(
-                    (prompt_len,), next_doc_id, dtype=torch.long),
-                torch.full(
-                    (chosen_len,), next_doc_id + 1, dtype=torch.long),
-                torch.full(
-                    (rejected_len,), next_doc_id + 2, dtype=torch.long),
+                torch.full((prompt_len,), next_doc_id, dtype=torch.long),
+                torch.full((chosen_len,), next_doc_id + 1, dtype=torch.long),
+                torch.full((rejected_len,), next_doc_id + 2, dtype=torch.long),
             ]
         )
 
@@ -766,7 +777,7 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
             padding_pct = round(num_padding * 100 / target_tokens_per_pack, 2)
             padding_metric = Metric(
                 dataset_name=self.dataset_name,
-                name="pct_of_tokens_padded",
+                metric_name="pct_of_tokens_padded",
                 value=padding_pct,
                 agg_type=AggregationType.MEAN,
             )
@@ -774,12 +785,36 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
 
         # Concatenate all tensor lists
         result = {
-            "tokens": torch.cat(pack["tokens"]) if pack["tokens"] else torch.empty(0, dtype=torch.long),
-            "labels": torch.cat(pack["labels"]) if pack["labels"] else torch.empty(0, dtype=torch.long),
-            "document_ids": torch.cat(pack["document_ids"]) if pack["document_ids"] else torch.empty(0, dtype=torch.long),
-            "input_pos": torch.cat(pack["input_pos"]) if pack["input_pos"] else torch.empty(0, dtype=torch.long),
-            "chosen_response_mask": torch.cat(pack["chosen_response_mask"]) if pack["chosen_response_mask"] else torch.empty(0, dtype=torch.bool),
-            "rejected_response_mask": torch.cat(pack["rejected_response_mask"]) if pack["rejected_response_mask"] else torch.empty(0, dtype=torch.bool),
+            "tokens": (
+                torch.cat(pack["tokens"])
+                if pack["tokens"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "labels": (
+                torch.cat(pack["labels"])
+                if pack["labels"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "document_ids": (
+                torch.cat(pack["document_ids"])
+                if pack["document_ids"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "input_pos": (
+                torch.cat(pack["input_pos"])
+                if pack["input_pos"]
+                else torch.empty(0, dtype=torch.long)
+            ),
+            "chosen_response_mask": (
+                torch.cat(pack["chosen_response_mask"])
+                if pack["chosen_response_mask"]
+                else torch.empty(0, dtype=torch.bool)
+            ),
+            "rejected_response_mask": (
+                torch.cat(pack["rejected_response_mask"])
+                if pack["rejected_response_mask"]
+                else torch.empty(0, dtype=torch.bool)
+            ),
             "metrics": pack["metrics"],
         }
 
