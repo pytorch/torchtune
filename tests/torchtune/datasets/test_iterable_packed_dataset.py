@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 from functools import partial
 from typing import Any, Iterator, Optional
 
@@ -14,47 +13,22 @@ from torch.utils.data import IterableDataset
 from torchdata.stateful_dataloader import Stateful, StatefulDataLoader
 
 from torchtune.data._collate import collate_packed
+from torchtune.data.metrics import MetricsAggregator
 from torchtune.datasets._iterable_base import DatasetInfo
 from torchtune.datasets._iterable_packed import (
     DPOPacker,
     IterablePackedDataset,
     Packer,
-    PackType,
     TextPacker,
 )
-from torchtune.data.metrics import MetricsAggregator
 from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
-from .test_iterable_utils import generate_ckpt
 
-# --- Test Fixtures ---
+from .test_iterable_utils import generate_ckpt
 
 
 @pytest.fixture
 def device():
     return "cuda"
-
-
-class DummyTextDataset(IterableDataset):
-    """Dummy dataset that returns tensor-based samples."""
-
-    def __init__(self, sample_sizes):
-        self._sample_sizes = sample_sizes
-        self._counter = 0
-
-    @property
-    def info(self) -> DatasetInfo:
-        """Returns dataset information."""
-        return DatasetInfo(name="DummyTextDataset", weight=1.0, children=())
-
-    def __iter__(self):
-        # Reset counter for each new iteration
-        self._counter = 0
-        for size in self._sample_sizes:
-            yield {
-                "tokens": torch.full((size,), self._counter, dtype=torch.long),
-                "labels": torch.full((size,), self._counter, dtype=torch.long),
-            }
-            self._counter += 1
 
 
 class StatefulDummyTextDataset(IterableDataset, Stateful):
@@ -93,28 +67,17 @@ class StatefulDummyTextDataset(IterableDataset, Stateful):
         # If resuming, fast-forward the iterator to the correct position.
         if self._state_to_load:
             start_idx = self._state_to_load.get("sample_idx", 0)
-            logging.info(
-                f"StatefulDummyTextDataset.__iter__(): Resuming. Fast-forwarding iterator to index {start_idx}."
-            )
             self._state_to_load = None
-            # Fast-forward the iterator to the sample index from the checkpoint.
+            # Consume and discard samples until the desired start point.
             for _ in range(start_idx):
-                next(
-                    iterator, None
-                )  # Consume and discard samples until the desired start point.
+                next(iterator, None)
 
         yield from iterator
 
     def state_dict(self) -> dict[str, Any]:
-        logging.info(
-            f"StatefulDummyTextDataset.state_dict(): current state is {self._active_iterator_state}"
-        )
         return self._active_iterator_state
 
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
-        logging.info(
-            f"StatefulDummyTextDataset.load_state_dict(): state to load is {state_dict}"
-        )
         self._state_to_load = state_dict
 
 
@@ -311,7 +274,7 @@ class TestTextPacker:
         sample_sizes = [3, 2, 4]
         target_tokens = 6
 
-        dataset = DummyTextDataset(sample_sizes)
+        dataset = StatefulDummyTextDataset(sample_sizes)
         text_packer = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
             dataset=dataset, packer=text_packer, target_tokens_per_pack=target_tokens
@@ -645,7 +608,9 @@ class TestCollatedPacked:
 
     def test_collate_empty_batch(self):
         """Test collating an empty batch"""
-        result = collate_packed(batch=[], mask_fn=lambda doc_ids, device: None, device="cpu")
+        result = collate_packed(
+            batch=[], mask_fn=lambda doc_ids, device: None, device="cpu"
+        )
         assert result == {}
 
     def test_collate_basic_batch(self):
@@ -658,9 +623,9 @@ class TestCollatedPacked:
                 "document_ids": torch.tensor([0, 0, 1]),
                 "input_pos": torch.tensor([0, 1, 0]),
                 "metrics": [
-                    type('Metric', (), {'metric_name': 'test', 'value': 1.0})(),
-                    type('Metric', (), {'metric_name': 'test2', 'value': 2.0})()
-                ]
+                    type("Metric", (), {"metric_name": "test", "value": 1.0})(),
+                    type("Metric", (), {"metric_name": "test2", "value": 2.0})(),
+                ],
             },
             {
                 "tokens": torch.tensor([7, 8]),
@@ -668,30 +633,30 @@ class TestCollatedPacked:
                 "document_ids": torch.tensor([2, 2]),
                 "input_pos": torch.tensor([0, 1]),
                 "metrics": [
-                    type('Metric', (), {'metric_name': 'test3', 'value': 3.0})()
-                ]
-            }
+                    type("Metric", (), {"metric_name": "test3", "value": 3.0})()
+                ],
+            },
         ]
-        
+
         # Mock mask function
         def mock_mask_fn(doc_ids, device):
             batch_size, seq_len = doc_ids.shape
             return torch.ones(batch_size, seq_len, seq_len, dtype=torch.bool)
-        
+
         result = collate_packed(batch, mock_mask_fn, "cpu")
-        
+
         # Check tensor stacking
         expected_tokens = torch.stack([torch.tensor([1, 2, 3]), torch.tensor([7, 8])])
         expected_labels = torch.stack([torch.tensor([4, 5, 6]), torch.tensor([9, 10])])
         expected_doc_ids = torch.stack([torch.tensor([0, 0, 1]), torch.tensor([2, 2])])
-        
+
         torch.testing.assert_close(result["tokens"], expected_tokens)
         torch.testing.assert_close(result["labels"], expected_labels)
         torch.testing.assert_close(result["document_ids"], expected_doc_ids)
-        
+
         # Check metrics flattening
         assert len(result["metrics"]) == 3  # All metrics from both samples
-        
+
         # Check mask creation
         assert "mask" in result
         assert result["mask"].shape == (2, 3, 3)  # batch_size=2, seq_len=3
@@ -700,12 +665,12 @@ class TestCollatedPacked:
         """Test that different keys across samples raises ValueError"""
         batch = [
             {"tokens": torch.tensor([1, 2]), "labels": torch.tensor([3, 4])},
-            {"tokens": torch.tensor([5, 6]), "other_key": torch.tensor([7, 8])}
+            {"tokens": torch.tensor([5, 6]), "other_key": torch.tensor([7, 8])},
         ]
-        
+
         def mock_mask_fn(doc_ids, device):
             return torch.ones(1, 1, 1)
-        
+
         with pytest.raises(ValueError, match="All samples must have the same keys"):
             collate_packed(batch, mock_mask_fn, "cpu")
 
@@ -716,28 +681,28 @@ class TestCollatedPacked:
                 "tokens": torch.tensor([1, 2]),
                 "document_ids": torch.tensor([0, 0]),
                 "text_data": "sample1",
-                "metrics": ["DummyMetric1"]
+                "metrics": ["DummyMetric1"],
             },
             {
                 "tokens": torch.tensor([3, 4]),
                 "document_ids": torch.tensor([1, 1]),
                 "text_data": "sample2",
-                "metrics": ["DummyMetric2"]
-            }
+                "metrics": ["DummyMetric2"],
+            },
         ]
-        
+
         def mock_mask_fn(doc_ids, device):
             return torch.ones(2, 2, 2)
-        
+
         result = collate_packed(batch, mock_mask_fn, "cpu")
-        
+
         # Tensors should be stacked
         expected_tokens = torch.stack([torch.tensor([1, 2]), torch.tensor([3, 4])])
         torch.testing.assert_close(result["tokens"], expected_tokens)
-        
+
         # Non-tensors should be kept as lists
         assert result["text_data"] == ["sample1", "sample2"]
-        
+
         # Metrics should be flattened
         assert result["metrics"] == ["DummyMetric1", "DummyMetric2"]
 
@@ -753,7 +718,7 @@ class TestIterablePackedDataset:
         target_tokens = 6
 
         # With large buffer: can see all samples and pick best fit [3,1,2], [4]
-        dataset1 = DummyTextDataset(sample_sizes)
+        dataset1 = StatefulDummyTextDataset(sample_sizes)
         packer1 = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset1 = IterablePackedDataset(
             dataset=dataset1,
@@ -764,7 +729,7 @@ class TestIterablePackedDataset:
         packs_buffered = list(packed_dataset1)
 
         # With small buffer: greedy first-fit [3], [4,1], [2]
-        dataset2 = DummyTextDataset(sample_sizes)
+        dataset2 = StatefulDummyTextDataset(sample_sizes)
         packer2 = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset2 = IterablePackedDataset(
             dataset=dataset2,
@@ -791,7 +756,7 @@ class TestIterablePackedDataset:
         sample_sizes = [3, 10, 2, 8, 1]  # 10 and 8 are oversized for target=6
         target_tokens = 5
 
-        dataset = DummyTextDataset(sample_sizes)
+        dataset = StatefulDummyTextDataset(sample_sizes)
         packer = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
             dataset=dataset, packer=packer, target_tokens_per_pack=target_tokens
@@ -877,7 +842,7 @@ class TestIterablePackedDataset:
     def test_multiple_iterations_same_dataset(self):
         """Test that multiple iterations over same packed dataset work correctly"""
         sample_sizes = [2, 3, 1]
-        dataset = DummyTextDataset(sample_sizes)
+        dataset = StatefulDummyTextDataset(sample_sizes)
         packer = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
             dataset=dataset, packer=packer, target_tokens_per_pack=4
@@ -907,7 +872,7 @@ class TestIterablePackedDataset:
         self, sample_sizes, target_tokens, buffer_size, expected_packs, scenario
     ):
         """Parametrized edge case testing"""
-        dataset = DummyTextDataset(sample_sizes)
+        dataset = StatefulDummyTextDataset(sample_sizes)
         packer = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
             dataset=dataset,
