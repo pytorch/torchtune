@@ -53,7 +53,7 @@ class Packer(ABC, Generic[SampleType]):
     @abstractmethod
     def create_empty_pack(self) -> dict[str, list[Any]]:
         """
-        Creates an empty pack.
+        Creates an empty pack with lists that will hold tensors.
 
         Returns:
             dict[str, list[Any]]: An empty dictionary with lists as values.
@@ -87,7 +87,7 @@ class Packer(ABC, Generic[SampleType]):
         self, pack: dict[str, list[Any]], sample: SampleType, next_doc_id: int
     ) -> int:
         """
-        Adds a sample to the pack dictionary in-place.
+        Adds a sample to the pack dictionary in-place by appending tensors to lists.
 
         Args:
             pack (dict[str, list[Any]]): The dictionary representing the pack, to be modified in-place.
@@ -98,14 +98,12 @@ class Packer(ABC, Generic[SampleType]):
             int: The number of new documents that were added to the pack.
 
         Example:
-            pack = {"tokens": [1, 2], "labels": [3, 4], "document_ids": [0, 0], "input_pos": [0, 1]}
-            sample = {"tokens": [5, 6], "labels": [7, 8]}
+            pack = {"tokens": [tensor([1, 2])], "labels": [tensor([3, 4])], ...}
+            sample = {"tokens": tensor([5, 6]), "labels": tensor([7, 8])}
             added_docs = self.add_sample_to_pack(pack, sample, next_doc_id=1)
             print(pack)
-            >>> {"tokens": [1, 2, 5, 6],
-                "labels": [3, 4, 7, 8],
-                "document_ids": [0, 0, 1, 1],
-                "input_pos": [0, 1, 0, 1]}
+            >>> {"tokens": [tensor([1, 2]), tensor([5, 6])],
+                "labels": [tensor([3, 4]), tensor([7, 8])], ...}
             print(added_docs)
             >>> 1
         """
@@ -116,28 +114,26 @@ class Packer(ABC, Generic[SampleType]):
         self, pack: dict[str, list[Any]], target_tokens_per_pack: int, next_doc_id: int
     ) -> PackType:
         """
-        Finalizes a pack, primarily by padding it to the target length.
+        Finalizes a pack by padding to target length and concatenating tensor lists.
 
         Args:
-            pack (dict[str, list[Any]]): The pack data.
+            pack (dict[str, list[Any]]): The pack data containing lists of tensors.
             target_tokens_per_pack (int): The target length to pad to.
             next_doc_id (int): The document ID to use for the padding tokens.
 
         Returns:
-            PackType: The finalized pack.
+            PackType: The finalized pack with concatenated tensors.
 
         Example:
-            pack = {"tokens": [1, 2], "labels": [3, 4], "document_ids": [0, 0], "input_pos": [0, 1]}
+            pack = {"tokens": [tensor([1, 2])], "labels": [tensor([3, 4])], ...}
             target_tokens_per_pack = 4
             next_doc_id = 1
             self.padding_idx = 999
             self.ignore_idx = -100
 
             self.finalize_pack(pack, target_tokens_per_pack, next_doc_id)
-            >>> {"tokens": [1, 2, 999, 999],
-            "labels": [3, 4, -100, -100],
-            "document_ids": [0, 0, 1, 1],
-            "input_pos": [0, 1, 0, 1]}
+            >>> {"tokens": tensor([1, 2, 999, 999]),
+            "labels": tensor([3, 4, -100, -100]), ...}
         """
         pass
 
@@ -196,7 +192,7 @@ class IterablePackedDataset(
 
     Args:
         dataset (TuneIterableDataset[SampleType]): The TuneIterableDataset to pack.
-        packer (Packer[SampleType]): The Packer to use for packing.
+        packer (Packer[SampleType]): The Packer specific to the dataset format (e.g. text, DPO, etc.).
         target_tokens_per_pack (int): The target number of tokens per pack.
         buffer_size (int): The size of the buffer to use for packing.
         dataset_name (str): The name of the dataset. If None, a defaults to IterablePackedDataset.
@@ -410,7 +406,7 @@ class IterablePackedDataset(
         self._resuming = True
 
 
-class TextPacker(Packer[dict[str, list[int]]]):
+class TextPacker(Packer[dict[str, torch.Tensor]]):
     """
     Packer for packing standard text samples for causal language modeling. It is designed
     to be used with the IterablePackedDataset.
@@ -428,6 +424,7 @@ class TextPacker(Packer[dict[str, list[int]]]):
         self.dataset_name = dataset_name
 
     def create_empty_pack(self) -> dict[str, list]:
+        """Creates an empty pack with lists that will hold tensors."""
         return {
             "tokens": [],
             "labels": [],
@@ -436,53 +433,74 @@ class TextPacker(Packer[dict[str, list[int]]]):
             "metrics": [],
         }
 
-    def get_sample_size(self, sample: dict[str, list[int]]) -> int:
-        return len(sample["tokens"])
+    def get_sample_size(self, sample: dict[str, torch.Tensor]) -> int:
+        """Returns the number of tokens in the sample."""
+        return sample["tokens"].numel()
 
     def add_sample_to_pack(
-        self, pack: dict[str, list], sample: dict[str, list[int]], next_doc_id: int
+        self, pack: dict[str, list], sample: dict[str, torch.Tensor], next_doc_id: int
     ) -> int:
-        seq_len = len(sample["tokens"])
+        """Adds a tensor sample to the pack by appending tensors to lists."""
+        seq_len = sample["tokens"].numel()
 
-        # Append sample data to the pack
-        pack["tokens"].extend(sample["tokens"])
-        pack["labels"].extend(sample["labels"])
-        pack["document_ids"].extend([next_doc_id] * seq_len)
-        pack["input_pos"].extend(range(seq_len))  # input_pos restarts for each doc
+        # Append tensors directly to pack lists
+        pack["tokens"].append(sample["tokens"])
+        pack["labels"].append(sample["labels"])
+        
+        # Generate metadata as tensors
+        pack["document_ids"].append(
+            torch.full((seq_len,), next_doc_id, dtype=torch.long, device="cpu")
+        )
+        # input_pos restarts from 0 for each document
+        pack["input_pos"].append(torch.arange(seq_len, dtype=torch.long, device="cpu"))
 
         # Handle metrics if they exist in the sample
         if "metrics" in sample:
             pack["metrics"].extend(sample["metrics"])
 
-        # Increment doc ID for the next sample
+        # return number of documents added
         return 1
 
     def finalize_pack(
         self, pack: dict[str, list], target_tokens_per_pack: int, next_doc_id: int
     ) -> PackType:
-        current_size = len(pack["tokens"])
+        """Finalizes pack by padding and concatenating tensor lists efficiently."""
+        # Calculate current size from tensor list
+        current_size = sum(t.numel() for t in pack["tokens"]) if pack["tokens"] else 0
         num_padding = target_tokens_per_pack - current_size
 
+        # Add padding tensors if needed
         if num_padding > 0:
-            pack["tokens"].extend([self.padding_idx] * num_padding)
-            pack["labels"].extend([self.ignore_idx] * num_padding)
-            pack["input_pos"].extend([0] * num_padding)
-            pack["document_ids"].extend([next_doc_id] * num_padding)
+            pack["tokens"].append(
+                torch.full((num_padding,), self.padding_idx, dtype=torch.long)
+            )
+            pack["labels"].append(
+                torch.full((num_padding,), self.ignore_idx, dtype=torch.long)
+            )
+            pack["document_ids"].append(
+                torch.full((num_padding,), next_doc_id, dtype=torch.long)
+            )
+            pack["input_pos"].append(
+                torch.zeros(num_padding, dtype=torch.long)
+            )
 
-        # Add pct_of_tokens_padded metric
-        padding_metric = Metric(
-            dataset_name=self.dataset_name,
-            name="pct_of_tokens_padded",
-            value=round(num_padding * 100 / len(pack["tokens"]), 2),
-            agg_type=AggregationType.MEAN,
-        )
-        pack["metrics"].append(padding_metric)
+        # Add padding percentage metric
+        if target_tokens_per_pack > 0:
+            padding_pct = round(num_padding * 100 / target_tokens_per_pack, 2)
+            padding_metric = Metric(
+                dataset_name=self.dataset_name,
+                name="pct_of_tokens_padded",
+                value=padding_pct,
+                agg_type=AggregationType.MEAN,
+            )
+            pack["metrics"].append(padding_metric)
 
+        # Concatenate all tensor lists efficiently
         result = {
-            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
-            "labels": torch.tensor(pack["labels"], dtype=torch.long),
-            "document_ids": torch.tensor(pack["document_ids"], dtype=torch.long),
-            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+            "tokens": torch.cat(pack["tokens"]) if pack["tokens"] else torch.empty(0, dtype=torch.long),
+            "labels": torch.cat(pack["labels"]) if pack["labels"] else torch.empty(0, dtype=torch.long),
+            "document_ids": torch.cat(pack["document_ids"]) if pack["document_ids"] else torch.empty(0, dtype=torch.long),
+            "input_pos": torch.cat(pack["input_pos"]) if pack["input_pos"] else torch.empty(0, dtype=torch.long),
             "metrics": pack["metrics"],
         }
 
@@ -508,7 +526,7 @@ class TextPacker(Packer[dict[str, list[int]]]):
 # NOTE: For demonstration purposes only.
 
 
-class DPOPacker(Packer[dict[str, list[int]]]):
+class DPOPacker(Packer[dict[str, torch.Tensor]]):
     """
     Packer for packing DPO samples with a shared prompt. It packs a DPO
     sample as three logical documents: a shared prompt, a chosen response,
@@ -516,7 +534,7 @@ class DPOPacker(Packer[dict[str, list[int]]]):
     metadata, allowing the packer to build the correct attention pattern
     (e.g., both responses can attend to the prompt, but not to each other).
 
-    ASSUMPTION: The input DPO sample dict contains pre-tokenized:
+    ASSUMPTION: The input DPO sample dict contains pre-tokenized tensors:
     - "prompt_ids"
     - "chosen_response_only_ids"
     - "chosen_response_only_labels"
@@ -533,6 +551,7 @@ class DPOPacker(Packer[dict[str, list[int]]]):
         self.dataset_name = dataset_name
 
     def create_empty_pack(self) -> dict[str, list]:
+        """Creates an empty pack with lists that will hold tensors."""
         return {
             "tokens": [],
             "labels": [],
@@ -543,94 +562,141 @@ class DPOPacker(Packer[dict[str, list[int]]]):
             "metrics": [],
         }
 
-    def get_sample_size(self, sample: dict[str, list[int]]) -> int:
-        # The total size of one DPO sample is the shared prompt + both responses.
+    def get_sample_size(self, sample: dict[str, torch.Tensor]) -> int:
+        """Returns total size of DPO sample: prompt + both responses."""
         return (
-            len(sample["prompt_ids"])
-            + len(sample["chosen_response_only_ids"])
-            + len(sample["rejected_response_only_ids"])
+            sample["prompt_ids"].numel()
+            + sample["chosen_response_only_ids"].numel()
+            + sample["rejected_response_only_ids"].numel()
         )
 
     def add_sample_to_pack(
-        self, pack: dict[str, list], sample: dict[str, list[int]], next_doc_id: int
+        self, pack: dict[str, list], sample: dict[str, torch.Tensor], next_doc_id: int
     ) -> int:
-        # Assign a unique doc ID triplet for (prompt, chosen, rejected)
-        prompt_doc_id = next_doc_id
-        chosen_doc_id = next_doc_id + 1
-        rejected_doc_id = next_doc_id + 2
-
+        """Adds a DPO sample by building complete tensors and appending to pack lists."""
         prompt_ids = sample["prompt_ids"]
         chosen_ids = sample["chosen_response_only_ids"]
         rejected_ids = sample["rejected_response_only_ids"]
 
-        # Input positions restart from 0 for each new DPO sample in the pack
-        total_len = len(prompt_ids) + len(chosen_ids) + len(rejected_ids)
-        pack["input_pos"].extend(range(total_len))
+        prompt_len = prompt_ids.numel()
+        chosen_len = chosen_ids.numel()
+        rejected_len = rejected_ids.numel()
 
-        # 1. Add Shared Prompt data
-        pack["tokens"].extend(prompt_ids)
-        pack["labels"].extend([self.ignore_idx] * len(prompt_ids))
-        pack["document_ids"].extend([prompt_doc_id] * len(prompt_ids))
-        pack["chosen_response_mask"].extend([False] * len(prompt_ids))
-        pack["rejected_response_mask"].extend([False] * len(prompt_ids))
+        # 1. Add Shared Prompt, Chosen Response, and Rejected Response tokens
+        complete_tokens = torch.cat([prompt_ids, chosen_ids, rejected_ids])
+        # 2. Add labels for all three parts
+        complete_labels = torch.cat(
+            [
+                torch.full(
+                    (prompt_len,), self.ignore_idx, dtype=torch.long),
+                sample["chosen_response_only_labels"],
+                sample["rejected_response_only_labels"],
+            ]
+        )
 
-        # 2. Add Chosen Response data
-        pack["tokens"].extend(chosen_ids)
-        pack["labels"].extend(sample["chosen_response_only_labels"])
-        pack["document_ids"].extend([chosen_doc_id] * len(chosen_ids))
-        pack["chosen_response_mask"].extend([True] * len(chosen_ids))
-        pack["rejected_response_mask"].extend([False] * len(chosen_ids))
+        # 3. Create document IDs: prompt(next_doc_id), chosen(next_doc_id+1), rejected(next_doc_id+2)
+        complete_doc_ids = torch.cat(
+            [
+                torch.full(
+                    (prompt_len,), next_doc_id, dtype=torch.long),
+                torch.full(
+                    (chosen_len,), next_doc_id + 1, dtype=torch.long),
+                torch.full(
+                    (rejected_len,), next_doc_id + 2, dtype=torch.long),
+            ]
+        )
 
-        # 3. Add Rejected Response data
-        pack["tokens"].extend(rejected_ids)
-        pack["labels"].extend(sample["rejected_response_only_labels"])
-        pack["document_ids"].extend([rejected_doc_id] * len(rejected_ids))
-        pack["chosen_response_mask"].extend([False] * len(rejected_ids))
-        pack["rejected_response_mask"].extend([True] * len(rejected_ids))
+        # 4. Create input positions (restarts from 0 for each DPO sample)
+        total_len = complete_tokens.numel()
+        complete_input_pos = torch.arange(total_len, dtype=torch.long, device="cpu")
+
+        # 5. Create response masks
+        complete_chosen_mask = torch.cat(
+            [
+                torch.zeros(prompt_len, dtype=torch.bool, device="cpu"),
+                torch.ones(chosen_len, dtype=torch.bool, device="cpu"),
+                torch.zeros(rejected_len, dtype=torch.bool, device="cpu"),
+            ]
+        )
+        complete_rejected_mask = torch.cat(
+            [
+                torch.zeros(prompt_len, dtype=torch.bool, device="cpu"),
+                torch.zeros(chosen_len, dtype=torch.bool, device="cpu"),
+                torch.ones(rejected_len, dtype=torch.bool, device="cpu"),
+            ]
+        )
+
+        # Append all complete tensors to the pack
+        pack["tokens"].append(complete_tokens)
+        pack["labels"].append(complete_labels)
+        pack["document_ids"].append(complete_doc_ids)
+        pack["input_pos"].append(complete_input_pos)
+        pack["chosen_response_mask"].append(complete_chosen_mask)
+        pack["rejected_response_mask"].append(complete_rejected_mask)
 
         # Handle metrics if they exist in the sample
         if "metrics" in sample:
             pack["metrics"].extend(sample["metrics"])
 
-        # Advance the document ID counter by 3 for the next DPO sample.
+        # Each DPO sample consists of 3 documents (prompt, chosen, rejected)
         return 3
 
     def finalize_pack(
         self, pack: dict[str, list], target_tokens_per_pack: int, next_doc_id: int
     ) -> PackType:
-        current_size = len(pack["tokens"])
+        """Finalizes pack by padding and concatenating tensor lists efficiently."""
+        # Calculate current size from tensor list
+        current_size = sum(t.numel() for t in pack["tokens"]) if pack["tokens"] else 0
         num_padding = target_tokens_per_pack - current_size
 
+        # Add padding tensors if needed
         if num_padding > 0:
-            pack["tokens"].extend([self.padding_idx] * num_padding)
-            pack["labels"].extend([self.ignore_idx] * num_padding)
-            pack["input_pos"].extend([0] * num_padding)
-            pack["chosen_response_mask"].extend([False] * num_padding)
-            pack["rejected_response_mask"].extend([False] * num_padding)
-            pack["document_ids"].extend([next_doc_id] * num_padding)
+            pack["tokens"].append(
+                torch.full(
+                    (num_padding,), self.padding_idx, dtype=torch.long, device="cpu"
+                )
+            )
+            pack["labels"].append(
+                torch.full(
+                    (num_padding,), self.ignore_idx, dtype=torch.long, device="cpu"
+                )
+            )
+            pack["document_ids"].append(
+                torch.full((num_padding,), next_doc_id, dtype=torch.long, device="cpu")
+            )
+            pack["input_pos"].append(
+                torch.zeros(num_padding, dtype=torch.long, device="cpu")
+            )
+            pack["chosen_response_mask"].append(
+                torch.zeros(num_padding, dtype=torch.bool, device="cpu")
+            )
+            pack["rejected_response_mask"].append(
+                torch.zeros(num_padding, dtype=torch.bool, device="cpu")
+            )
 
-        # Add pct_of_tokens_padded metric
-        padding_metric = Metric(
-            dataset_name=self.dataset_name,
-            name="pct_of_tokens_padded",
-            value=round(num_padding * 100 / len(pack["tokens"]), 2),
-            agg_type=AggregationType.MEAN,
-        )
-        pack["metrics"].append(padding_metric)
+        # Add padding percentage metric
+        if target_tokens_per_pack > 0:
+            padding_pct = round(num_padding * 100 / target_tokens_per_pack, 2)
+            padding_metric = Metric(
+                dataset_name=self.dataset_name,
+                name="pct_of_tokens_padded",
+                value=padding_pct,
+                agg_type=AggregationType.MEAN,
+            )
+            pack["metrics"].append(padding_metric)
 
-        return {
-            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
-            "labels": torch.tensor(pack["labels"], dtype=torch.long),
-            "document_ids": torch.tensor(pack["document_ids"], dtype=torch.long),
-            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
-            "chosen_response_mask": torch.tensor(
-                pack["chosen_response_mask"], dtype=torch.bool
-            ),
-            "rejected_response_mask": torch.tensor(
-                pack["rejected_response_mask"], dtype=torch.bool
-            ),
+        # Concatenate all tensor lists
+        result = {
+            "tokens": torch.cat(pack["tokens"]) if pack["tokens"] else torch.empty(0, dtype=torch.long),
+            "labels": torch.cat(pack["labels"]) if pack["labels"] else torch.empty(0, dtype=torch.long),
+            "document_ids": torch.cat(pack["document_ids"]) if pack["document_ids"] else torch.empty(0, dtype=torch.long),
+            "input_pos": torch.cat(pack["input_pos"]) if pack["input_pos"] else torch.empty(0, dtype=torch.long),
+            "chosen_response_mask": torch.cat(pack["chosen_response_mask"]) if pack["chosen_response_mask"] else torch.empty(0, dtype=torch.bool),
+            "rejected_response_mask": torch.cat(pack["rejected_response_mask"]) if pack["rejected_response_mask"] else torch.empty(0, dtype=torch.bool),
             "metrics": pack["metrics"],
         }
+
+        return result
 
     def _mask_mod(
         self,
