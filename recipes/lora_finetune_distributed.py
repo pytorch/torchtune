@@ -12,7 +12,6 @@ from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
-import torch.distributed as dist
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn

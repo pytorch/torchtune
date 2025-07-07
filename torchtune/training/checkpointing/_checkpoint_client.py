@@ -30,7 +30,6 @@ from torchtune.training.checkpointing._utils import get_most_recent_checkpoint
 from torchtune.training.memory import OptimizerInBackwardWrapper
 
 log = utils.get_logger("DEBUG")
-import torchdata
 
 
 @dataclass
@@ -327,13 +326,8 @@ class CheckpointClient:
                 # This check can be removed once we fully migrate over to ``OptimizerInBackward``
                 if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
-                        # Import FSDPModule from the correct location
-                        from torch.distributed.fsdp import FSDPModule
-
-                        if isinstance(model, FSDPModule):
-                            fsdp_model = model
-                        else:
-                            fsdp_model = model  # type: ignore
+                        # type: ignore
+                        fsdp_model = model
 
                         optim_state_dict[
                             param
@@ -343,13 +337,8 @@ class CheckpointClient:
                 elif isinstance(optimizer, OptimizerInBackward):
                     optim_state_dict = optimizer.state_dict()
                 else:
-                    # Import FSDPModule from the correct location
-                    from torch.distributed.fsdp import FSDPModule
-
-                    if isinstance(model, FSDPModule):
-                        fsdp_model = model
-                    else:
-                        fsdp_model = model  # type: ignore
+                    # type: ignore
+                    fsdp_model = model
 
                     optim_state_dict = training.get_full_optimizer_state_dict(
                         fsdp_model, optimizer, self._is_rank_zero, device=self._device  # type: ignore
