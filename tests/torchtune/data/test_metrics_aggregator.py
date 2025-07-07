@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
+
 import pytest
 import torch.distributed as dist
 from tests.test_utils import gpu_test
@@ -34,7 +36,9 @@ class TestMetricsAggregator:
         aggregator = MetricsAggregator()
 
         metrics = [
-            Metric(dataset_name="test", name="metric", value=val, agg_type=agg_type)
+            Metric(
+                dataset_name="test", metric_name="metric", value=val, agg_type=agg_type
+            )
             for val in test_values
         ]
         aggregator.update(metrics)
@@ -43,7 +47,7 @@ class TestMetricsAggregator:
 
         if agg_type == AggregationType.CATEGORICAL_COUNT:
             for category, count in expected.items():
-                assert result[f"train_test/metric_{category}_count"] == count
+                assert result[f"train_test/metric_count_{category}"] == count
         else:
             assert result["train_test/metric"] == expected
 
@@ -61,10 +65,10 @@ class TestMetricsAggregator:
         result = aggregator.get_metrics_for_logging(prefix="train")
 
         # Verify distribution statistics
-        assert result["train_test/dist_metric_mean"] == 5.5
-        assert result["train_test/dist_metric_min"] == 1
-        assert result["train_test/dist_metric_max"] == 10
-        assert result["train_test/dist_metric_p50"] == 5.5
+        assert result["train_test/dist_metric_stat_mean"] == 5.5
+        assert result["train_test/dist_metric_stat_min"] == 1
+        assert result["train_test/dist_metric_stat_max"] == 10
+        assert result["train_test/dist_metric_stat_p50"] == 5.5
 
     def test_state_management(self):
         """Test aggregator checkpointing and restoration."""
@@ -148,6 +152,82 @@ class TestMetricsAggregator:
         result_no_prefix = aggregator.get_metrics_for_logging()
         assert result_no_prefix["data_test_ds/metric1"] == 42
         assert result_no_prefix["data_test_ds/metric2"] == 84
+
+    def test_metric_consistency_validation(self):
+        """Test that same metric name must use same aggregation type."""
+        aggregator = MetricsAggregator()
+
+        # First metric with SUM aggregation
+        metrics1 = [Metric("test", "my_metric", 10, AggregationType.SUM)]
+        aggregator.update(metrics1)
+
+        # Try to use same metric name with different aggregation type - should fail
+        metrics2 = [Metric("test", "my_metric", 5.0, AggregationType.MEAN)]
+        with pytest.raises(
+            ValueError, match="is already registered with aggregation type sum"
+        ):
+            aggregator.update(metrics2)
+
+        # Same metric name with same aggregation type should work
+        metrics3 = [Metric("test", "my_metric", 20, AggregationType.SUM)]
+        aggregator.update(metrics3)  # Should not raise
+
+        result = aggregator.get_metrics_for_logging(prefix="train")
+        assert result["train_test/my_metric"] == 30  # 10 + 20
+
+    def test_metric_consistency_across_datasets(self):
+        """Test that same metric name can use different aggregation types across different datasets."""
+        aggregator = MetricsAggregator()
+
+        # Same metric name but different datasets - should be allowed
+        metrics = [
+            Metric("dataset1", "metric", 10, AggregationType.SUM),
+            Metric("dataset2", "metric", 5.0, AggregationType.MEAN),
+        ]
+        aggregator.update(metrics)  # Should not raise
+
+        result = aggregator.get_metrics_for_logging(prefix="train")
+        assert result["train_dataset1/metric"] == 10
+        assert result["train_dataset2/metric"] == 5.0
+
+    def test_handler_generated_metric_validation(self):
+        """Test that handler-generated metrics are validated for consistency."""
+        aggregator = MetricsAggregator()
+
+        # Create a user-defined metric that will conflict with distribution stats
+        user_metrics = [
+            Metric("test", "dist_metric_stat_mean", 42, AggregationType.SUM)
+        ]
+        aggregator.update(user_metrics)
+
+        # Now try to add a distribution metric that will generate conflicting stat names
+        dist_metrics = [Metric("test", "dist_metric", 10, AggregationType.DISTRIBUTION)]
+        aggregator.update(dist_metrics)
+
+        # This should fail when trying to get metrics for logging because the handler
+        # will try to create "dist_metric_stat_mean" which conflicts with the user metric
+        with pytest.raises(
+            ValueError, match="is already registered with aggregation type sum"
+        ):
+            aggregator.get_metrics_for_logging(prefix="train")
+
+    def test_handler_replacement_warning(self, caplog):
+        """Test that replacing handlers in use generates a warning."""
+        aggregator = MetricsAggregator()
+
+        # Add a metric that uses SUM aggregation
+        metrics = [Metric("test", "sum_metric", 10, AggregationType.SUM)]
+        aggregator.update(metrics)
+
+        # Replace the SUM handler - should generate warning
+        from torchtune.data.metrics._metric_agg_handlers import SumAggHandler
+
+        with caplog.at_level(logging.WARNING):
+            aggregator.register_handler(AggregationType.SUM, SumAggHandler())
+
+        # Check that the expected warning was logged
+        assert len(caplog.records) == 1
+        assert "Replacing handler for AggregationType.SUM" in caplog.records[0].message
 
 
 class TestDistributedMetricsAggregator(FSDPTest):
@@ -245,15 +325,15 @@ class TestDistributedMetricsAggregator(FSDPTest):
 
         # DISTRIBUTION: Combined values [0,1,2,3,4,10,11,12,13,14]
         # Mean should be average of local means: (2 + 12) / 2 = 7
-        assert result["train_test/dist_metric_mean"] == 7
-        assert result["train_test/dist_metric_min"] == 0
-        assert result["train_test/dist_metric_max"] == 14
+        assert result["train_test/dist_metric_stat_mean"] == 7
+        assert result["train_test/dist_metric_stat_min"] == 0
+        assert result["train_test/dist_metric_stat_max"] == 14
 
         # CATEGORICAL_COUNT: Total counts across ranks
         # cat_A: 3(rank0) + 1(rank1) = 4, cat_B: 2(rank0) + 0(rank1) = 2, cat_C: 0(rank0) + 4(rank1) = 4
-        assert result["train_test/cat_metric_cat_A_count"] == 4
-        assert result["train_test/cat_metric_cat_B_count"] == 2
-        assert result["train_test/cat_metric_cat_C_count"] == 4
+        assert result["train_test/cat_metric_count_cat_A"] == 4
+        assert result["train_test/cat_metric_count_cat_B"] == 2
+        assert result["train_test/cat_metric_count_cat_C"] == 4
 
     @gpu_test(gpu_count=2)
     def test_distributed_state_dict_resumption(self):

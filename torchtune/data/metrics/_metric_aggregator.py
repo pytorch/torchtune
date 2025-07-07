@@ -5,8 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import ast
+import logging
 from collections import defaultdict
-from typing import Any
+from typing import Any, Union
 
 import torch.distributed as dist
 
@@ -21,6 +22,8 @@ from torchtune.data.metrics._metric_agg_handlers import (
     SumAggHandler,
 )
 from torchtune.data.metrics._metric_transform import AggregationType, Metric
+
+logger = logging.getLogger(__name__)
 
 
 class MetricsAggregator:
@@ -77,6 +80,9 @@ class MetricsAggregator:
         self._metric_states: dict[tuple[str, str], MetricState] = {}
         self._dist_window_size = dist_window_size
 
+        # Track aggregation types for validation - prevents same metric name with different agg types
+        self._metric_agg_types: dict[tuple[str, str], AggregationType] = {}
+
         # Create handler registry - all handlers initialized upfront
         self._handlers: dict[AggregationType, AggregationHandler] = {
             AggregationType.SUM: SumAggHandler(),
@@ -87,6 +93,24 @@ class MetricsAggregator:
             AggregationType.CATEGORICAL_COUNT: CategoricalCountAggHandler(),
         }
 
+    def _validate_metric_consistency(self, metric: Union[Metric, MetricState]) -> None:
+        """Validate that metric name uses consistent aggregation type."""
+        metric_key = (metric.dataset_name, metric.metric_name)
+        metric_name = metric.metric_name
+
+        if metric_key in self._metric_agg_types:
+            existing_agg_type = self._metric_agg_types[metric_key]
+            if existing_agg_type != metric.agg_type:
+                raise ValueError(
+                    f"Metric '{metric_name}' in dataset '{metric.dataset_name}' "
+                    f"is already registered with aggregation type {existing_agg_type.value}, "
+                    f"but a handler or user code tried to use it with type {metric.agg_type.value}. "
+                    f"Use different metric names for different aggregation types."
+                )
+        else:
+            # Track this metric's aggregation type
+            self._metric_agg_types[metric_key] = metric.agg_type
+
     def register_handler(
         self, agg_type: AggregationType, handler: AggregationHandler
     ) -> None:
@@ -94,8 +118,17 @@ class MetricsAggregator:
 
         Args:
             agg_type (AggregationType): The aggregation type to handle
-            handler (AggregationHandler): Handler instance implementing the Ag∂gregationHandler interface
+            handler (AggregationHandler): Handler instance implementing the AggregationHandler interface
         """
+        # Warn if replacing a handler that's already in use
+        if agg_type in self._handlers and any(
+            state.agg_type == agg_type for state in self._metric_states.values()
+        ):
+            logger.warning(
+                f"Replacing handler for {agg_type} - aggregation type already in use by existing metrics. "
+                f"This may affect existing metric behavior."
+            )
+
         self._handlers[agg_type] = handler
 
     def update(self, metrics: list[Metric]) -> None:
@@ -105,10 +138,14 @@ class MetricsAggregator:
             metrics (list[Metric]): List of metrics to update the state with
 
         Raises:
-            ValueError: If no handler is registered for a metric's aggregation type.
+            ValueError: If no handler is registered for a metric's aggregation type,
+                       or if metric name conflicts with existing aggregation type.
         """
         for metric in metrics:
-            metric_key = (metric.dataset_name, metric.name)
+            # Same metric name must use same aggregation type
+            self._validate_metric_consistency(metric)
+
+            metric_key = (metric.dataset_name, metric.metric_name)
             handler = self._handlers.get(metric.agg_type)
 
             if handler is None:
@@ -118,7 +155,7 @@ class MetricsAggregator:
 
             if metric_key not in self._metric_states:
                 self._metric_states[metric_key] = handler.initialize_metric_state(
-                    metric.dataset_name, metric.name, metric.agg_type
+                    metric.dataset_name, metric.metric_name, metric.agg_type
                 )
 
             local_agg_metric = self._metric_states[metric_key]
@@ -153,13 +190,13 @@ class MetricsAggregator:
         prepared_results = []
         for local_agg_metric in self._metric_states.values():
             handler = self._handlers[local_agg_metric.agg_type]
-            prepared = handler.finalize_local_agg(local_agg_metric)
-            if isinstance(
-                prepared, list
-            ):  # Distribution/categorical expands to multiple
-                prepared_results.extend(prepared)
-            else:
-                prepared_results.append(prepared)
+            generated_metrics = handler.finalize_local_agg(local_agg_metric)
+
+            # Validate each newly generated metric state immediately
+            for gen_metric in generated_metrics:
+                self._validate_metric_consistency(gen_metric)
+
+            prepared_results.extend(generated_metrics)
 
         # Step 2: Apply distributed reduction if needed
         if dist.is_initialized() and dist.get_world_size() > 1:
@@ -238,6 +275,10 @@ class MetricsAggregator:
             "required_agg_types": list(
                 required_agg_types
             ),  # Save which handlers are needed
+            # Save which aggregation types are used for each metric
+            "metric_agg_types": {
+                str(k): v.value for k, v in self._metric_agg_types.items()
+            },
         }
 
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
@@ -288,3 +329,9 @@ class MetricsAggregator:
             deserialized_state[metric_key] = local_agg_metric
 
         self._metric_states = deserialized_state
+
+        # Restore validation state
+        self._metric_agg_types = {}
+        for key_str, agg_type_str in state_dict.get("metric_agg_types", {}).items():
+            key = ast.literal_eval(key_str)
+            self._metric_agg_types[key] = AggregationType(agg_type_str)

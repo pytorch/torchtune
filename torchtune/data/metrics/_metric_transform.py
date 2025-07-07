@@ -14,7 +14,7 @@ from torchtune.modules.transforms import Transform
 @dataclass(frozen=True)
 class Metric:
     dataset_name: str
-    name: str
+    metric_name: str
     value: Union[int, float, str]
     agg_type: "AggregationType"
 
@@ -101,9 +101,9 @@ class DefaultTrainingMetricTransform(MetricTransform):
         >>> metrics = transform._generate_metrics(sample)
         >>> # Creates:
         >>> # [
-        >>> #   Metric(dataset_name="alpaca", name="samples_seen", value=1, agg_type=AggregationType.SUM),
-        >>> #   Metric(dataset_name="alpaca", name="tokens_seen", value=5, agg_type=AggregationType.SUM),
-        >>> #   Metric(dataset_name="alpaca", name="seq_len", value=5, agg_type=AggregationType.DISTRIBUTION)
+        >>> #   Metric(dataset_name="alpaca", metric_name="samples_seen", value=1, agg_type=AggregationType.SUM),
+        >>> #   Metric(dataset_name="alpaca", metric_name="tokens_seen", value=5, agg_type=AggregationType.SUM),
+        >>> #   Metric(dataset_name="alpaca", metric_name="seq_len", value=5, agg_type=AggregationType.DISTRIBUTION)
         >>> # ]
     """
 
@@ -121,19 +121,19 @@ class DefaultTrainingMetricTransform(MetricTransform):
         return [
             Metric(
                 dataset_name=self.dataset_name,
-                name="samples_seen",
+                metric_name="samples_seen",
                 value=1,
                 agg_type=AggregationType.SUM,
             ),
             Metric(
                 dataset_name=self.dataset_name,
-                name="tokens_seen",
+                metric_name="tokens_seen",
                 value=token_len,
                 agg_type=AggregationType.SUM,
             ),
             Metric(
                 dataset_name=self.dataset_name,
-                name="seq_len",
+                metric_name="seq_len",
                 value=token_len,
                 agg_type=AggregationType.DISTRIBUTION,
             ),

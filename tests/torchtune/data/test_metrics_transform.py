@@ -38,17 +38,17 @@ class TestDefaultTrainingMetricTransform:
 
         # Check each metric
         for metric in metrics:
-            if metric.name == "samples_seen":
+            if metric.metric_name == "samples_seen":
                 assert metric.dataset_name == "test_dataset"
                 assert metric.value == 1
                 assert metric.agg_type == AggregationType.SUM
 
-            elif metric.name == "tokens_seen":
+            elif metric.metric_name == "tokens_seen":
                 assert metric.dataset_name == "test_dataset"
                 assert metric.value == 5
                 assert metric.agg_type == AggregationType.SUM
 
-            elif metric.name == "seq_len":
+            elif metric.metric_name == "seq_len":
                 assert metric.dataset_name == "test_dataset"
                 assert metric.value == 5
                 assert metric.agg_type == AggregationType.DISTRIBUTION

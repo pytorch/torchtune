@@ -239,7 +239,9 @@ class TestHfIterableDataset:
         for sample in first_epoch_samples:
             first_epoch_metrics.extend(sample["metrics"])
         epoch_values = [
-            metric.value for metric in first_epoch_metrics if metric.name == "epoch"
+            metric.value
+            for metric in first_epoch_metrics
+            if metric.metric_name == "epoch"
         ]
         assert all(
             epoch_value == 0 for epoch_value in epoch_values
@@ -250,7 +252,9 @@ class TestHfIterableDataset:
         for sample in second_epoch_samples:
             second_epoch_metrics.extend(sample["metrics"])
         epoch_values = [
-            metric.value for metric in second_epoch_metrics if metric.name == "epoch"
+            metric.value
+            for metric in second_epoch_metrics
+            if metric.metric_name == "epoch"
         ]
         assert all(
             epoch_value == 1 for epoch_value in epoch_values

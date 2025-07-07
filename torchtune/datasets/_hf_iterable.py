@@ -234,7 +234,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
                     # also necessary to track dataset-level metrics.
                     metric_num_epochs = Metric(
                         dataset_name=self.info.name,
-                        name="num_epochs",
+                        metric_name="num_epochs",
                         value=self._num_epochs,
                         agg_type=AggregationType.MAX,
                     )

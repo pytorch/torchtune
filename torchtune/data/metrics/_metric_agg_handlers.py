@@ -8,7 +8,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections import Counter, deque
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Any
 
 import torch
 
@@ -76,21 +76,18 @@ class AggregationHandler(ABC):
         pass
 
     @abstractmethod
-    def finalize_local_agg(
-        self, local_agg_metric: MetricState
-    ) -> Union[MetricState, list[MetricState]]:
+    def finalize_local_agg(self, local_agg_metric: MetricState) -> list[MetricState]:
         """
         Computes the final value from the locally aggregated state.
 
-        In a distributed setting, this is called before the reduction step.
-        This method can also expand a single metric into multiple, for instance,
+        This method may expand a single metric into multiple, for instance,
         a distribution into mean, min, max, and percentiles.
 
         Args:
             local_agg_metric (MetricState): The locally aggregated metric state to finalize.
 
         Returns:
-            A single `MetricState` or a list of them if the metric expands.
+            list[MetricState]: List of finalized metric states.
         """
         pass
 
@@ -156,8 +153,8 @@ class SumAggHandler(AggregationHandler):
             )
         local_agg_metric.value += metric.value
 
-    def finalize_local_agg(self, local_agg_metric: MetricState) -> MetricState:
-        return local_agg_metric
+    def finalize_local_agg(self, local_agg_metric: MetricState) -> list[MetricState]:
+        return [local_agg_metric]
 
     def finalize_dist_agg(self, local_agg_metrics: list[MetricState]) -> MetricState:
         if not local_agg_metrics:
@@ -193,8 +190,8 @@ class MaxAggHandler(AggregationHandler):
             )
         local_agg_metric.value = max(local_agg_metric.value, metric.value)
 
-    def finalize_local_agg(self, local_agg_metric: MetricState) -> MetricState:
-        return local_agg_metric
+    def finalize_local_agg(self, local_agg_metric: MetricState) -> list[MetricState]:
+        return [local_agg_metric]
 
     def finalize_dist_agg(self, local_agg_metrics: list[MetricState]) -> MetricState:
         max_value = max(r.value for r in local_agg_metrics)
@@ -227,8 +224,8 @@ class MinAggHandler(AggregationHandler):
             )
         local_agg_metric.value = min(local_agg_metric.value, metric.value)
 
-    def finalize_local_agg(self, local_agg_metric: MetricState) -> MetricState:
-        return local_agg_metric
+    def finalize_local_agg(self, local_agg_metric: MetricState) -> list[MetricState]:
+        return [local_agg_metric]
 
     def finalize_dist_agg(self, local_agg_metrics: list[MetricState]) -> MetricState:
         min_value = min(r.value for r in local_agg_metrics)
@@ -259,12 +256,12 @@ class MeanAggHandler(AggregationHandler):
         local_agg_metric.metadata["sum"] += metric.value
         local_agg_metric.metadata["count"] += 1
 
-    def finalize_local_agg(self, local_agg_metric: MetricState) -> MetricState:
+    def finalize_local_agg(self, local_agg_metric: MetricState) -> list[MetricState]:
         count = local_agg_metric.metadata["count"]
         local_agg_metric.value = (
             local_agg_metric.metadata["sum"] / count if count > 0 else 0.0
         )
-        return local_agg_metric
+        return [local_agg_metric]
 
     def finalize_dist_agg(self, local_agg_metrics: list[MetricState]) -> MetricState:
         total_sum = sum(metric.metadata["sum"] for metric in local_agg_metrics)
@@ -349,42 +346,42 @@ class DistributionAggHandler(AggregationHandler):
         metrics = [
             MetricState(
                 dataset_name=local_agg_metric.dataset_name,
-                metric_name=f"{local_agg_metric.metric_name}_mean",
+                metric_name=f"{local_agg_metric.metric_name}_stat_mean",
                 value=mean_val,
                 agg_type=AggregationType.MEAN,
                 metadata={"sum": sum_val, "count": n},
             ),
             MetricState(
                 dataset_name=local_agg_metric.dataset_name,
-                metric_name=f"{local_agg_metric.metric_name}_min",
+                metric_name=f"{local_agg_metric.metric_name}_stat_min",
                 value=min_val,
                 agg_type=AggregationType.MIN,
                 metadata={},
             ),
             MetricState(
                 dataset_name=local_agg_metric.dataset_name,
-                metric_name=f"{local_agg_metric.metric_name}_max",
+                metric_name=f"{local_agg_metric.metric_name}_stat_max",
                 value=max_val,
                 agg_type=AggregationType.MAX,
                 metadata={},
             ),
             MetricState(
                 dataset_name=local_agg_metric.dataset_name,
-                metric_name=f"{local_agg_metric.metric_name}_p05",
+                metric_name=f"{local_agg_metric.metric_name}_stat_p05",
                 value=p05_val,
                 agg_type=AggregationType.MEAN,
                 metadata={"sum": p05_val, "count": 1},
             ),
             MetricState(
                 dataset_name=local_agg_metric.dataset_name,
-                metric_name=f"{local_agg_metric.metric_name}_p50",
+                metric_name=f"{local_agg_metric.metric_name}_stat_p50",
                 value=p50_val,
                 agg_type=AggregationType.MEAN,
                 metadata={"sum": p50_val, "count": 1},
             ),
             MetricState(
                 dataset_name=local_agg_metric.dataset_name,
-                metric_name=f"{local_agg_metric.metric_name}_p95",
+                metric_name=f"{local_agg_metric.metric_name}_stat_p95",
                 value=p95_val,
                 agg_type=AggregationType.MEAN,
                 metadata={"sum": p95_val, "count": 1},
@@ -396,7 +393,7 @@ class DistributionAggHandler(AggregationHandler):
             metrics.append(
                 MetricState(
                     dataset_name=local_agg_metric.dataset_name,
-                    metric_name=f"{local_agg_metric.metric_name}_std",
+                    metric_name=f"{local_agg_metric.metric_name}_stat_std",
                     value=std_val,
                     agg_type=AggregationType.MEAN,
                     metadata={"sum": std_val, "count": 1},
@@ -452,7 +449,7 @@ class CategoricalCountAggHandler(AggregationHandler):
             results.append(
                 MetricState(
                     dataset_name=local_agg_metric.dataset_name,
-                    metric_name=f"{local_agg_metric.metric_name}_{category}_count",
+                    metric_name=f"{local_agg_metric.metric_name}_count_{category}",
                     value=count,
                     agg_type=AggregationType.SUM,
                 )
