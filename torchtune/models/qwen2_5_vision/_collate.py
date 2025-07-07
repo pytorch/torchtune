@@ -1,14 +1,14 @@
-from typing import List, Dict, Any
+from typing import Any
 import torch
 from torchtune.data import left_pad_sequence, padded_collate_sft, CROSS_ENTROPY_IGNORE_IDX
 
 def qwen2_5_vl_padded_collate_images(
-    batch: List[Dict[str, Any]],
-    padding_idx: int = 151643,
+    batch: list[dict[str, Any]],
+    padding_idx: int = 151655,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_direction: str = "right",
     pad_to_multiple_of: int = 1,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Collate a batch of samples into a single dictionary.
     This is a modified version of padded_collate_tiled_images_and_mask that

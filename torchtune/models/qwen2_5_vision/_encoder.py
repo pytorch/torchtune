@@ -4,11 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional
 import torch
 from torch import nn
 import torch.nn.functional as F
-import os
 
 from torchtune.modules.transformer import _get_clones
 from torchtune.modules.model_fusion import register_fusion_module
@@ -63,7 +61,7 @@ class Qwen2_5_VisionTransformer(nn.Module):
         layer: nn.Module,
         patch_embed: nn.Module,
         patch_merger: nn.Module,
-        full_att_block_indexes: List[int],
+        full_att_block_indexes: list[int],
         spatial_merge_size: int = 2,
         window_size: int = 14,
         ) -> None:

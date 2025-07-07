@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Callable
+from typing import Callable
 from torch import nn
 
 from torchtune.models.qwen2_5_vision._encoder import (
@@ -43,7 +43,7 @@ def qwen2_5_vl_decoder(
     attn_dropout: float = 0.0,
     rope_base: float = 1000000.0,
     norm_eps: float = 1e-6,
-    mrope_section: List[int] = [16, 24, 24],
+    mrope_section: list[int] = [16, 24, 24],
     tie_word_embeddings: bool = False,
 ) -> TransformerDecoder:
     """
@@ -61,7 +61,7 @@ def qwen2_5_vl_decoder(
         attn_dropout (float): Attention dropout rate. Default: 0.0
         rope_base (float): RoPE base frequency. Default: 1000000.0
         norm_eps (float): RMS norm epsilon. Default: 1e-6
-        mrope_section (List[int]): MRoPE sections [temporal, height, width]. Default: [16, 24, 24]
+        mrope_section (list[int]): MRoPE sections [temporal, height, width]. Default: [16, 24, 24]
         tie_word_embeddings (bool): Whether to tie word embeddings. Default: False
         
     Returns:
@@ -139,7 +139,7 @@ def qwen2_5_vision_encoder(
     patch_size: int,
     spatial_merge_size: int,
     window_size: int,
-    full_att_block_indexes: List[int],
+    full_att_block_indexes: list[int],
     temporal_patch_size: int,
 ) -> Qwen2_5_VisionTransformer:
     """
@@ -156,7 +156,7 @@ def qwen2_5_vision_encoder(
         patch_size (int): Patch size.
         spatial_merge_size (int): Spatial merge size.
         window_size (int): Window size.
-        full_att_block_indexes (List[int]): Full attention block indexes.
+        full_att_block_indexes (list[int]): Full attention block indexes.
         temporal_patch_size (int): Temporal patch size.
 
     Returns:

@@ -1,8 +1,8 @@
-from typing import Optional, List, Tuple
+from typing import Optional
 
 import torch
 from torch import nn
-import os
+
 
 
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
@@ -27,7 +27,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         max_height (int):    maximum height to expect (default 4096)
         max_width (int):     maximum width to expect (default 4096)
         base (float):        geometric base for theta (default 1e6)
-        mrope_section (List[int]): number of frequency-pairs for [time, height, width] (default [16, 24, 24])
+        mrope_section (list[int]): number of frequency-pairs for [time, height, width] (default [16, 24, 24])
     """
 
     def __init__(
@@ -37,7 +37,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         max_height: int = 4096,
         max_width: int = 4096,
         base: float = 1000000.0,
-        mrope_section: List[int] = [16, 24, 24],
+        mrope_section: list[int] = [16, 24, 24],
     ) -> None:
         super().__init__()
 
@@ -90,7 +90,7 @@ class Qwen25VLRotaryPositionalEmbeddings(nn.Module):
         input_pos: torch.LongTensor,
         *,
         window_index: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Compute M-RoPE cos/sin tables for a batch of queries/keys.
 

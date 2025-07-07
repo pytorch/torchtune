@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 import torch
 from torchvision.transforms import InterpolationMode
@@ -57,16 +57,16 @@ class Qwen2_5_VLImageTransform:
     based on the image size constraints and patch size.
 
     Args:
-        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+        image_mean (Optional[list[float]]): Mean values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, uses OPENAI_CLIP_MEAN. Default None.
-        image_std (Optional[List[float]]): Standard deviation values of each channel, used for normalization.
+        image_std (Optional[list[float]]): Standard deviation values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, uses OPENAI_CLIP_STD. Default None.
         patch_size (int): Size of the patches to divide the image into. Default 14.
         merge_size (int): Size of the patch merging factor. Default 2.
         temporal_patch_size (int): Size of the temporal patch merging factor. Default 2.
         min_pixels (int): Minimum number of pixels for the shorter edge. Default 3136 (56 * 56).
         max_pixels (int): Maximum number of pixels for the longer edge. Default 1003520 (28 * 28 * 1280).
-        size (Optional[Dict[str, int]]): Size configuration with 'shortest_edge' and 'longest_edge' keys.
+        size (Optional[dict[str, int]]): Size configuration with 'shortest_edge' and 'longest_edge' keys.
             If provided, overrides min_pixels and max_pixels. Default None.
         dtype (torch.dtype): Data type of the output image. Default torch.float32.
         resample (str): Resampling method used when resizing images. Supports any enum of
@@ -77,12 +77,12 @@ class Qwen2_5_VLImageTransform:
     def __init__(
         self,
         *,
-        image_mean: Optional[List[float]] = None,
-        image_std: Optional[List[float]] = None,
+        image_mean: Optional[list[float]] = None,
+        image_std: Optional[list[float]] = None,
         patch_size: int = 14,
         merge_size: int = 2,
         temporal_patch_size: int = 2,
-        size: Optional[Dict[str, int]] = None,
+        size: Optional[dict[str, int]] = None,
         min_pixels: Optional[int] = None,
         max_pixels: Optional[int] = None,
         dtype: torch.dtype = torch.float32,
@@ -225,9 +225,9 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             structured similarly. Default is None to use the canonical Qwen 2.5 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
-        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+        image_mean (Optional[list[float]]): Mean values of each channel, used for normalization.
             Default None to use OPENAI_CLIP_MEAN.
-        image_std (Optional[List[float]]): Standard deviations for each channel, used for normalization.
+        image_std (Optional[list[float]]): Standard deviations for each channel, used for normalization.
             Default None to use OPENAI_CLIP_STD.
         dtype (torch.dtype): Data type of transformed image. Default torch.float32.
         prompt_template (Optional[_TemplateType]): template used to format the messages based on their role.
@@ -241,8 +241,8 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         patch_size: int = 14,
         special_tokens_path: Optional[str] = None,
         max_seq_len: Optional[int] = None,
-        image_mean: Optional[List[float]] = None,
-        image_std: Optional[List[float]] = None,
+        image_mean: Optional[list[float]] = None,
+        image_std: Optional[list[float]] = None,
         dtype: torch.dtype = torch.float32,
         prompt_template: Optional[_TemplateType] = None,
     ):
@@ -295,7 +295,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Encode a string into a list of token ids.
 
@@ -305,13 +305,13 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             add_eos (bool): Whether to add the tokenizer's eos_id. Default is True.
 
         Returns:
-            List[int]: The list of token ids.
+            list[int]: The list of token ids.
         """
         return self.tokenizer.encode(text=text, add_bos=add_bos, add_eos=add_eos)
 
     def decode(
         self,
-        token_ids: List[int],
+        token_ids: list[int],
         truncate_at_eos: bool = True,
         skip_special_tokens: bool = True,
     ) -> str:
@@ -319,7 +319,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         Decode a list of token ids into a string.
 
         Args:
-            token_ids (List[int]): The list of token ids.
+            token_ids (list[int]): The list of token ids.
             truncate_at_eos (bool): Whether to truncate the string at the end of
                 sequence token. Default is True.
             skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
@@ -336,7 +336,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
 
     def transform_image(
         self, image: Image.Image, inference: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor, int]:
+    ) -> tuple[torch.Tensor, torch.Tensor, int]:
         """
         Transform an image into flattened patches for the vision encoder.
         This method applies the transformations defined in `Qwen2_5_VLImageTransform`.
@@ -347,7 +347,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
                 underlying image transform. Default is False.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, int]: A tuple containing:
+            tuple[torch.Tensor, torch.Tensor, int]: A tuple containing:
                 - The transformed image patches as a tensor.
                 - The image grid dimensions (t, h, w) as a tensor.
                 - The number of patches calculated.
@@ -362,7 +362,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
         *,
         add_start_tokens: bool = True,
         add_end_tokens: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Tokenize a single message into a list of token ids.
 
@@ -372,7 +372,7 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
             add_end_tokens (bool): Whether to add the tokenizer's eos_id. Default True.
 
         Returns:
-            List[int]: The list of token ids.
+            list[int]: The list of token ids.
         """
         return self.tokenizer.tokenize_message(
             message=message,
@@ -382,19 +382,19 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
         add_end_tokens: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> tuple[list[int], list[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
         Args:
-            messages (List[Message]): The list of messages to tokenize.
+            messages (list[Message]): The list of messages to tokenize.
             add_end_tokens (bool): Whether to add the tokenizer's eos_id. Default True.
 
         Returns:
-            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+            tuple[list[int], list[bool]]: The list of token ids and the list of masks.
         """
         return self.tokenizer.tokenize_messages(
             messages=messages,
@@ -413,9 +413,9 @@ class Qwen2_5_VLTransform(ModelTokenizer, Transform):
 
         Returns:
             Mapping[str, Any]: The transformed sample with the following fields:
-                - tokens: List[int] of tokenized messages
-                - mask: List[bool] of masks for the tokenized messages
-                - encoder_input: Dict[str, Any] of transformed images
+                - tokens: list[int] of tokenized messages
+                - mask: list[bool] of masks for the tokenized messages
+                - encoder_input: dict[str, Any] of transformed images
         """
         encoder_input = {"image": {"hidden_states": [], "grid_thw": []}}
         messages = sample["messages"]

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
 from torchtune.models.qwen2._tokenizer import (
@@ -33,7 +33,7 @@ class Qwen2_5_VLTokenizer(Qwen2_5Tokenizer):
         self,
         path: str,
         merges_file: str,
-        special_tokens: Dict[str, int] = QWEN2_5_SPECIAL_TOKENS,
+        special_tokens: dict[str, int] = QWEN2_5_SPECIAL_TOKENS,
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
@@ -70,21 +70,21 @@ class Qwen2_5_VLTokenizer(Qwen2_5Tokenizer):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
         add_eos: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> tuple[list[int], list[bool]]:
         """
         Given a list of messages, return a list of tokens for the concatenated
         and formatted messages.
 
         Args:
-            messages (List[Message]): The message list to tokenize.
+            messages (list[Message]): The message list to tokenize.
             add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
                 sequence of messages. Default is True.
 
         Returns:
-            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+            tuple[list[int], list[bool]]: The list of token ids and the list of masks.
 
         Raises:
             RuntimeError: If a message contains non-text content

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, Union, List
+from typing import Any, Optional, Union
 import torch
 from torch import nn
 from torchtune.modules.model_fusion._early_fusion import EarlyFusionModel
@@ -14,15 +14,15 @@ class Qwen25VL(EarlyFusionModel):
     def __init__(
         self,
         decoder: TransformerDecoder,
-        encoders: Dict[str, nn.Module],
-        encoder_tokens: Dict[str, int],
+        encoders: dict[str, nn.Module],
+        encoder_tokens: dict[str, int],
         image_token_id: int = 151655,
         video_token_id: int = 151656,
         vision_start_token_id: int = 151652, 
         spatial_merge_size: int = 2,
         tokens_per_second: int = 2,
         decoder_trainable: bool = True,
-        encoders_trainable: Union[bool, Dict[str, bool]] = False,
+        encoders_trainable: Union[bool, dict[str, bool]] = False,
         fusion_trainable: bool = True,
     ):
         super().__init__(
@@ -48,7 +48,7 @@ class Qwen25VL(EarlyFusionModel):
         video_grid_thw: Optional[torch.LongTensor] = None,
         second_per_grid_ts: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Calculate the 3D rope index based on image and video's temporal, height and width in LLM.
         Adapted from HuggingFace's Qwen2.5-VL implementation.
@@ -178,13 +178,13 @@ class Qwen25VL(EarlyFusionModel):
         tokens: torch.Tensor,
         *,
         mask: Optional[torch.Tensor] = None,
-        encoder_input: Optional[Dict[str, Dict[str, Any]]] = None,
+        encoder_input: Optional[dict[str, dict[str, Any]]] = None,
         input_pos: Optional[torch.Tensor] = None,
         image_grid_thw: Optional[torch.LongTensor] = None,
         video_grid_thw: Optional[torch.LongTensor] = None,
         second_per_grid_ts: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> torch.Tensor:
         """
         Extended forward pass that computes multimodal position encoding for Qwen2.5-VL.
@@ -192,7 +192,7 @@ class Qwen25VL(EarlyFusionModel):
         Args:
             tokens (torch.Tensor): input tensor with shape ``[b x s]``
             mask (Optional[torch.Tensor]): attention mask
-            encoder_input (Optional[Dict[str, Dict[str, Any]]]): encoder inputs
+            encoder_input (Optional[dict[str, dict[str, Any]]]): encoder inputs
             input_pos (Optional[torch.Tensor]): position ids (will be computed if None)
             image_grid_thw (Optional[torch.LongTensor]): image grid dimensions
             video_grid_thw (Optional[torch.LongTensor]): video grid dimensions  
