@@ -125,6 +125,14 @@ _ALL_RECIPES = [
                 name="qwen3/8B_full_single_device",
                 file_path="qwen3/8B_full_single_device.yaml",
             ),
+            Config(
+                name="qwen2_5_vision/3B_full_single_device",
+                file_path="qwen2_5_vision/3B_full_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5_vision/7B_full_single_device",
+                file_path="qwen2_5_vision/7B_full_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -181,6 +189,14 @@ _ALL_RECIPES = [
             Config(name="qwen3/1.7B_full", file_path="qwen3/1.7B_full.yaml"),
             Config(name="qwen3/4B_full", file_path="qwen3/4B_full.yaml"),
             Config(name="qwen3/8B_full", file_path="qwen3/8B_full.yaml"),
+            Config(
+                name="qwen2_5_vision/32B_full",
+                file_path="qwen2_5_vision/32B_full.yaml",
+            ),
+            Config(
+                name="qwen2_5_vision/72B_full",
+                file_path="qwen2_5_vision/72B_full.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
