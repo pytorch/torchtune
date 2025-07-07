@@ -4,6 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""
+Tests for InterleavedDataset functionality.
+
+This module tests the multi-dataset interleaving capabilities, including:
+- Dataset composition with weighted sampling
+- Nested interleaving structures
+- Metrics collection and aggregation across datasets
+- Checkpointing and state restoration
+- Distributed training scenarios
+
+The tests use synthetic JSON data with distinct ID ranges per dataset
+to verify correct sampling ratios and data isolation.
+"""
+
 import shutil
 import tempfile
 from itertools import islice
@@ -53,12 +67,14 @@ def create_test_json_file(path: Path, num_samples: int, offset: int = 0) -> None
 
 @pytest.fixture
 def tmp_data_dir(tmp_path):
-    """Provide temporary directory for test data files."""
+    """Provide temporary directory for test data files.
+    All test datasets are created in this isolated directory to avoid conflicts."""
     return tmp_path
 
 
 @pytest.fixture
 def small_dataset_file(tmp_data_dir):
+    """Create small dataset (23 samples) with IDs 0-22 for testing basic functionality."""
     path = tmp_data_dir / "small_data.json"
     create_test_json_file(path, SMALL_DATASET_SIZE, offset=0)
     return str(path)
@@ -66,6 +82,7 @@ def small_dataset_file(tmp_data_dir):
 
 @pytest.fixture
 def medium_dataset_file(tmp_data_dir):
+    """Create medium dataset (35 samples) with IDs 100-134 for multi-dataset testing."""
     path = tmp_data_dir / "medium_data.json"
     create_test_json_file(path, MEDIUM_DATASET_SIZE, offset=100)
     return str(path)
@@ -73,6 +90,7 @@ def medium_dataset_file(tmp_data_dir):
 
 @pytest.fixture
 def large_dataset_file(tmp_data_dir):
+    """Create large dataset (47 samples) with IDs 1000-1046 for nested interleaving tests."""
     path = tmp_data_dir / "large_data.json"
     create_test_json_file(path, LARGE_DATASET_SIZE, offset=1000)
     return str(path)

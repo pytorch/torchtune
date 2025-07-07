@@ -17,17 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 class InterleavedDataset(InfiniteTuneIterableDataset):
-    """Infinitely interleaves multiple TuneIterableDatasets according to their sampling weights.
-    - The weights are extracted from each dataset's info.weight property and normalized to sum to 1.0.
-    - This dataset is responsible for managing the state of its child datasets
-    to ensure correct checkpointing and resumption.
+    """Infinitely interleaves multiple datasets according to their sampling weights.
+
+    The weights are extracted from each dataset's ``info.weight`` property and
+    normalized to sum to 1.0. This dataset manages the state of its child
+    datasets to ensure correct checkpointing and resumption.
 
     Args:
-        datasets (list[InfiniteTuneIterableDataset]): list of datasets to interleave.
-        seed (int): Seed for sampling.
-        weight (float): Weight for this dataset. Defaults to 1.0.
-        dataset_name (str): Name of the dataset. Defaults to "interleaved_dataset".
-        sampling_log_maxlen (int): Maximum length of the sampling log.
+        datasets (list[InfiniteTuneIterableDataset]): A list of datasets to interleave.
+        seed (int): The seed for sampling.
+        weight (float): The weight for this dataset. Defaults to 1.0.
+        dataset_name (str): The name of the dataset. Defaults to "interleaved_dataset".
+        sampling_log_maxlen (int): The maximum length of the sampling log.
     """
 
     def __init__(
@@ -100,7 +101,7 @@ class InterleavedDataset(InfiniteTuneIterableDataset):
             yield next(child_iters[ds_name])
 
     def state_dict(self) -> dict[str, Any]:
-        """Save state for the interleaver and its children."""
+        """Save interleaver state and all child dataset states."""
         # The parent is responsible for namespacing the child states
         child_states = {ds.info.name: ds.state_dict() for ds in self._datasets}
         return {

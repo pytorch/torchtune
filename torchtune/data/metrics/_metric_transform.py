@@ -20,7 +20,11 @@ class Metric:
 
 
 class AggregationType(Enum):
-    """Defines how a metric's value should be aggregated."""
+    """Defines how a metric's value should be aggregated by the MetricsAggregator.
+
+    Each type corresponds to a specific AggregationHandler that implements the logic
+    for initialization, updates, and distributed reduction.
+    """
 
     SUM = "sum"
     MEAN = "mean"
@@ -33,22 +37,33 @@ class AggregationType(Enum):
 class MetricTransform(Transform):
     """Applied to each dataset sample to generate per-sample metrics for training tracking.
 
-    Creates Metric objects that are later aggregated by 'MetricsAggregator'. This separation
+    Creates Metric objects that are later aggregated by MetricsAggregator. This separation
     of concerns ensures metrics are correctly aggregated even with multiple dataloader
-    workers and in distributed settings."""
+    workers and in distributed settings.
+
+    The transform must be configured with a dataset name via set_dataset_name() before use.
+    Each call to __call__ adds metrics to the sample's "metrics" key.
+
+    Example:
+        >>> transform = DefaultTrainingMetricTransform()
+        >>> transform.set_dataset_name("alpaca")
+        >>> sample = {"tokens": [1, 2, 3]}
+        >>> result = transform(sample)
+        >>> # result["metrics"] contains list of Metric objects
+    """
 
     def __init__(self):
         # dataset_name is set by the dataset using set_dataset_name
         self.dataset_name: Optional[str] = None
 
     def set_dataset_name(self, dataset_name: str) -> None:
-        """Called by dataset to set the namespace for metrics.
+        """Called by the dataset to set the namespace for metrics.
 
-        The dataset name is used to differentiate multiple datasets stats,
-        e.g. "train/dataset1/tokens_seen" and "train/dataset2/tokens_seen".
+        This is used to differentiate metrics from multiple datasets, for example,
+        "train_alpaca/tokens_seen" vs. "train_slim_orca/tokens_seen".
 
         Args:
-            dataset_name (str): Name of the dataset for metric namespacing
+            dataset_name (str): Name of the dataset, used for metric namespacing.
         """
         self.dataset_name = dataset_name
 
@@ -67,7 +82,17 @@ class MetricTransform(Transform):
         raise NotImplementedError("Subclasses must implement _generate_metrics method")
 
     def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
-        """Apply transform to sample, adding generated metrics."""
+        """Apply transform to sample, adding generated metrics to the sample.
+
+        Args:
+            sample (dict[str, Any]): Input sample dictionary
+
+        Returns:
+            dict[str, Any]: Sample with metrics added to "metrics" key (list[Metric])
+
+        Raises:
+            RuntimeError: If set_dataset_name() was not called before transform usage
+        """
         if self.dataset_name is None:
             raise RuntimeError(
                 "set_dataset_name() must be called before using the transform."
@@ -84,14 +109,17 @@ class MetricTransform(Transform):
 
 
 class DefaultTrainingMetricTransform(MetricTransform):
-    """Generates training metrics: samples_seen, tokens_seen, seq_len distribution.
+    """Generates common training metrics: samples seen, tokens seen, and sequence length.
 
-    For details about MetricTransform base class behavior, see the parent class docstring.
+    This transform detects the token key in a sample, checking for "tokens"
+    first and then falling back to "input_ids".
+
+    For details on the base class behavior, see MetricTransform.
 
     Tracked metrics:
-    - samples_seen: Cumulative count of samples processed (SUM aggregation)
-    - tokens_seen: Cumulative sum of all tokens processed (SUM aggregation)
-    - seq_len: Distribution of sequence lengths (DISTRIBUTION aggregation)
+      - samples_seen: Cumulative count of samples processed (SUM aggregation)
+      - tokens_seen: Cumulative sum of all tokens processed (SUM aggregation)
+      - seq_len: Distribution of sequence lengths (DISTRIBUTION aggregation)
 
     Example:
         >>> transform = DefaultTrainingMetricTransform()
@@ -99,7 +127,7 @@ class DefaultTrainingMetricTransform(MetricTransform):
         >>>
         >>> sample = {"tokens": [1, 2, 3, 4, 5]}  # 5 tokens
         >>> metrics = transform._generate_metrics(sample)
-        >>> # Creates:
+        >>> # This generates the following Metric objects:
         >>> # [
         >>> #   Metric(dataset_name="alpaca", metric_name="samples_seen", value=1, agg_type=AggregationType.SUM),
         >>> #   Metric(dataset_name="alpaca", metric_name="tokens_seen", value=5, agg_type=AggregationType.SUM),

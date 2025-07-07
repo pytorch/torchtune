@@ -24,34 +24,42 @@ logger = logging.getLogger(__name__)
 
 
 class HfIterableDataset(InfiniteTuneIterableDataset):
-    """HuggingFace dataset implementation with composable metrics.
+    """HuggingFace dataset with infinite iteration and composable transforms.
 
-    This is an infinite dataset. After exhausting the dataset, it will restart from the beginning.
+    This is an infinite dataset that wraps a HuggingFace dataset. After exhausting
+    the dataset, it will restart from the beginning.
+
+    Transform pipeline: raw_data -> message_transform -> model_transform -> output_transform -> metric_transform
 
     This dataset is responsible for:
       - Loading and sharding the dataset
       - Shuffling at initialization and after each epoch
-      - Applying transforms
+      - Applying transforms to the data
       - Returning an infinite iterator over the dataset
 
-      Args:
-        message_transform (Optional[Callable]): Transforms raw data into Message
-        model_transform (Optional[Callable]): Take messages and prepares it for the model. Usually the tokenizer.
-        output_transform (Optional[Callable]): Takes tokenized inputs and prepares it for the recipe. Usually
-            does some label manipulation, e.g. ignore index. Think of it as recipe-dependent, e.g. SFT, RL, DPO, etc.
-        metric_transform (Optional[MetricTransform]): Takes the sample and computes metrics, e.g. token count.
-            If None, a default transform is used. To stop tracking metrics, set it to lambda x: x.
-        shuffle_buffer_size (Optional[int]): Size of the shuffle buffer. If None or 0, no shuffling is done.
-        seed (int): Seed for shuffling.
-        num_shards_per_rank (int): Target number of shards per worker (GPU). It will find a multiple
-            of world_size * dataloader_workers.
-        dataset_name (Optional[str]): Name of the dataset. If None, a default name is generated
-            from the path, source, and split.
+    Args:
+        message_transform (Optional[Callable]): Transforms raw data into a `Message`.
+        model_transform (Optional[Callable]): Prepares messages for the model,
+            usually by tokenizing them.
+        output_transform (Optional[Callable]): Prepares tokenized inputs for the
+            recipe, often by manipulating labels (e.g., setting an ignore index).
+            This transform is recipe-dependent (e.g., SFT, DPO, etc.).
+        metric_transform (Optional[MetricTransform]): Computes metrics from a
+            sample (e.g., token count). If ``None``, a default transform is used.
+            To disable standard metric tracking, set this to ``lambda x: x``.
+        shuffle_buffer_size (Optional[int]): Size of the shuffle buffer.
+            If ``None`` or 0, no shuffling is performed.
         weight (Optional[float]): Weight for this dataset. Defaults to 1.0.
-        filter_fn (Optional[Callable]): Filter function to apply to the dataset.
-        filter_kwargs (Optional[dict[str, Any]]): Keyword arguments to pass to the filter function.
-        load_dataset_kwargs (dict[str, Any]): Keyword arguments to pass to the load_dataset function.
-
+        seed (int): Seed for shuffling.
+        num_shards_per_rank (int): The target number of shards per worker (GPU).
+            The actual number of shards will be a multiple of
+            ``world_size * dataloader_workers``.
+        dataset_name (Optional[str]): Name of the dataset. If ``None``, a name is
+            generated from the ``path``, ``source``, and ``split``.
+        filter_fn (Optional[Callable]): A function to filter the dataset.
+        filter_kwargs (Optional[dict[str, Any]]): Keyword arguments for ``filter_fn``.
+        **load_dataset_kwargs: Keyword arguments for the
+            :func:`~datasets.load_dataset` function.
     """
 
     def __init__(
@@ -132,9 +140,10 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         filter_kwargs: Optional[dict[str, Any]] = None,
     ):
         """
-        Configures the Hugging Face dataset, including sharding, filtering, and
-        transform mapping. This method is called only once during initialization
-        to avoid expensive re-computation on each epoch.
+        One-time setup of HuggingFace dataset that handles Handles distributed sharding,
+        shuffle configuration, and filtering.
+
+        Called once during __init__ to avoid expensive re-computation.
         """
 
         # Distributed setup
@@ -165,13 +174,13 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
             worker_info = torch.utils.data.get_worker_info()
             num_dataloader_workers = worker_info.num_workers if worker_info else 1
 
-            # Calculate total workers
+            # Calculate total workers across all ranks and dataloader processes
             total_workers = world_size * num_dataloader_workers
 
-            # Calculate desired shards
+            # Find minimum shards that satisfies our target while being divisible by workers
             desired_shards = world_size * num_shards_per_rank
 
-            # Find the smallest multiple of total_workers that is >= desired_shards
+            # Round up to next multiple of total_workers for even distribution
             if desired_shards % total_workers == 0:
                 num_shards = desired_shards
             else:
@@ -207,14 +216,14 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
         self._ds = ds
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        """Iterate through the dataset infinitely.
+        """Infinite iteration over dataset samples.
 
-        It will restart from the beginning after exhausting the dataset.
-
-        If shuffle_buffer_size is set, it will shuffle the dataset at the beginning of each epoch
-        when set_epoch is called.
-
-        An additional metric "num_epochs" is added to the sample.
+        Behavior:
+        - Restarts from beginning when dataset is exhausted
+        - Reshuffles at start of each epoch (if enabled)
+        - Applies full transform pipeline to each sample
+        - Adds 'num_epochs' metric to track dataset progress
+        - Yields samples indefinitely for continuous training
         """
 
         while True:  # Infinite iteration
@@ -224,9 +233,10 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
 
             try:
                 for sample in epoch_iterator:
-                    # NOTE: We apply transforms here instead of using .map() call
-                    # to work around https://github.com/huggingface/datasets/issues/7630
-                    # where .map() can cause incorrect resumption from a checkpoint.
+                    # NOTE: We apply transforms here instead of using .map() to work around
+                    # HuggingFace datasets bug where .map() causes incorrect checkpoint resumption.
+                    # See: https://github.com/huggingface/datasets/issues/7630
+                    # This ensures transforms are applied fresh on each sample during iteration.
                     sample = self._apply_transforms(sample)
 
                     # Track the number of epochs completed for each dataset. This is
@@ -246,9 +256,10 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
                     yield sample
 
             except StopIteration:
-                pass  # Iterator is exhausted, which is expected.
+                # Expected when dataset is exhausted
+                pass
             except Exception as e:
-                logger.warning(
+                logger.error(
                     f"Dataset {self.info.name} encountered an unexpected error: {e}."
                 )
                 raise
@@ -263,9 +274,7 @@ class HfIterableDataset(InfiniteTuneIterableDataset):
             self._num_epochs += 1
 
     def state_dict(self) -> dict[str, Any]:
-        """
-        The dataset returns its own state directly, without namespacing.
-        """
+        """Returns dataset checkpoint state."""
         hf_state = self._ds.state_dict()
         state = {
             "num_epochs": self._num_epochs,

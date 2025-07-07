@@ -29,14 +29,22 @@ logger = logging.getLogger(__name__)
 class MetricsAggregator:
     """Aggregates metrics across datasets and distributed ranks using pluggable handlers.
 
-    Uses a handler-based strategy pattern where each aggregation type (SUM, MEAN, etc.)
-    has its own handler. Maintains only one state per (dataset, metric) pair.
+    This class uses a handler-based strategy, where each aggregation type (SUM, MEAN, etc.)
+    has a corresponding AggregationHandler. It maintains a single state object for each
+    (dataset, metric) pair.
 
-    When preparing for logging, uses a two-phase approach:
-    1. Local aggregation: Each rank aggregates its metrics independently
-    2. Distributed reduction: Results combined across ranks
+    Internal State Visualization:
+    {
+        ("alpaca", "tokens_seen"): MetricState(value=200.0, agg_type=SUM, ...),
+        ("alpaca", "avg_loss"):    MetricState(value=0.01, agg_type=MEAN, metadata={'sum': ..., 'count': ...}),
+        ("slim_orca", "seq_len"):  MetricState(agg_type=DISTRIBUTION, metadata={'values': deque([...])}),
+    }
 
-    The aggregator is checkpointable and restores from state_dict for training resumption.
+    When preparing metrics for logging, the aggregator follows a two-phase process:
+    1. Local Aggregation: Each rank aggregates its metrics independently
+    2. Distributed Reduction: If in distributed mode, results are combined across ranks
+
+    The aggregator's state is checkpointable, allowing training resumption.
 
     Args:
         dist_window_size (int): Window size for DistributionAggHandler tracking.
@@ -44,7 +52,6 @@ class MetricsAggregator:
     Example:
         >>> from torchtune.data.metrics import MetricsAggregator, Metric, AggregationType
         >>>
-        >>> # Create aggregator
         >>> aggregator = MetricsAggregator()
         >>>
         >>> # Sample metrics from different batches

@@ -4,6 +4,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""
+Tests for MetricsAggregator functionality.
+
+This module tests the metrics collection and aggregation system including:
+- All aggregation types (SUM, MEAN, MAX, MIN, DISTRIBUTION, CATEGORICAL_COUNT)
+- State management and checkpointing
+- Multi-dataset metric namespacing
+- Distributed metrics aggregation
+- Metric consistency validation
+
+Uses synthetic metrics to verify correct aggregation behavior across scenarios.
+"""
+
 import logging
 
 import pytest
@@ -15,7 +28,7 @@ from torchtune.data.metrics import AggregationType, Metric, MetricsAggregator
 
 
 class TestMetricsAggregator:
-    """Focused tests for MetricsAggregator functionality."""
+    """Tests for MetricsAggregator core functionality and edge cases."""
 
     @pytest.mark.parametrize(
         "agg_type,test_values,expected",
@@ -32,7 +45,14 @@ class TestMetricsAggregator:
         ],
     )
     def test_aggregation_types(self, agg_type, test_values, expected):
-        """Tests each `AggregationType` to ensure it computes the correct value."""
+        """Tests each AggregationType with representative data to verify correct computation.
+
+        Covers aggregation types:
+        - SUM: Simple addition across values
+        - MEAN: Average computation with proper count tracking
+        - MAX/MIN: Extrema identification
+        - CATEGORICAL_COUNT: Category frequency counting
+        """
         aggregator = MetricsAggregator()
 
         metrics = [
@@ -52,7 +72,7 @@ class TestMetricsAggregator:
             assert result["train_test/metric"] == expected
 
     def test_distribution_metrics(self):
-        """Tests that `AggregationType.DISTRIBUTION` computes all expected statistics (mean, min, max, p50)."""
+        """Tests that DISTRIBUTION aggregation computes statistics (mean, min, max, percentiles)."""
         aggregator = MetricsAggregator()
         values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -71,8 +91,8 @@ class TestMetricsAggregator:
         assert result["train_test/dist_metric_stat_p50"] == 5.5
 
     def test_state_management(self):
-        """Test aggregator checkpointing and restoration."""
-        # Create aggregator with some state
+        """Test metrics aggregator state persistence and restoration for checkpointing scenarios."""
+        # Create aggregator with mixed metric types to test state saving
         aggregator1 = MetricsAggregator()
         initial_metrics = [
             Metric("ds1", "counter", 10, AggregationType.SUM),

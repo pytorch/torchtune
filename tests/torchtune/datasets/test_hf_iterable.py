@@ -4,6 +4,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""
+Tests for HfIterableDataset core functionality.
+
+This module tests the foundational iterable dataset capabilities including:
+- Basic iteration and data loading
+- Epoch boundary handling and tracking
+- Shuffling behavior across epochs
+- Checkpointing and state restoration
+- Distributed training scenarios
+
+Uses synthetic JSON data with predictable patterns to verify correct behavior.
+"""
+
 import math
 import shutil
 import tempfile

@@ -38,15 +38,14 @@ class MetricState:
 
 
 class AggregationHandler(ABC):
-    """Base class for handling metric aggregation in MetricsAggregator.
+    """Base class for handling metric aggregation using the Strategy pattern.
 
-    This class defines the interface for different aggregation strategies (e.g., SUM, MEAN).
-    Each handler is responsible for:
-    - Initializing the state for a new (dataset, metric) pair.
-    - Updating the state with new values.
-    - Finalizing the value for local (single-rank) logging.
-    - Reducing the values from all ranks in a distributed setting.
-    - Serializing and deserializing the metric state for checkpointing.
+    Each handler implements a specific aggregation strategy (SUM, MEAN, DISTRIBUTION, etc.)
+    and manages the complete lifecycle: initialization, updates, local finalization,
+    and distributed reduction. Handlers also handle serialization for checkpointing.
+
+    The handler architecture allows pluggable aggregation strategies while maintaining
+    consistent interfaces for the MetricsAggregator.
     """
 
     @abstractmethod

@@ -13,9 +13,33 @@ from torch.utils.data import IterableDataset
 
 @dataclass(frozen=True)
 class DatasetInfo:
-    """Represents hierarchical information about a dataset, including its name,
-    sampling weight and children. Children is a common case when composing datasets,
-    e.g. Packed(InterleavedDataset([ds1, ds2])).
+    """Hierarchical metadata for datasets, enabling composition and weight tracking.
+
+    Used to build tree structures when composing datasets. For example, a nested
+    `InterleavedDataset` dataset would have this structure:
+
+    Example:
+    .. code-block:: python
+
+        DatasetInfo(name='parent_interleaved',
+            weight=1.0,
+            children=(DatasetInfo(name='child_interleaved',
+                                  weight=0.7,
+                                  children=(DatasetInfo(name='dataset_a',
+                                                        weight=0.6,
+                                                        children=()),
+                                            DatasetInfo(name='dataset_b',
+                                                        weight=0.4,
+                                                        children=()))),
+                      DatasetInfo(name='dataset_c', weight=0.3, children=())))
+
+    This hierarchical structure is used for validation (ensuring unique dataset
+    names) and for logging metrics.
+
+    Attributes:
+        name (str): Unique identifier for the dataset
+        weight (float): Sampling weight for dataset selection (default: 1.0)
+        children (tuple[DatasetInfo, ...]): Nested datasets for composed structures
     """
 
     name: str
@@ -24,10 +48,16 @@ class DatasetInfo:
 
 
 class TuneIterableDataset(IterableDataset, ABC):
-    """Abstract base class for all torchtune iterable datasets.
-    It defines the minimal, consistent interface required for all dataset
-    implementations to ensure they are compatible with the training loop,
-    checkpointing, and metric logging systems.
+    """Base class for all torchtune iterable datasets.
+
+    Datasets are composable, enabling complex structures such as:
+    ``PackedDataset(InterleavedDataset([InterleavedDataset([ds1, ds2]), ds3]))``
+
+    Each dataset implementation must:
+    - Track hierarchical metadata via the ``info`` property
+    - Ensure unique dataset names across the entire tree
+    - Handle checkpointing: parents resume children's state
+    - Provide proper state management for exact resumption
     """
 
     @property
@@ -64,19 +94,20 @@ class TuneIterableDataset(IterableDataset, ABC):
 
     @abstractmethod
     def state_dict(self) -> dict[str, Any]:
-        """Returns a state dictionary for checkpointing"""
+        """Returns checkpoint state for dataset resumption."""
         pass
 
     @abstractmethod
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
-        """Load state from a state dictionary, used when resuming from a checkpoint."""
+        """Restores dataset state from checkpoint."""
         pass
 
 
 class InfiniteTuneIterableDataset(TuneIterableDataset):
-    """Abstract base class for infinite datasets, which yield samples indefinitely.
-    It only purpose is to make it explicit that the dataset is expected to be infinite, i.e.
-    it never exhausts. This is helpful to avoid complexity due to some rank hanging because
-    of lack of data"""
+    """Base class for infinite datasets that never exhaust.
+
+    Prevents distributed training hangs by ensuring all ranks always
+    have data available. Datasets restart from beginning when exhausted.
+    """
 
     pass
