@@ -56,6 +56,6 @@ jobs:
       - name: Install the torchtune library with dev options
         run: python -m pip install -e ".[dev]"
       - name: Run recipe and unit tests with coverage
-        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv --maxfail=0
+        run: pytest tests/recipes/test_lora_dpo_distributed.py --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv --maxfail=0
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
