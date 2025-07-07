@@ -19,7 +19,7 @@ class Qwen3Attention(nn.Module):
     """
     Basically, it is standard multihead attention, but with QK-norm applied before
     the RoPE. It is unusual for most of the models, but Qwen3 became an exception to the rule.
-    
+
     Args:
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
@@ -196,23 +196,23 @@ class Qwen3Attention(nn.Module):
         s_y = y.shape[1] if y is not None else 0
 
         # q has shape [b, s_x, num_heads * head_dim]
-        q = self.q_proj(x) 
+        q = self.q_proj(x)
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
-        q = q.view(b, s_x, self.num_kv_heads * q_per_kv, self.head_dim) 
+        q = q.view(b, s_x, self.num_kv_heads * q_per_kv, self.head_dim)
 
         # Normalize q
         if self.q_norm is not None:
             q = q.transpose(1, 2)
-            q = self.q_norm(q)  
-            q = q.transpose(1, 2) 
+            q = self.q_norm(q)
+            q = q.transpose(1, 2)
 
         # Apply positional embeddings after q-norm
         if self.pos_embeddings is not None:
-            q = self.pos_embeddings(q, input_pos=input_pos)  
+            q = self.pos_embeddings(q, input_pos=input_pos)
 
-        q = q.transpose(1, 2) 
+        q = q.transpose(1, 2)
 
         if y is None:
             if self.kv_cache is None or not self.cache_enabled:
@@ -225,27 +225,27 @@ class Qwen3Attention(nn.Module):
             # Update k and v shape, positional embeddings, and normalization
 
             # k,v shape [b, s_y, num_kv_heads * head_dim]
-            k = self.k_proj(y)  
-            v = self.v_proj(y)  
-            
+            k = self.k_proj(y)
+            v = self.v_proj(y)
+
             # Apply positional embeddings
             # k,v shape: [b, s_y, n_kv, h_d]
-            k = k.view(b, s_y, -1, self.head_dim) 
-            v = v.view(b, s_y, -1, self.head_dim) 
+            k = k.view(b, s_y, -1, self.head_dim)
+            v = v.view(b, s_y, -1, self.head_dim)
 
             # Normalize k
             if self.k_norm is not None:
-                k = k.transpose(1, 2) 
-                k = self.k_norm(k)  
-                k = k.transpose(1, 2) 
+                k = k.transpose(1, 2)
+                k = self.k_norm(k)
+                k = k.transpose(1, 2)
 
             # Apply positional embeddings after k-norm
             if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos) 
+                k = self.pos_embeddings(k, input_pos=input_pos)
 
             # k,v shape: [b, n_kv, s_y, h_d]
-            k = k.transpose(1, 2) 
-            v = v.transpose(1, 2) 
+            k = k.transpose(1, 2)
+            v = v.transpose(1, 2)
 
             # Update key-value cache
             if self.kv_cache is not None and self.cache_enabled:
@@ -271,4 +271,3 @@ class Qwen3Attention(nn.Module):
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
         return self.output_proj(output)
-    
