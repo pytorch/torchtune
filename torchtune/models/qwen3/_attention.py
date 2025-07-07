@@ -223,7 +223,6 @@ class Qwen3Attention(nn.Module):
             v = self.kv_cache.v_cache
         else:
             # Update k and v shape, positional embeddings, and normalization
-
             # k,v shape [b, s_y, num_kv_heads * head_dim]
             k = self.k_proj(y)
             v = self.v_proj(y)
