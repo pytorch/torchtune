@@ -11,7 +11,7 @@ import torch
 from torchao.float8.float8_linear import Float8Linear
 
 from torchtune.models.llama3 import base_llama_tp_plan
-from torchtune.models.llama3._parallelism import _fp8_llama_tp_plan
+from torchtune.models.llama3._parallelism import _get_fp8_llama_tp_training_plan
 from torchtune.training.quantization import (
     _validate_float8_tp_plan,
     convert_to_float8_training,
@@ -54,12 +54,14 @@ class TestFloat8:
         """
         _validate_float8_tp_plan(base_llama_tp_plan())
         _validate_float8_tp_plan(base_llama_tp_plan(), "anything")
-        _validate_float8_tp_plan(_fp8_llama_tp_plan())
-        _validate_float8_tp_plan(_fp8_llama_tp_plan(), "tensorwise")
+        _validate_float8_tp_plan(_get_fp8_llama_tp_training_plan())
+        _validate_float8_tp_plan(_get_fp8_llama_tp_training_plan(), "tensorwise")
         with pytest.raises(ValueError):
-            _validate_float8_tp_plan(_fp8_llama_tp_plan(), "rowwise")
+            _validate_float8_tp_plan(_get_fp8_llama_tp_training_plan(), "rowwise")
         with pytest.raises(ValueError):
-            _validate_float8_tp_plan(_fp8_llama_tp_plan(), "rowwise_with_gw_hp")
+            _validate_float8_tp_plan(
+                _get_fp8_llama_tp_training_plan(), "rowwise_with_gw_hp"
+            )
 
     def test_is_fp8_tensorwise_scaling(self):
         """

@@ -135,8 +135,8 @@ class TestEleutherEval:
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(
             RuntimeError,
-            match="This recipe requires EleutherAI Eval Harness v0.4.5 or higher. "
-            "Please install with `pip install lm-eval>=0.4.5`",
+            match="This recipe requires EleutherAI Eval Harness between v0.4.5 - 0.4.8."
+            "Please install with `pip install lm-eval==0.4.8`",
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
