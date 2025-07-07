@@ -56,7 +56,7 @@ def qwen3(
     k_norm: bool = False,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the Qwen2 model. This includes:
+    Build the decoder associated with the Qwen3 model. This includes:
     - Token embeddings
     - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
@@ -182,7 +182,7 @@ def lora_qwen3(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Return a version of Qwen2 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)
+    Return a version of Qwen3 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
 
     Args:
