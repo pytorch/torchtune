@@ -22,13 +22,42 @@ from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
 logger = logging.getLogger(__name__)
 
+
 SampleType = TypeVar("SampleType")
 PackType = dict[str, torch.Tensor | list[Metric]]
 
 
 class Packer(ABC, Generic[SampleType]):
     """
-    Packer to be used in IterablePackedDataset and with FlexAttention.
+    An abstract base class that defines the logic for packing samples into a
+    fixed-size sequence. It is used by `IterablePackedDataset` to handle
+    different data formats (e.g., standard text, DPO pairs).
+
+    A `Packer` is responsible for:
+    1. Defining how to extract the token count from a raw sample.
+    2. Specifying how a raw sample is deconstructed into tensors and added
+       to a "pack".
+    3. Finalizing a pack by padding it to the target sequence length.
+    4. Generating the appropriate attention mask for the packed format.
+
+    This modular design allows `IterablePackedDataset` to remain agnostic to
+    the data format and packing strategy.
+
+    Args:
+            padding_idx (int): The index of the padding token.
+            ignore_idx (int): The index to use for labels that should be
+                ignored in the loss calculation (e.g., padding tokens).
+
+    Example:
+        >>> packer = TextPacker(padding_idx=0, ignore_idx=-100)
+        >>> pack = packer.create_empty_pack()
+        >>> sample = {"tokens": torch.tensor([1, 2, 3]), "labels": torch.tensor([4, 5, 6])}
+        >>> packer.add_sample_to_pack(pack, sample, next_doc_id=0)
+        >>> final_pack = packer.finalize_pack(pack, target_tokens_per_pack=5, next_doc_id=1)
+        >>> mask = packer.create_block_mask(final_pack["document_ids"].unsqueeze(0), device="cpu")
+    
+    Raises:
+        RuntimeError: If FlexAttention is not supported in the current environment.
     """
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
@@ -53,14 +82,15 @@ class Packer(ABC, Generic[SampleType]):
     @abstractmethod
     def create_empty_pack(self) -> dict[str, list[Any]]:
         """
-        Creates an empty pack with lists that will hold tensors.
-
+        Creates an empty pack structure for accumulating samples.
+        
         Returns:
-            dict[str, list[Any]]: An empty dictionary with lists as values.
-
+            dict[str, list[Any]]: An empty structure that can accumulate sample data
+                and be converted to tensors by finalize_pack().
+        
         Example:
-            self.create_empty_pack()
-            >>> {"tokens": [], "labels": [], "document_ids": [], "input_pos": []}
+            >>> packer.create_empty_pack()
+            {"tokens": [], "labels": []}
         """
         pass
 
@@ -98,14 +128,22 @@ class Packer(ABC, Generic[SampleType]):
             int: The number of new documents that were added to the pack.
 
         Example:
-            pack = {"tokens": [tensor([1, 2])], "labels": [tensor([3, 4])], ...}
-            sample = {"tokens": tensor([5, 6]), "labels": tensor([7, 8])}
-            added_docs = self.add_sample_to_pack(pack, sample, next_doc_id=1)
-            print(pack)
-            >>> {"tokens": [tensor([1, 2]), tensor([5, 6])],
-                "labels": [tensor([3, 4]), tensor([7, 8])], ...}
-            print(added_docs)
-            >>> 1
+            >>> packer = TextPacker(padding_idx=0, ignore_idx=-100)
+            >>> pack = {"tokens": [torch.tensor([1, 2])], 
+            ...         "labels": [torch.tensor([3, 4])], 
+            ...         "document_ids": [torch.tensor([0, 0])], 
+            ...         "input_pos": [torch.tensor([0, 1])], 
+            ...         "metrics": []}
+            >>> sample = {"tokens": torch.tensor([5, 6]), 
+            ...         "labels": torch.tensor([7, 8])}
+            >>> added_docs = packer.add_sample_to_pack(pack, sample, next_doc_id=1)
+            >>> print(pack)
+            {"tokens": [torch.tensor([1, 2]), torch.tensor([5, 6])],
+             "labels": [torch.tensor([3, 4]), torch.tensor([7, 8])], 
+             "document_ids": [torch.tensor([0, 0]), torch.tensor([1, 1])], 
+             "input_pos": [torch.tensor([0, 1]), torch.tensor([0, 1])], "metrics": []}
+            >>> print(added_docs)
+            1
         """
         pass
 
@@ -125,15 +163,19 @@ class Packer(ABC, Generic[SampleType]):
             PackType: The finalized pack with concatenated tensors.
 
         Example:
-            pack = {"tokens": [tensor([1, 2])], "labels": [tensor([3, 4])], ...}
-            target_tokens_per_pack = 4
-            next_doc_id = 1
-            self.padding_idx = 999
-            self.ignore_idx = -100
-
-            self.finalize_pack(pack, target_tokens_per_pack, next_doc_id)
-            >>> {"tokens": tensor([1, 2, 999, 999]),
-            "labels": tensor([3, 4, -100, -100]), ...}
+            >>> packer = TextPacker(padding_idx=999, ignore_idx=-100)
+            >>> pack = {"tokens": [torch.tensor([1, 2])], 
+            ...         "labels": [torch.tensor([3, 4])], 
+            ...         "document_ids": [torch.tensor([0, 0])], 
+            ...         "input_pos": [torch.tensor([0, 1])], "metrics": []}
+            >>> target_tokens_per_pack = 4
+            >>> next_doc_id = 1
+            >>> result = packer.finalize_pack(pack, target_tokens_per_pack, next_doc_id)
+            >>> print(result)
+            {"tokens": torch.tensor([1, 2, 999, 999]),
+             "labels": torch.tensor([3, 4, -100, -100]), 
+             "document_ids": torch.tensor([0, 0, 1, 1]), 
+             "input_pos": torch.tensor([0, 1, 0, 0]), "metrics": [...]}
         """
         pass
 
@@ -166,9 +208,22 @@ class Packer(ABC, Generic[SampleType]):
         """
         pass
 
-    def create_block_mask(self, batch_document_ids, device):
+    def create_block_mask(
+        self, batch_document_ids: torch.Tensor, device: torch.device
+    ) -> torch.Tensor:
         """
-        Creates a block-causal attention mask using FlexAttention.
+        Creates a block-causal attention mask for packed sequences using FlexAttention.
+
+        The mask ensures tokens only attend to appropriate positions based on the
+        packer's specific attention pattern (e.g., within same document for TextPacker,
+        cross-attention for DPOPacker).
+
+        Args:
+            batch_document_ids (torch.Tensor): Document IDs of shape (batch_size, seq_len)
+            device (torch.device): Device to create the mask on
+
+        Returns:
+            torch.Tensor: Block mask for FlexAttention
         """
         batch_size, seq_len = batch_document_ids.shape
         doc_ids = batch_document_ids.to(device)
@@ -187,15 +242,32 @@ class IterablePackedDataset(
     TuneIterableDataset[PackType], Stateful, Generic[SampleType]
 ):
     """
-    IterablePackedDataset takes any TuneIterableDataset and a Packer, packs documents until
-    the 'target_tokens_per_pack' is reached and yields a dictionary of tensors.
+    Wraps a `TuneIterableDataset` to combine multiple samples into a single,
+    fixed-size "pack". This is highly efficient for training as it minimizes
+    padding and ensures consistent batch shapes.
+
+    The packing process works as follows:
+    1. It fetches samples from the underlying `dataset` and stores them in
+       an internal `buffer`.
+    2. It uses a "best-fit" approach to select samples from the buffer that
+       can fill a pack up to `target_tokens_per_pack`.
+    3. The `packer` handles the logic for deconstructing samples, creating
+       metadata (like document IDs and attention masks), and padding the
+       final pack.
+
+    This dataset is stateful and supports checkpointing (relies on child dataset to be stateful),
+    allowing training to be resumed seamlessly.
 
     Args:
-        dataset (TuneIterableDataset[SampleType]): The TuneIterableDataset to pack.
-        packer (Packer[SampleType]): The Packer specific to the dataset format (e.g. text, DPO, etc.).
-        target_tokens_per_pack (int): The target number of tokens per pack.
-        buffer_size (int): The size of the buffer to use for packing.
-        dataset_name (str): The name of the dataset. If None, a defaults to IterablePackedDataset.
+        dataset (TuneIterableDataset[SampleType]): The `TuneIterableDataset` to pack.
+        packer (Packer[SampleType]): The `Packer` that defines the packing
+            strategy for the dataset format (e.g. `TextPacker`).
+        target_tokens_per_pack (int): The target number of tokens for each pack.
+        buffer_size (int): The number of samples to buffer for finding the
+            best fit. A larger buffer may improve packing efficiency at the
+            cost of memory. Buffer samples are discarded if resuming from a checkpoint.
+            Default is 100.
+        dataset_name (str): The name of the dataset, used for metrics.
     """
 
     def __init__(
@@ -203,7 +275,7 @@ class IterablePackedDataset(
         dataset: TuneIterableDataset[SampleType],
         packer: Packer[SampleType],
         target_tokens_per_pack: int,
-        buffer_size: int = 50,
+        buffer_size: int = 100,
         dataset_name: str = "IterablePackedDataset",
     ):
         self.dataset = dataset
@@ -219,6 +291,7 @@ class IterablePackedDataset(
 
     @property
     def dataset_name(self) -> str:
+        """Returns the dataset name, used for metrics tracking."""
         return self._dataset_name
 
     def _reset_packer_state(self) -> None:
@@ -351,7 +424,7 @@ class IterablePackedDataset(
 
     def __iter__(self) -> Iterator[PackType]:
         if not isinstance(self.dataset, Iterable):
-            raise TypeError("Dataset is not iterable.")
+            raise TypeError("Dataset is not an iterable")
 
         if not self._resuming:
             self._reset_packer_state()
@@ -413,14 +486,20 @@ class TextPacker(Packer[dict[str, torch.Tensor]]):
     - Each sample is treated as a separate document.
     - `input_pos` restarts from 0 for each sample.
     - `document_ids` assigns a unique ID to each sample for masking.
+
+    Args:
+        padding_idx (int): The index of the padding token.
+        ignore_idx (int): The index for ignored labels.
     """
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
-        super().__init__(padding_idx=padding_idx, ignore_idx=ignore_idx)
+        super().__init__(padding_idx, ignore_idx)
         self.dataset_name = "packed_dataset"  # Default name
 
     def set_dataset_name(self, dataset_name: str) -> None:
-        """Set the dataset name for metrics."""
+        """
+        Sets the dataset name on the packer. This is used for logging metrics.
+        """
         self.dataset_name = dataset_name
 
     def create_empty_pack(self) -> dict[str, list]:
@@ -523,16 +602,12 @@ class TextPacker(Packer[dict[str, torch.Tensor]]):
         return causal_mask & document_mask
 
 
-# NOTE: For demonstration purposes only.
-
-
 class DPOPacker(Packer[dict[str, torch.Tensor]]):
     """
-    Packer for packing DPO samples with a shared prompt. It packs a DPO
-    sample as three logical documents: a shared prompt, a chosen response,
-    and a rejected response. This structure is encoded in the `document_ids`
-    metadata, allowing the packer to build the correct attention pattern
-    (e.g., both responses can attend to the prompt, but not to each other).
+    Packer for Direct Preference Optimization (DPO). It packs a DPO sample
+    as three logical documents: a shared prompt, a chosen response, and a rejected response.
+    It encodes the attention mask with shared prompt, so that both responses can attend to the same prompt,
+    without repetition, but not to each other.
 
     ASSUMPTION: The input DPO sample dict contains pre-tokenized tensors:
     - "prompt_ids"
@@ -540,14 +615,20 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
     - "chosen_response_only_labels"
     - "rejected_response_only_ids"
     - "rejected_response_only_labels"
+
+     Args:
+        padding_idx (int): The index of the padding token.
+        ignore_idx (int): The index for ignored labels.
     """
 
     def __init__(self, padding_idx: int, ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX):
-        super().__init__(padding_idx=padding_idx, ignore_idx=ignore_idx)
+        super().__init__(padding_idx, ignore_idx)
         self.dataset_name = "packed_dataset"  # Default name
 
     def set_dataset_name(self, dataset_name: str) -> None:
-        """Set the dataset name for metrics."""
+        """
+        Sets the dataset name on the packer. This is used for logging metrics.
+        """
         self.dataset_name = dataset_name
 
     def create_empty_pack(self) -> dict[str, list]:
@@ -573,19 +654,25 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
     def add_sample_to_pack(
         self, pack: dict[str, list], sample: dict[str, torch.Tensor], next_doc_id: int
     ) -> int:
-        """Adds a DPO sample by building complete tensors and appending to pack lists."""
-        prompt_ids = sample["prompt_ids"]
-        chosen_ids = sample["chosen_response_only_ids"]
-        rejected_ids = sample["rejected_response_only_ids"]
+        """
+        Adds a DPO sample to a pack. Each DPO sample consists of three parts
+        (prompt, chosen, rejected), and each part is assigned its own document ID.
+        """
+        prompt_len = sample["prompt_ids"].numel()
+        chosen_len = sample["chosen_response_only_ids"].numel()
+        rejected_len = sample["rejected_response_only_ids"].numel()
 
-        prompt_len = prompt_ids.numel()
-        chosen_len = chosen_ids.numel()
-        rejected_len = rejected_ids.numel()
+        # 1. Concatenate tokens: [prompt, chosen_response, rejected_response]
+        tokens = torch.cat(
+            [
+                sample["prompt_ids"],
+                sample["chosen_response_only_ids"],
+                sample["rejected_response_only_ids"],
+            ]
+        )
 
-        # 1. Add Shared Prompt, Chosen Response, and Rejected Response tokens
-        complete_tokens = torch.cat([prompt_ids, chosen_ids, rejected_ids])
-        # 2. Add labels for all three parts
-        complete_labels = torch.cat(
+        # 2. Create labels: [ignore_idx for prompt, chosen_labels, rejected_labels]
+        labels = torch.cat(
             [
                 torch.full(
                     (prompt_len,), self.ignore_idx, dtype=torch.long),
@@ -595,7 +682,7 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
         )
 
         # 3. Create document IDs: prompt(next_doc_id), chosen(next_doc_id+1), rejected(next_doc_id+2)
-        complete_doc_ids = torch.cat(
+        document_ids = torch.cat(
             [
                 torch.full(
                     (prompt_len,), next_doc_id, dtype=torch.long),
@@ -607,18 +694,18 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
         )
 
         # 4. Create input positions (restarts from 0 for each DPO sample)
-        total_len = complete_tokens.numel()
-        complete_input_pos = torch.arange(total_len, dtype=torch.long, device="cpu")
+        total_len = tokens.numel()
+        input_pos = torch.arange(total_len, dtype=torch.long, device="cpu")
 
         # 5. Create response masks
-        complete_chosen_mask = torch.cat(
+        chosen_response_mask = torch.cat(
             [
                 torch.zeros(prompt_len, dtype=torch.bool, device="cpu"),
                 torch.ones(chosen_len, dtype=torch.bool, device="cpu"),
                 torch.zeros(rejected_len, dtype=torch.bool, device="cpu"),
             ]
         )
-        complete_rejected_mask = torch.cat(
+        rejected_response_mask = torch.cat(
             [
                 torch.zeros(prompt_len, dtype=torch.bool, device="cpu"),
                 torch.zeros(chosen_len, dtype=torch.bool, device="cpu"),
@@ -627,12 +714,12 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
         )
 
         # Append all complete tensors to the pack
-        pack["tokens"].append(complete_tokens)
-        pack["labels"].append(complete_labels)
-        pack["document_ids"].append(complete_doc_ids)
-        pack["input_pos"].append(complete_input_pos)
-        pack["chosen_response_mask"].append(complete_chosen_mask)
-        pack["rejected_response_mask"].append(complete_rejected_mask)
+        pack["tokens"].append(tokens)
+        pack["labels"].append(labels)
+        pack["document_ids"].append(document_ids)
+        pack["input_pos"].append(input_pos)
+        pack["chosen_response_mask"].append(chosen_response_mask)
+        pack["rejected_response_mask"].append(rejected_response_mask)
 
         # Handle metrics if they exist in the sample
         if "metrics" in sample:
@@ -708,21 +795,24 @@ class DPOPacker(Packer[dict[str, torch.Tensor]]):
     ) -> torch.Tensor:
         """
         Mask logic for DPO.
-        - Causal self-attention within the same document.
-        - Cross-attention from response tokens (chosen/rejected) to their
-          corresponding prompt tokens.
+        - Causal self-attention within each document (prompt, chosen, rejected)
+        - Cross-attention: response tokens can attend to their prompt (shared for both responses)
         """
+        # (batch_size, seq_len)
         q_doc = doc_ids[b, q_idx]
         kv_doc = doc_ids[b, kv_idx]
 
         # 1. Document-level Causal self-attention
         is_same_doc = q_doc == kv_doc
-        self_attention_mask = is_same_doc & (q_idx >= kv_idx)
+        is_causal = is_same_doc & (q_idx >= kv_idx)
 
         # 2. Cross-attention from response to prompt
+        # For a given query token, find the document ID of its corresponding prompt.
+        # Since each DPO sample consists of 3 documents (prompt, chosen, rejected),
+        # this maps q_doc to the base ID of its group (e.g., 4 -> 3, 5 -> 3).
         q_prompt_doc_id = (q_doc // 3) * 3
         kv_is_part_of_q_prompt = kv_doc == q_prompt_doc_id
         q_is_response = (q_doc % 3) > 0
-        cross_attention_mask = q_is_response & kv_is_part_of_q_prompt
+        is_cross_attention = q_is_response & kv_is_part_of_q_prompt
 
-        return self_attention_mask | cross_attention_mask
+        return is_causal | is_cross_attention
