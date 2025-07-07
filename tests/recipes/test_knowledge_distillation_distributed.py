@@ -195,10 +195,7 @@ class TestKDDistributedRecipe:
             tokenizer.prompt_template=null \
         """.split()
         cmd_2 = (
-            cmd_2
-            + self._get_test_config_overrides()
-            + model_config
-            + teacher_config
+            cmd_2 + self._get_test_config_overrides() + model_config + teacher_config
         )
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")

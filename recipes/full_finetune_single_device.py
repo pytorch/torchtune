@@ -692,7 +692,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._profiler.stop()
 
         # Save final checkpoint
-        self.save_checkpoint(epoch=self.total_epochs - 1, step=self.global_step, full_tensors=True)
+        self.save_checkpoint(
+            epoch=self.total_epochs - 1, step=self.global_step, full_tensors=True
+        )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

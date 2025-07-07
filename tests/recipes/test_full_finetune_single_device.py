@@ -214,10 +214,10 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         # 2. Find the checkpoint at the end of the first epoch
         suffix = ".safetensors"
-        model_ckpt_fname = (
-            "model" + suffix
-        )
-        assert os.path.exists(os.path.join(tmpdir, prev_ckpt_dir, model_ckpt_fname)), "Checkpoint file does not exist"
+        model_ckpt_fname = "model" + suffix
+        assert os.path.exists(
+            os.path.join(tmpdir, prev_ckpt_dir, model_ckpt_fname)
+        ), "Checkpoint file does not exist"
 
         shutil.rmtree(tmpdir / final_ckpt_dir)
 

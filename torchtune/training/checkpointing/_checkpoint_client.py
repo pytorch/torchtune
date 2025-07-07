@@ -201,7 +201,7 @@ class CheckpointClient:
 
             if adapter_only:
                 save_path = dcp_saver.output_dir
-                if dir_prefix == 'step':
+                if dir_prefix == "step":
                     save_path = save_path / f"step_{training_progress.steps_run}"
                 else:
                     save_path = save_path / f"epoch_{epoch}"
@@ -221,7 +221,7 @@ class CheckpointClient:
 
             # Save recipe_state.pt for full checkpoints as well
             save_path = dcp_saver.output_dir
-            if dir_prefix == 'step':
+            if dir_prefix == "step":
                 save_path = save_path / f"step_{training_progress.steps_run}"
             else:
                 save_path = save_path / f"epoch_{epoch}"
@@ -292,13 +292,14 @@ class CheckpointClient:
             # we consolidate the full model and optim state dicts on CPU for rank 0
             # Import FSDPModule from the correct location
             from torch.distributed.fsdp import FSDPModule
+
             if isinstance(model, FSDPModule):
                 fsdp_model = model
             else:
                 # If not FSDP, we need to handle this case - for now, we'll cast
                 # This might need to be adjusted based on the actual training.gather_cpu_state_dict implementation
                 fsdp_model = model  # type: ignore
-                
+
             model_state_dict = training.gather_cpu_state_dict(
                 fsdp_model,  # type: ignore
                 self._is_rank_zero,
@@ -328,26 +329,28 @@ class CheckpointClient:
                     for param, opt in optimizer.optim_map.items():
                         # Import FSDPModule from the correct location
                         from torch.distributed.fsdp import FSDPModule
+
                         if isinstance(model, FSDPModule):
                             fsdp_model = model
                         else:
                             fsdp_model = model  # type: ignore
-                            
-                        optim_state_dict[param] = (
-                            training.get_full_optimizer_state_dict(
-                                fsdp_model, opt, self._is_rank_zero, device=self._device  # type: ignore
-                            )
+
+                        optim_state_dict[
+                            param
+                        ] = training.get_full_optimizer_state_dict(
+                            fsdp_model, opt, self._is_rank_zero, device=self._device  # type: ignore
                         )
                 elif isinstance(optimizer, OptimizerInBackward):
                     optim_state_dict = optimizer.state_dict()
                 else:
                     # Import FSDPModule from the correct location
                     from torch.distributed.fsdp import FSDPModule
+
                     if isinstance(model, FSDPModule):
                         fsdp_model = model
                     else:
                         fsdp_model = model  # type: ignore
-                        
+
                     optim_state_dict = training.get_full_optimizer_state_dict(
                         fsdp_model, optimizer, self._is_rank_zero, device=self._device  # type: ignore
                     )
@@ -435,7 +438,7 @@ class CheckpointClient:
             # Handle None values for steps_run and total_training_steps
             steps_run = training_progress.steps_run
             total_training_steps = training_progress.total_training_steps
-            
+
             if steps_run is not None and total_training_steps is not None:
                 intermediate_checkpoint = steps_run < total_training_steps
             else:
@@ -481,7 +484,9 @@ class CheckpointClient:
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
-        dataloader: Optional[Any] = None,  # Changed from torchdata.stateful_dataloader.StatefulDataLoader
+        dataloader: Optional[
+            Any
+        ] = None,  # Changed from torchdata.stateful_dataloader.StatefulDataLoader
         single_device: bool = False,
     ) -> dict[str, Any]:
         """
@@ -507,9 +512,9 @@ class CheckpointClient:
         if "param_groups" in optim_state_dict:
             for param_group in optim_state_dict["param_groups"]:
                 if param_group.get("initial_lr") is None:
-                    param_group["initial_lr"] = (
-                        0.0  # This will get overriden by the actual value in optimizer
-                    )
+                    param_group[
+                        "initial_lr"
+                    ] = 0.0  # This will get overriden by the actual value in optimizer
 
         checkpoint_dict.update(
             {

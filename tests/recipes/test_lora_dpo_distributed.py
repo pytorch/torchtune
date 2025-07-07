@@ -6,9 +6,9 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
-import shutil
 
 import pytest
 import torch
@@ -195,7 +195,7 @@ class TestLoRADPODistributedRecipe:
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
-        shutil.rmtree(tmpdir / 'epoch_1')
+        shutil.rmtree(tmpdir / "epoch_1")
 
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)

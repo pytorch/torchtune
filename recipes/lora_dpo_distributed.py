@@ -4,15 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from datetime import timedelta
 import sys
 import time
+from datetime import timedelta
 
 from functools import partial
 from typing import Any, Optional
 from warnings import warn
 
 import torch
+
+import torch.distributed as dist
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -39,8 +41,6 @@ from torchtune.training.checkpointing._checkpoint_client import (
     TrainingProgress,
 )
 from tqdm import tqdm
-
-import torch.distributed as dist
 
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
@@ -158,7 +158,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self.save_every_n_steps = cfg.get("save_every_n_steps")
         self._logger = utils.get_logger(cfg.log_level)
-        
 
         if (
             self._log_peak_memory_stats
@@ -802,11 +801,15 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         )
 
                     is_final_step = (
-                        (curr_epoch == self.total_epochs - 1)
+                        curr_epoch
+                        == self.total_epochs - 1
                         # and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
                     )
 
-                    if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and not is_final_step
+                    ):
                         self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     # Reset running stats for the next step
@@ -820,7 +823,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # Only do final sync checkpoint if async checkpointing is disabled
 
         self._logger.info(f"[Rank {dist.get_rank()}] About to save final checkpoint")
-            
+
         self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:

@@ -1106,14 +1106,12 @@ class QATRecipeDistributed(FTRecipeInterface):
 
             self.epochs_run += 1
 
-            is_final_step = (
-                (curr_epoch == self.total_epochs - 1)
-                and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
-            )
+            is_final_step = (curr_epoch == self.total_epochs - 1) and (
+                (idx + 1) // self._gradient_accumulation_steps
+            ) == self.max_steps_per_epoch
 
             if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
                 self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
-    
 
         self._profiler.stop()
 

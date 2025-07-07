@@ -26,10 +26,7 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
-from torchtune.training.checkpointing._utils import (
-    get_largest_iter_folder,
-    SHARD_FNAME,
-)
+from torchtune.training.checkpointing._utils import get_largest_iter_folder, SHARD_FNAME
 
 
 class TestPPOFullFinetuneSingleDeviceRecipe:

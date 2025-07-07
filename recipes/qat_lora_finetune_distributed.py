@@ -691,7 +691,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             epoch=epoch,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
-            full_tensors=full_tensors
+            full_tensors=full_tensors,
         )
 
     def train(self) -> None:

@@ -578,7 +578,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
-            full_tensors=full_tensors
+            full_tensors=full_tensors,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -705,12 +705,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # if the schedule cycle doesn't align with gradient accumulation.
                         prof.step()
 
-                        is_final_step = (
-                            (curr_epoch == self.total_epochs - 1)
-                            and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
-                        )
+                        is_final_step = (curr_epoch == self.total_epochs - 1) and (
+                            (idx + 1) // self._gradient_accumulation_steps
+                        ) == self.max_steps_per_epoch
 
-                        if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                        if (
+                            self.global_step % self.save_every_n_steps == 0
+                            and not is_final_step
+                        ):
                             self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     if (

@@ -451,7 +451,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
-            full_tensors=full_tensors
+            full_tensors=full_tensors,
         )
 
     def concatenated_forward(
@@ -595,11 +595,15 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                         )
 
                     is_final_step = (
-                        (curr_epoch == self.total_epochs - 1)
+                        curr_epoch
+                        == self.total_epochs - 1
                         # and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
                     )
 
-                    if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and not is_final_step
+                    ):
                         self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     # Reset running stats for the next step
@@ -608,7 +612,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
-        
+
         self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:

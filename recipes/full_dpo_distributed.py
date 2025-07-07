@@ -4,13 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import hashlib
 import sys
 import time
 from functools import partial
 from typing import Any, Optional, Union
 from warnings import warn
 
-import hashlib
 import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
@@ -986,12 +986,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         )
 
                     # Save checkpoint if specified by user
-                    is_final_step = (
-                        (curr_epoch == self.total_epochs - 1)
-                        and ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch
-                    )
+                    is_final_step = (curr_epoch == self.total_epochs - 1) and (
+                        (idx + 1) // self._gradient_accumulation_steps
+                    ) == self.max_steps_per_epoch
 
-                    if self.global_step % self.save_every_n_steps == 0 and not is_final_step:
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and not is_final_step
+                    ):
                         self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     # Reset running stats for the next step
