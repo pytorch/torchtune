@@ -238,7 +238,7 @@ class Packer(ABC, Generic[SampleType]):
         )
 
 
-class IterablePackedDataset(InfiniteTuneIterableDataset, Stateful, Generic[SampleType]):
+class IterablePackedDataset(InfiniteTuneIterableDataset, Generic[SampleType]):
     """
     Wraps a `InfiniteTuneIterableDataset` to combine multiple samples into a single,
     fixed-size "pack". This is highly efficient for training as it minimizes

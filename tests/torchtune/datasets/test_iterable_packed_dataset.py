@@ -5,16 +5,16 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from functools import partial
 from typing import Any, Iterator, Optional
 
 import pytest
 import torch
 from torch.utils.data import IterableDataset
-from torchdata.stateful_dataloader import Stateful
+from torchdata.stateful_dataloader import Stateful, StatefulDataLoader
 
-# from torchtune.data._collate import collate_packed
+from torchtune.data._collate import collate_packed
 from torchtune.datasets._iterable_base import DatasetInfo
-
 from torchtune.datasets._iterable_packed import (
     DPOPacker,
     IterablePackedDataset,
@@ -22,7 +22,9 @@ from torchtune.datasets._iterable_packed import (
     PackType,
     TextPacker,
 )
+from torchtune.data.metrics import MetricsAggregator
 from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
+from .test_iterable_utils import generate_ckpt
 
 # --- Test Fixtures ---
 
@@ -165,63 +167,6 @@ def dpo_packer():
     return packer
 
 
-def assert_pack_structure(
-    pack: PackType, packer_type: str, target_tokens: int, expected_docs: int
-) -> None:
-    """
-    Helper to validate pack structure consistently across tests.
-
-    Args:
-        pack (PackType): The pack dictionary to validate
-        packer_type (str): Type of packer ("text" or "dpo")
-        target_tokens (int): Expected sequence length
-        expected_docs (int): Expected number of unique document IDs
-    """
-    # Cast to tensor since we know these keys contain tensors
-    tokens: torch.Tensor = pack["tokens"]
-    labels: torch.Tensor = pack["labels"]
-    document_ids: torch.Tensor = pack["document_ids"]
-
-    assert tokens.shape == (target_tokens,)
-    assert labels.shape == (target_tokens,)
-    assert document_ids.shape == (target_tokens,)
-
-    if packer_type == "dpo":
-        assert "chosen_response_mask" in pack
-        assert "rejected_response_mask" in pack
-        # Verify that a token cannot be part of both the chosen and rejected response.
-        chosen_mask: torch.Tensor = pack["chosen_response_mask"]
-        rejected_mask: torch.Tensor = pack["rejected_response_mask"]
-        assert not (chosen_mask & rejected_mask).any()
-
-    # Verify document boundaries
-    assert torch.unique(document_ids).numel() == expected_docs
-
-
-def assert_attention_mask_properties(mask: torch.Tensor, doc_ids: torch.Tensor) -> None:
-    """
-    Helper to validate attention mask properties for packed sequences.
-
-    Verifies causal attention within documents and proper masking boundaries.
-
-    Args:
-        mask (torch.Tensor): Attention mask tensor of shape (batch_size, seq_len, seq_len)
-        doc_ids (torch.Tensor): Document ID tensor of shape (batch_size, seq_len)
-    """
-    batch_size, seq_len, _ = mask.shape
-
-    # Verify causal property within documents
-    for b in range(batch_size):
-        for doc_id in torch.unique(doc_ids[b]):
-            doc_indices = (doc_ids[b] == doc_id).nonzero(as_tuple=True)[0]
-            if not doc_indices.numel():
-                continue
-            # The mask for tokens within a document should be lower-triangular (causal).
-            doc_mask = mask[b][doc_indices, :][:, doc_indices]
-            is_causal = torch.all(doc_mask.tril() == doc_mask)
-            assert is_causal, f"Mask for doc {doc_id} in batch {b} is not causal."
-
-
 # --- Test Classes ---
 
 
@@ -312,27 +257,52 @@ class TestTextPacker:
         torch.testing.assert_close(result["input_pos"], expected_input_pos)
 
     def test_text_causal_mask(self, device):
-        """Test standard causal masking for TextPacker"""
+        """
+        Verify the correctness of the causal attention mask by manually constructing
+        the expected mask for a batch containing multiple documents.
+        """
         text_packer = TextPacker(padding_idx=0)
-        # One sample in batch: doc 0 (len 2), doc 1 (len 2), doc 2 (len 3)
-        doc_ids = torch.tensor([[0, 0, 1, 1, 2, 2, 2]], device=device)
 
-        expected_mask = torch.tensor(
+        # Batch contains two packs of different layouts.
+        # Pack 1: docs [A(2), B(3), C(2)]
+        doc_ids_1 = torch.tensor([0, 0, 1, 1, 1, 2, 2], device=device)
+        # Pack 2: docs [D(4), E(1), F(2)]
+        doc_ids_2 = torch.tensor([0, 0, 0, 0, 1, 2, 2], device=device)
+        batch_doc_ids = torch.stack([doc_ids_1, doc_ids_2])
+
+        # Manually create the expected mask for the batch
+        mask1 = torch.tensor(
             [
-                # q k-> 0  1  2  3  4  5  6
-                [1, 0, 0, 0, 0, 0, 0],  # 0
-                [1, 1, 0, 0, 0, 0, 0],  # 1
-                [0, 0, 1, 0, 0, 0, 0],  # 2
-                [0, 0, 1, 1, 0, 0, 0],  # 3
-                [0, 0, 0, 0, 1, 0, 0],  # 4
-                [0, 0, 0, 0, 1, 1, 0],  # 5
-                [0, 0, 0, 0, 1, 1, 1],  # 6
+                # k_idx -> A  A  B  B  B  C  C
+                [1, 0, 0, 0, 0, 0, 0],  # q=0 (A)
+                [1, 1, 0, 0, 0, 0, 0],  # q=1 (A)
+                [0, 0, 1, 0, 0, 0, 0],  # q=2 (B)
+                [0, 0, 1, 1, 0, 0, 0],  # q=3 (B)
+                [0, 0, 1, 1, 1, 0, 0],  # q=4 (B)
+                [0, 0, 0, 0, 0, 1, 0],  # q=5 (C)
+                [0, 0, 0, 0, 0, 1, 1],  # q=6 (C)
             ],
             dtype=torch.bool,
             device=device,
-        ).unsqueeze(0)
+        )
+        mask2 = torch.tensor(
+            [
+                # k_idx -> D  D  D  D  E  F  F
+                [1, 0, 0, 0, 0, 0, 0],  # q=0 (D)
+                [1, 1, 0, 0, 0, 0, 0],  # q=1 (D)
+                [1, 1, 1, 0, 0, 0, 0],  # q=2 (D)
+                [1, 1, 1, 1, 0, 0, 0],  # q=3 (D)
+                [0, 0, 0, 0, 1, 0, 0],  # q=4 (E)
+                [0, 0, 0, 0, 0, 1, 0],  # q=5 (F)
+                [0, 0, 0, 0, 0, 1, 1],  # q=6 (F)
+            ],
+            dtype=torch.bool,
+            device=device,
+        )
+        expected_mask = torch.stack([mask1, mask2])
 
-        actual_mask = create_dense_mask_from_mask_mod(text_packer, doc_ids)
+        # Create mask using the strategy and verify
+        actual_mask = create_dense_mask_from_mask_mod(text_packer, batch_doc_ids)
         torch.testing.assert_close(actual_mask, expected_mask)
 
     def test_text_packing_workflow_two_packs(self):
@@ -670,6 +640,109 @@ class TestDPOPacker:
 
 
 @pytest.mark.skipif(not _SUPPORTS_FLEX_ATTENTION, reason="Flex attention not supported")
+class TestCollatedPacked:
+    """Test collate_packed function"""
+
+    def test_collate_empty_batch(self):
+        """Test collating an empty batch"""
+        result = collate_packed(batch=[], mask_fn=lambda doc_ids, device: None, device="cpu")
+        assert result == {}
+
+    def test_collate_basic_batch(self):
+        """Test basic collation functionality"""
+        # Create mock packed samples
+        batch = [
+            {
+                "tokens": torch.tensor([1, 2, 3]),
+                "labels": torch.tensor([4, 5, 6]),
+                "document_ids": torch.tensor([0, 0, 1]),
+                "input_pos": torch.tensor([0, 1, 0]),
+                "metrics": [
+                    type('Metric', (), {'metric_name': 'test', 'value': 1.0})(),
+                    type('Metric', (), {'metric_name': 'test2', 'value': 2.0})()
+                ]
+            },
+            {
+                "tokens": torch.tensor([7, 8]),
+                "labels": torch.tensor([9, 10]),
+                "document_ids": torch.tensor([2, 2]),
+                "input_pos": torch.tensor([0, 1]),
+                "metrics": [
+                    type('Metric', (), {'metric_name': 'test3', 'value': 3.0})()
+                ]
+            }
+        ]
+        
+        # Mock mask function
+        def mock_mask_fn(doc_ids, device):
+            batch_size, seq_len = doc_ids.shape
+            return torch.ones(batch_size, seq_len, seq_len, dtype=torch.bool)
+        
+        result = collate_packed(batch, mock_mask_fn, "cpu")
+        
+        # Check tensor stacking
+        expected_tokens = torch.stack([torch.tensor([1, 2, 3]), torch.tensor([7, 8])])
+        expected_labels = torch.stack([torch.tensor([4, 5, 6]), torch.tensor([9, 10])])
+        expected_doc_ids = torch.stack([torch.tensor([0, 0, 1]), torch.tensor([2, 2])])
+        
+        torch.testing.assert_close(result["tokens"], expected_tokens)
+        torch.testing.assert_close(result["labels"], expected_labels)
+        torch.testing.assert_close(result["document_ids"], expected_doc_ids)
+        
+        # Check metrics flattening
+        assert len(result["metrics"]) == 3  # All metrics from both samples
+        
+        # Check mask creation
+        assert "mask" in result
+        assert result["mask"].shape == (2, 3, 3)  # batch_size=2, seq_len=3
+
+    def test_collate_different_keys_error(self):
+        """Test that different keys across samples raises ValueError"""
+        batch = [
+            {"tokens": torch.tensor([1, 2]), "labels": torch.tensor([3, 4])},
+            {"tokens": torch.tensor([5, 6]), "other_key": torch.tensor([7, 8])}
+        ]
+        
+        def mock_mask_fn(doc_ids, device):
+            return torch.ones(1, 1, 1)
+        
+        with pytest.raises(ValueError, match="All samples must have the same keys"):
+            collate_packed(batch, mock_mask_fn, "cpu")
+
+    def test_collate_mixed_tensor_non_tensor(self):
+        """Test collation with mixed tensor and non-tensor data"""
+        batch = [
+            {
+                "tokens": torch.tensor([1, 2]),
+                "document_ids": torch.tensor([0, 0]),
+                "text_data": "sample1",
+                "metrics": ["DummyMetric1"]
+            },
+            {
+                "tokens": torch.tensor([3, 4]),
+                "document_ids": torch.tensor([1, 1]),
+                "text_data": "sample2",
+                "metrics": ["DummyMetric2"]
+            }
+        ]
+        
+        def mock_mask_fn(doc_ids, device):
+            return torch.ones(2, 2, 2)
+        
+        result = collate_packed(batch, mock_mask_fn, "cpu")
+        
+        # Tensors should be stacked
+        expected_tokens = torch.stack([torch.tensor([1, 2]), torch.tensor([3, 4])])
+        torch.testing.assert_close(result["tokens"], expected_tokens)
+        
+        # Non-tensors should be kept as lists
+        assert result["text_data"] == ["sample1", "sample2"]
+        
+        # Metrics should be flattened
+        assert result["metrics"] == ["DummyMetric1", "DummyMetric2"]
+
+
+@pytest.mark.skipif(not _SUPPORTS_FLEX_ATTENTION, reason="Flex attention not supported")
 class TestIterablePackedDataset:
     """Test IterablePackedDataset functionality - buffer efficiency, checkpointing, edge cases"""
 
@@ -735,50 +808,71 @@ class TestIterablePackedDataset:
         assert len(packs) == 2
 
     def test_checkpoint_and_resume(self):
-        """Test checkpointing and resumption functionality"""
+        """Test checkpointing and resumption functionality using StatefulDataLoader"""
         sample_sizes = [3, 2, 5, 4, 1, 6]  # Total 21 tokens
         target_tokens_per_pack = 6
+        batch_size = 2
 
-        # First run: iterate partially
-        dataset1 = StatefulDummyTextDataset(sample_sizes)
-        packer1 = TextPacker(padding_idx=999, ignore_idx=-100)
-        packed_dataset1 = IterablePackedDataset(
-            dataset=dataset1,
-            packer=packer1,
-            target_tokens_per_pack=target_tokens_per_pack,
-            buffer_size=4,
+        # Setup dataset factory
+        def create_loader_and_aggregator():
+            dataset = StatefulDummyTextDataset(sample_sizes)
+            packer = TextPacker(padding_idx=999, ignore_idx=-100)
+            packed_dataset = IterablePackedDataset(
+                dataset=dataset,
+                packer=packer,
+                target_tokens_per_pack=target_tokens_per_pack,
+                buffer_size=0,  # No buffer for deterministic checkpointing
+            )
+
+            collate_fn = partial(
+                collate_packed, mask_fn=packer.create_block_mask, device="cpu"
+            )
+
+            loader = StatefulDataLoader(
+                packed_dataset, batch_size=batch_size, collate_fn=collate_fn
+            )
+            aggregator = MetricsAggregator()
+            return loader, aggregator
+
+        loader1, aggregator1 = create_loader_and_aggregator()
+        loader2, aggregator2 = create_loader_and_aggregator()
+
+        steps_before_checkpoint = 3
+        steps_after_checkpoint = 3
+
+        # Generate checkpoint and resume
+        result = generate_ckpt(
+            loader1,
+            aggregator1,
+            steps_before_checkpoint=steps_before_checkpoint,
+            steps_after_checkpoint=steps_after_checkpoint,
+            resume_dataloader=loader2,
+            resume_aggregator=aggregator2,
         )
 
-        # Get first pack and save state
-        packed_iterator1 = iter(packed_dataset1)
-        pack1_partial = next(packed_iterator1)
-        state = packed_dataset1.state_dict()
+        # Verify that checkpointing and resumption are identical
+        assert len(result["post_checkpoint_batches"]) == steps_after_checkpoint
+        assert len(result["resumed_batches"]) == steps_after_checkpoint
 
-        # Second run: resume from checkpoint
-        dataset2 = StatefulDummyTextDataset(sample_sizes)
-        packer2 = TextPacker(padding_idx=999, ignore_idx=-100)
-        packed_dataset2 = IterablePackedDataset(
-            dataset=dataset2,
-            packer=packer2,
-            target_tokens_per_pack=target_tokens_per_pack,
-            buffer_size=4,
-        )
-        packed_dataset2.load_state_dict(state)
+        for orig_batch, resumed_batch in zip(
+            result["post_checkpoint_batches"], result["resumed_batches"]
+        ):
+            assert orig_batch.keys() == resumed_batch.keys()
+            for key in orig_batch:
+                if isinstance(orig_batch[key], torch.Tensor):
+                    torch.testing.assert_close(
+                        orig_batch[key],
+                        resumed_batch[key],
+                        msg=f"Mismatch in batch key: {key}",
+                    )
+                else:
+                    assert (
+                        orig_batch[key] == resumed_batch[key]
+                    ), f"Mismatch in batch key: {key}"
 
-        resumed_packs = list(packed_dataset2)
-
-        # Verify resumption worked (buffer contents are lost, so some samples skipped)
-        assert len(resumed_packs) >= 1
-        total_resumed_tokens = sum(
-            (p["labels"] != -100).sum().item() for p in resumed_packs
-        )
-        assert total_resumed_tokens > 0
-
-        # Verify that together, first pack + resumed packs contain reasonable amount of data
-        # (not all data since buffer loss causes some samples to be skipped)
-        total_first_tokens = (pack1_partial["labels"] != -100).sum().item()
-        total_all_tokens = total_first_tokens + total_resumed_tokens
-        assert total_all_tokens < sum(sample_sizes)  # Some data lost due to buffer
+        assert (
+            result["final_metrics"] == result["resumed_metrics"]
+        ), "Final metrics should match"
 
     def test_multiple_iterations_same_dataset(self):
         """Test that multiple iterations over same packed dataset work correctly"""
@@ -788,7 +882,6 @@ class TestIterablePackedDataset:
         packed_dataset = IterablePackedDataset(
             dataset=dataset, packer=packer, target_tokens_per_pack=4
         )
-
         # First iteration
         packs1 = list(packed_dataset)
         # Second iteration should produce same result
