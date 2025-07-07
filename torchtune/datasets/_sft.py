@@ -4,15 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
+import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
-from torchtune.data._metrics import StandardMetricTransform
+from torchtune.data.metrics import DefaultTrainingMetricTransform
 from torchtune.datasets._hf_iterable import HfIterableDataset
 
 from torchtune.modules.transforms import Transform
@@ -145,7 +146,7 @@ class SFTTransform(Transform):
         self._message_transform = message_transform
         self._model_transform = model_transform
 
-    def __call__(self, sample: Mapping[str, Any]) -> dict[str, Any]:
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         if self._message_transform is not None:
             transformed_sample = self._message_transform(sample)
             if "messages" in transformed_sample:
@@ -183,40 +184,50 @@ class SFTTransform(Transform):
 
 
 class SFTOutputTransform(Transform):
+    """Applied to each dataset sample to build the `"labels"` tensor for causal-LM SFT training.
+
+    Expects sample to contain 1-D torch tensors
+    "tokens": token IDs, dtype=torch.long
+    "mask": bool/int where **True** marks positions to ignore
+
+    If they are not tensors, they are converted to tensors.
+
+    Produces ``"labels"`` of the same shape such that
+        labels[t] =  tokens[t+1]                # shift left
+        labels[t] =  IGNORE_IDX  if mask[t+1]   # respect mask
+        labels[-1] = IGNORE_IDX                 # last token has no target
+
+    All ops are vectorised; only one fresh tensor (`labels`) is allocated.
     """
-    Output transform to be used in SFT recipes as an input to TuneIterableDataset.
-    It takes tokenized inputs with "tokens" and "mask" keys and
-    creates the "labels" key for SFT training.
 
-    The labels are created by:
-    1. Shifting tokens by 1 position (for autoregressive training)
-    2. Masking positions where mask[1:] is True with CROSS_ENTROPY_IGNORE_IDX
-    3. Adding CROSS_ENTROPY_IGNORE_IDX at the end
-    """
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
 
-    def __call__(self, sample: Mapping[str, Any]) -> dict[str, Any]:
-        # Create a copy to avoid modifying the original
-        tokenized_dict = dict(sample)
+        tokens = sample["tokens"]
+        mask = sample["mask"]
 
-        if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
-            keys_str = ", ".join(tokenized_dict.keys())
-            raise ValueError(
-                f"SFTOutputTransform expects 'tokens' and 'mask' keys. "
-                f"Got keys: {keys_str}"
-            )
+        # Sanity checks
+        if not isinstance(tokens, torch.Tensor):
+            tokens = torch.tensor(tokens)
+        if not isinstance(mask, torch.Tensor):
+            mask = torch.tensor(mask)
 
-        # Create labels for SFT training
-        tokenized_dict["labels"] = list(
-            np.where(
-                tokenized_dict["mask"][1:],
-                CROSS_ENTROPY_IGNORE_IDX,
-                tokenized_dict["tokens"][1:],
-            )
-        )
-        tokenized_dict["labels"].append(CROSS_ENTROPY_IGNORE_IDX)
-        assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+        if tokens.ndim != 1 or mask.ndim != 1:
+            raise ValueError("Both 'tokens' and 'mask' must be 1-D tensors.")
 
-        return tokenized_dict
+        # build labels
+        # pre-fill with IGNORE so we don’t need extra assignments later
+        labels = tokens.new_full(tokens.shape, CROSS_ENTROPY_IGNORE_IDX)
+
+        # left-shift via cheap views (no copy)
+        labels[:-1].copy_(tokens[1:])
+
+        # apply mask in-place (single fused kernel on GPU/CPU)
+        labels[:-1].masked_fill_(mask[1:].bool(), CROSS_ENTROPY_IGNORE_IDX)
+
+        # return a shallow-copied mapping so the original sample stays intact
+        out = dict(sample)
+        out["labels"] = labels
+        return out
 
 
 def sft_iterable_dataset(
@@ -266,7 +277,7 @@ def sft_iterable_dataset(
         message_transform=message_transform,
         model_transform=model_transform,
         output_transform=output_transform,
-        metric_transform=StandardMetricTransform(),
+        metric_transform=DefaultTrainingMetricTransform(),
         shuffle_buffer_size=shuffle_buffer_size,
         weight=weight,
         seed=seed,

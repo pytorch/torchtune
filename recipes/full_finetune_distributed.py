@@ -24,8 +24,8 @@ from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import MetricsAggregator
 from torchtune.datasets import InterleavedDataset, IterablePackedDataset
+from torchtune.data.metrics import MetricsAggregator
 from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
 from torchtune.modules.moe import utils as moe_utils
@@ -276,7 +276,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Step-based training support
         self.num_training_steps = cfg.num_training_steps
-        self._dataset_metrics_log_freq = cfg.get("dataset_metrics_log_freq", 100)
         self._metrics_aggregator = None  # Will be initialized in setup
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
@@ -310,7 +309,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if cfg.get("dataset_val") is not None:
             raise NotImplementedError(
-                "Validation is not supported yet with iterable datasets."
+                "Validation is not supported yet with iterable datasets since it currently requiresinfinite datasets."
             )
 
         if self.fsdp_cpu_offload:
@@ -782,7 +781,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # 1. Create all datasets
         iterable_datasets = []
-        weights = []
         cfg_dataset_list = cfg_dataset
         if not isinstance(cfg_dataset_list, ListConfig):
             cfg_dataset_list = [cfg_dataset_list]
@@ -790,13 +788,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         for ds_cfg in cfg_dataset_list:
             ds = config.instantiate(ds_cfg, model_transform=self._tokenizer)
             iterable_datasets.append(ds)
-            weights.append(ds_cfg.get("weight", 1.0))
 
         # 2. Interleave datasets if any
         if len(iterable_datasets) > 1:
             ds = InterleavedDataset(
                 datasets=iterable_datasets,
-                weights=weights,
                 seed=self.seed,
             )
         else:
@@ -1069,39 +1065,35 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 )
 
                 # Log per-step metrics
-                if (
-                    self.global_step % self._log_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
-                    time_per_step = time.perf_counter() - t0
-                    log_dict = {
-                        "loss": loss_to_log,
-                        "lr": get_lr(
-                            self._optimizer
-                            if not self._optimizer_in_bwd
-                            else self._optim_ckpt_wrapper
-                        ),
-                        "tokens_per_second_per_gpu": (
-                            num_tokens / self.parallel_dims.non_data_parallel_size
-                        )
-                        / (time_per_step * self.world_size),
-                    }
-                    if self._log_peak_memory_stats:
-                        log_dict.update(training.get_memory_stats(device=self._device))
-                    if self._clip_grad_norm is not None:
-                        log_dict.update({"grad_norm": grad_norm})
-                    self._metric_logger.log_dict(log_dict, step=self.global_step)
-
-                # Log dataset metrics
-                # #TODO: it requires all_gather. Should we keep a separate log_freq for this?
-                if self.global_step % self._dataset_metrics_log_freq == 0:
+                if self.global_step % self._log_every_n_steps == 0:
+                    # Get dataset metrics outside of rank zero check since it involves all_gather
                     dataset_metrics = self._metrics_aggregator.get_metrics_for_logging(
                         prefix="train"
                     )
+
                     if self._is_rank_zero:
-                        self._metric_logger.log_dict(
-                            dataset_metrics, step=self.global_step
-                        )
+                        time_per_step = time.perf_counter() - t0
+                        log_dict = {
+                            "loss": loss_to_log,
+                            "lr": get_lr(
+                                self._optimizer
+                                if not self._optimizer_in_bwd
+                                else self._optim_ckpt_wrapper
+                            ),
+                            "tokens_per_second_per_gpu": (
+                                num_tokens / self.parallel_dims.non_data_parallel_size
+                            )
+                            / (time_per_step * self.world_size),
+                        }
+                        if dataset_metrics:
+                            log_dict.update(dataset_metrics)
+                        if self._log_peak_memory_stats:
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
+                        if self._clip_grad_norm is not None:
+                            log_dict.update({"grad_norm": grad_norm})
+                        self._metric_logger.log_dict(log_dict, step=self.global_step)
 
                 # Save checkpoint if specified by user
                 if (

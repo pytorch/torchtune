@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data._aggregator import MetricsAggregator
 from torchtune.data._collate import (
     collate_packed,
     left_pad_sequence,
@@ -26,12 +25,6 @@ from torchtune.data._messages import (
     ShareGPTToMessages,
     validate_messages,
 )
-from torchtune.data._metrics import (
-    AggregationType,
-    Metric,
-    MetricTransform,
-    StandardMetricTransform,
-)
 from torchtune.data._prompt_templates import (
     ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
@@ -43,13 +36,8 @@ from torchtune.data._prompt_templates import (
 from torchtune.data._utils import format_content_with_images, load_image, truncate
 
 __all__ = [
-    "AggregationType",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
-    "Metric",
-    "MetricsAggregator",
-    "MetricTransform",
-    "StandardMetricTransform",
     "SummarizeTemplate",
     "OpenAIToMessages",
     "ShareGPTToMessages",

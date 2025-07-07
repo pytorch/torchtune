@@ -12,40 +12,54 @@ import torch.distributed as dist
 from datasets import load_dataset
 from datasets.distributed import split_dataset_by_node
 
-from torchtune.data._metrics import AggregationType, Metric, StandardMetricTransform
-from torchtune.datasets._iterable_base import TuneIterableDataset
+from torchtune.data.metrics import (
+    AggregationType,
+    DefaultTrainingMetricTransform,
+    Metric,
+    MetricTransform,
+)
+from torchtune.datasets._iterable_base import DatasetInfo, InfiniteTuneIterableDataset
 
 logger = logging.getLogger(__name__)
 
 
-class HfIterableDataset(TuneIterableDataset):
-    """HuggingFace dataset implementation with composable metrics.
+class HfIterableDataset(InfiniteTuneIterableDataset):
+    """HuggingFace dataset with infinite iteration and composable transforms.
 
-    This is an infinite dataset. After exhausting the dataset, it will restart from the beginning.
+    This is an infinite dataset that wraps a HuggingFace dataset. After exhausting
+    the dataset, it will restart from the beginning.
+
+    Transform pipeline: raw_data -> message_transform -> model_transform -> output_transform -> metric_transform
 
     This dataset is responsible for:
       - Loading and sharding the dataset
       - Shuffling at initialization and after each epoch
-      - Applying transforms
+      - Applying transforms to the data
       - Returning an infinite iterator over the dataset
 
-      Args:
-        message_transform (Optional[Callable]): Transforms raw data into Message
-        model_transform (Optional[Callable]): Take messages and prepares it for the model. Usually the tokenizer.
-        output_transform (Optional[Callable]): Takes tokenized inputs and prepares it for the recipe. Usually
-            does some label manipulation, e.g. ignore index. Think of it as recipe-dependent, e.g. SFT, RL, DPO, etc.
-        metric_transform (Optional[Callable]): Takes the sample and computes metrics, e.g. token count.
-            If None, a default transform is used. To stop tracking metrics, set it to lambda x: x.
-        shuffle_buffer_size (Optional[int]): Size of the shuffle buffer. If None or 0, no shuffling is done.
+    Args:
+        message_transform (Optional[Callable]): Transforms raw data into a `Message`.
+        model_transform (Optional[Callable]): Prepares messages for the model,
+            usually by tokenizing them.
+        output_transform (Optional[Callable]): Prepares tokenized inputs for the
+            recipe, often by manipulating labels (e.g., setting an ignore index).
+            This transform is recipe-dependent (e.g., SFT, DPO, etc.).
+        metric_transform (Optional[MetricTransform]): Computes metrics from a
+            sample (e.g., token count). If ``None``, a default transform is used.
+            To disable standard metric tracking, set this to ``lambda x: x``.
+        shuffle_buffer_size (Optional[int]): Size of the shuffle buffer.
+            If ``None`` or 0, no shuffling is performed.
+        weight (Optional[float]): Weight for this dataset. Defaults to 1.0.
         seed (int): Seed for shuffling.
-        num_shards_per_rank (int): Target number of shards per worker (GPU). It will find a multiple
-            of world_size * dataloader_workers.
-        dataset_name (Optional[str]): Name of the dataset. If None, a default name is generated
-            from the path, source, and split.
-        filter_fn (Optional[Callable]): Filter function to apply to the dataset.
-        filter_kwargs (Optional[dict[str, Any]]): Keyword arguments to pass to the filter function.
-        load_dataset_kwargs (dict[str, Any]): Keyword arguments to pass to the load_dataset function.
-
+        num_shards_per_rank (int): The target number of shards per worker (GPU).
+            The actual number of shards will be a multiple of
+            ``world_size * dataloader_workers``.
+        dataset_name (Optional[str]): Name of the dataset. If ``None``, a name is
+            generated from the ``path``, ``source``, and ``split``.
+        filter_fn (Optional[Callable]): A function to filter the dataset.
+        filter_kwargs (Optional[dict[str, Any]]): Keyword arguments for ``filter_fn``.
+        **load_dataset_kwargs: Keyword arguments for the
+            :func:`~datasets.load_dataset` function.
     """
 
     def __init__(
@@ -54,7 +68,7 @@ class HfIterableDataset(TuneIterableDataset):
         message_transform: Optional[Callable] = None,
         model_transform: Optional[Callable] = None,
         output_transform: Optional[Callable] = None,
-        metric_transform: Optional[Callable] = None,
+        metric_transform: Optional[MetricTransform] = None,
         shuffle_buffer_size: Optional[int] = 1000,
         weight: Optional[float] = 1.0,
         seed: int = 42,
@@ -70,12 +84,12 @@ class HfIterableDataset(TuneIterableDataset):
         self._message_transform = message_transform
         self._model_transform = model_transform
         self._output_transform = output_transform
-        self._weight = weight  # TODO: make it a property?
+        self._weight = weight if weight is not None else 1.0
 
         # Create default transform if not provided
-        self._metric_transform = metric_transform or StandardMetricTransform()
+        self._metric_transform = metric_transform or DefaultTrainingMetricTransform()
 
-        # Auto-generate dataset name if not provided, ensuring it's always a string.
+        # Auto-generate dataset name if not provided, ensuring it's always a string
         if dataset_name is None:
             path = load_dataset_kwargs.get("path", None)
             source = load_dataset_kwargs.get("source", None)
@@ -84,13 +98,14 @@ class HfIterableDataset(TuneIterableDataset):
             for item in [path, source, split]:
                 if item is not None:
                     name_parts.append(str(item).replace("/", "_"))
-            self._dataset_name: str = "_".join(name_parts)
-        else:
-            self._dataset_name: str = dataset_name
+            dataset_name = "_".join(name_parts)
+
+        # Build the hierarchical info object for this dataset
+        self._info = DatasetInfo(name=dataset_name, weight=self._weight)
 
         # Set dataset name on the transform if it supports it
         if hasattr(self._metric_transform, "set_dataset_name"):
-            self._metric_transform.set_dataset_name(self._dataset_name)
+            self._metric_transform.set_dataset_name(dataset_name)
 
         # Internal state for resumption
         self._num_epochs = 0
@@ -101,8 +116,9 @@ class HfIterableDataset(TuneIterableDataset):
         )
 
     @property
-    def dataset_name(self) -> str:
-        return self._dataset_name
+    def info(self) -> DatasetInfo:
+        """Returns info for this leaf dataset, which has no children."""
+        return self._info
 
     def _apply_transforms(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Apply transforms if they exist, otherwise return sample unchanged."""
@@ -124,9 +140,10 @@ class HfIterableDataset(TuneIterableDataset):
         filter_kwargs: Optional[dict[str, Any]] = None,
     ):
         """
-        Configures the Hugging Face dataset, including sharding, filtering, and
-        transform mapping. This method is called only once during initialization
-        to avoid expensive re-computation on each epoch.
+        One-time setup of HuggingFace dataset that handles Handles distributed sharding,
+        shuffle configuration, and filtering.
+
+        Called once during __init__ to avoid expensive re-computation.
         """
 
         # Distributed setup
@@ -138,23 +155,32 @@ class HfIterableDataset(TuneIterableDataset):
         # Load and shard dataset
         ds = load_dataset(**load_dataset_kwargs)
 
-        # Use to_iterable_dataset for streaming datasets
-        if not load_dataset_kwargs.get("streaming", False):
-
+        # Use to_iterable_dataset for non-streaming datasets
+        is_streaming = load_dataset_kwargs.get("streaming", False)
+        if is_streaming:
+            logger.warning(
+                f"Streaming datasets were not yet tested for distributed training. "
+                f"split_dataset_by_node is applied, but no resharding was done manually. "
+                f"Dataset '{self.info.name}' has "
+                f"{getattr(ds, 'num_shards', 'unknown')}, and your training has {world_size} ranks."
+                f"See: https://huggingface.co/docs/datasets/en/package_reference/main_classes?#datasets.IterableDataset.shard"
+                f"Consider setting streaming=False, which should also be faster."
+            )
+        if not is_streaming:
             # Define number of shards based on (world_size, num of shards per GPU, dataloader workers)
             # E.g. world_size=2, num_shards_per_rank=16, dataloader_workers=3
-            # we will try 2*16 = 32 shards. Since 32 is not a multiple of 3, we will do 36 shards.
-            # Each rank gets 16 shards, each dataloader worker in that rankgets 6 shards.
+            # we will try 2*16 = 32 shards. Since 32 is not a multiple of 6, we will do 36 shards.
+            # Each rank gets 18 shards, each dataloader worker in that rank gets 6 shards.
             worker_info = torch.utils.data.get_worker_info()
             num_dataloader_workers = worker_info.num_workers if worker_info else 1
 
-            # Calculate total workers
+            # Calculate total workers across all ranks and dataloader processes
             total_workers = world_size * num_dataloader_workers
 
-            # Calculate desired shards
+            # Find minimum shards that satisfies our target while being divisible by workers
             desired_shards = world_size * num_shards_per_rank
 
-            # Find the smallest multiple of total_workers that is >= desired_shards
+            # Round up to next multiple of total_workers for even distribution
             if desired_shards % total_workers == 0:
                 num_shards = desired_shards
             else:
@@ -164,14 +190,12 @@ class HfIterableDataset(TuneIterableDataset):
 
             # If the dataset is not streaming and has a defined length,
             # we cannot have num_shards > dataset_size.
-            if not load_dataset_kwargs.get("streaming", False) and hasattr(
-                ds, "__len__"
-            ):
+            if hasattr(ds, "__len__"):
                 dataset_size = len(ds)
                 if num_shards > dataset_size:
                     raise ValueError(
                         f"Number of shards ({num_shards}) is greater than the dataset size ({dataset_size})."
-                        f"Please decrease num_shards_per_rank."
+                        f"Please decrease one of {num_shards_per_rank=} or {num_dataloader_workers=} or {world_size=}."
                     )
 
             ds = ds.to_iterable_dataset(num_shards=num_shards)
@@ -192,35 +216,35 @@ class HfIterableDataset(TuneIterableDataset):
         self._ds = ds
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        """Iterate through the dataset infinitely.
+        """Infinite iteration over dataset samples.
 
-        It will restart from the beginning after exhausting the dataset.
-
-        If shuffle_buffer_size is set, it will shuffle the dataset at the beginning of each epoch
-        when set_epoch is called.
-
-        An additional metric "num_epochs" is added to the sample.
+        Behavior:
+        - Restarts from beginning when dataset is exhausted
+        - Reshuffles at start of each epoch (if enabled)
+        - Applies full transform pipeline to each sample
+        - Adds 'num_epochs' metric to track dataset progress
+        - Yields samples indefinitely for continuous training
         """
 
         while True:  # Infinite iteration
-            epoch_seed = self._seed + self._num_epochs
-            self._ds.set_epoch(epoch_seed)
+            self._ds.set_epoch(self._num_epochs)
             epoch_iterator = iter(self._ds)
             samples_yielded = 0
 
             try:
                 for sample in epoch_iterator:
-                    # NOTE: We apply transforms here instead of using .map() call
-                    # to work around https://github.com/huggingface/datasets/issues/7630
-                    # where .map() can cause incorrect resumption from a checkpoint.
+                    # NOTE: We apply transforms here instead of using .map() to work around
+                    # HuggingFace datasets bug where .map() causes incorrect checkpoint resumption.
+                    # See: https://github.com/huggingface/datasets/issues/7630
+                    # This ensures transforms are applied fresh on each sample during iteration.
                     sample = self._apply_transforms(sample)
 
                     # Track the number of epochs completed for each dataset. This is
                     # especially useful when interleaving multiple datasets, but
                     # also necessary to track dataset-level metrics.
                     metric_num_epochs = Metric(
-                        dataset_name=self.dataset_name,
-                        name="num_epochs",
+                        dataset_name=self.info.name,
+                        metric_name="num_epochs",
                         value=self._num_epochs,
                         agg_type=AggregationType.MAX,
                     )
@@ -232,30 +256,28 @@ class HfIterableDataset(TuneIterableDataset):
                     yield sample
 
             except StopIteration:
-                pass  # Iterator is exhausted, which is expected.
+                # Expected when dataset is exhausted
+                pass
             except Exception as e:
-                logger.warning(
-                    f"Dataset {self.dataset_name} encountered an unexpected error: {e}."
+                logger.error(
+                    f"Dataset {self.info.name} encountered an unexpected error: {e}."
                 )
                 raise
 
             # Check if we got zero samples - this might indicate an issue
             if samples_yielded == 0:
                 logger.warning(
-                    f"Dataset {self.dataset_name} epoch {self._num_epochs} yielded 0 samples - potential issue!"
+                    f"Dataset {self.info.name} epoch {self._num_epochs} yielded 0 samples - potential issue!"
                 )
 
             # Epoch complete - increment and continue infinite loop
             self._num_epochs += 1
 
     def state_dict(self) -> dict[str, Any]:
-        """
-        The dataset returns its own state directly, without namespacing.
-        """
+        """Returns dataset checkpoint state."""
         hf_state = self._ds.state_dict()
         state = {
             "num_epochs": self._num_epochs,
-            "seed": self._seed,
             "hf_dataset_state": hf_state,
         }
         return state
