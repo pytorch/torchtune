@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -253,6 +254,7 @@ class TestKDDistributedRecipe:
         )
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
+        shutil.rmtree((tmpdir / "epoch_1"))
 
         # Resume training
         cmd_2 = f"""
@@ -266,7 +268,6 @@ class TestKDDistributedRecipe:
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
             teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
-            teacher_checkpointer.output_dir={tmpdir} \
             resume_from_checkpoint=True \
             enable_async_checkpointing=True \
             metric_logger.filename={log_file} \

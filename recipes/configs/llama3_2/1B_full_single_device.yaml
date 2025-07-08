@@ -35,19 +35,18 @@ tokenizer:
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
-seed: null
+seed: 123
 shuffle: True
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
-  checkpoint_files: [
-    model.safetensors
-  ]
-  recipe_checkpoint: null
+  checkpoint_files: [model.safetensors]
   output_dir: ${output_dir}
   model_type: LLAMA3_2
+  keep_last_n_checkpoints: 2
 resume_from_checkpoint: False
+save_every_n_steps: 25
 
 # Fine-tuning arguments
 batch_size: 4
@@ -57,7 +56,7 @@ optimizer:
   lr: 2e-5
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
-max_steps_per_epoch: null
+max_steps_per_epoch: 100
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 clip_grad_norm: null
