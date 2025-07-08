@@ -512,10 +512,13 @@ class QATRecipeSingleDevice(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                # Check if we should stop training for this epoch
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
+                    or (idx // self._gradient_accumulation_steps)
+                    == self._steps_per_epoch
                 ):
                     break
 

@@ -565,6 +565,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._dataloader.sampler.set_epoch(curr_epoch)
 
             for idx, batch in enumerate(self._dataloader):
+                # Check if we should stop training for this epoch
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                    or (idx // self._gradient_accumulation_steps)
+                    == self._steps_per_epoch
+                ):
+                    break
+
                 # Optionally start memory profiling
                 if (
                     curr_epoch == 0
@@ -644,10 +654,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 self._profiler.step()
 
-                if (
-                    (idx + 1) // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
