@@ -26,8 +26,6 @@ jobs:
         python-version: ['3.11']
         torch-version: ["stable", "nightly"]
       fail-fast: false
-    env:
-      PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -57,7 +55,7 @@ jobs:
         run: python -m pip install torch torchvision torchao
       - name: Install remaining dependencies
         run: |
-          python -m pip install lm-eval>=0.4.5
+          python -m pip install lm-eval==0.4.8
           python -m pip install -e ".[dev]"
       - name: Run regression tests with coverage
         run: pytest tests -m slow_integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
