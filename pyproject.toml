@@ -48,7 +48,7 @@ tune = "torchtune._cli.tune:main"
 
 [project.optional-dependencies]
 dev = [
-    # "bitsandbytes>=0.43.0",
+    "bitsandbytes>=0.43.0",
     "comet_ml>=3.44.2",
     "mlflow",
     "pre-commit",
