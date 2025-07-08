@@ -4,25 +4,27 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from functools import partial
 from typing import Optional
 
 import torch
 from torch import nn
-from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
-from typing import Optional
+from torchtune.models.gemma._component_builders import gemma_mlp, lora_gemma_mlp
+from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
+from torchtune.models.gemma.rms_norm import GemmaRMSNorm
+
+from torchtune.models.gemma2._attention_mask import get_sliding_attention_mask
 
 from torchtune.modules import (
     FrozenNF4Linear,
     RotaryPositionalEmbeddings,
+    TiedLinear,
+    TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-
-from torchtune.models.gemma2._attention import Gemma2Attention
-from torchtune.models.gemma.rms_norm import GemmaRMSNorm
-from torchtune.modules import TransformerDecoder, TiedLinear
-from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
+from torchtune.modules.attention import MultiHeadAttention
+from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
-from torchtune.models.gemma._component_builders import gemma_mlp, lora_gemma_mlp
 
 """
 Component builders for the Gemma2 2B, 9B models and popular variants such as LoRA.
@@ -35,6 +37,7 @@ can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
 """
+
 
 class TanhSoftCapping(nn.Module):
     def __init__(
@@ -55,17 +58,13 @@ class Gemma2FinalNorm(nn.Module):
     """
     Combines RMSNorm and SoftCapping
     """
-    def __init__(
-        self,
-        capping_value: float,
-        embed_dim: int,
-        eps: float
-    ) -> None:
+
+    def __init__(self, capping_value: float, embed_dim: int, eps: float) -> None:
         super().__init__()
         self.capping_value = capping_value
         self.rms_norm = GemmaRMSNorm(embed_dim, eps=eps)
         self.logit_capping = TanhSoftCapping(capping_value)
-        
+
     def forward(self, x):
         x = self.rms_norm(x)
         x = self.logit_capping(x)
@@ -115,14 +114,17 @@ def gemma2(
     Returns:
         TransformerDecoder: Instantiation of gemma model.
     """
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
+
     layers = torch.nn.ModuleList()
     for layer_idx in range(num_layers):
-        
+
         mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-        
-        self_att = Gemma2Attention(
+
+        # Since `nn.SPDA` doesn't support SoftCapping, soft capping is skipped
+        self_att = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -135,12 +137,16 @@ def gemma2(
             kv_cache=None,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
-            # perform sliding window on half of the layers only
-            sliding_window_size=sliding_window_size if (layer_idx % 2)==0 else None,
-            softcapping=hidden_capping_value,
-            query_pre_attn_scalar=query_pre_attn_scalar
+            scale=(query_pre_attn_scalar or head_dim) ** -0.5,
         )
-        
+        # Sliding window is applied on half of the layers only
+        # Currently returns a Tensor Mask so FlashAttention is not used
+        mask_mod = (
+            partial(get_sliding_attention_mask, sliding_window_size=sliding_window_size)
+            if (layer_idx % 2) == 0
+            else None
+        )
+
         layer = TransformerSelfAttentionLayer(
             attn=self_att,
             mlp=mlp,
@@ -148,6 +154,7 @@ def gemma2(
             mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             sa_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
             mlp_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mask_mod=mask_mod,
         )
         layers.append(layer)
 
@@ -163,7 +170,6 @@ def gemma2(
         norm=Gemma2FinalNorm(final_capping_value, embed_dim, eps=norm_eps),
     )
     return model
-
 
 
 def lora_gemma2(
@@ -182,8 +188,8 @@ def lora_gemma2(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
-    hidden_capping_value: float = 50.,
-    final_capping_value: float = 30.,
+    hidden_capping_value: float = 50.0,
+    final_capping_value: float = 30.0,
     sliding_window_size: int = 4096,
     query_pre_attn_scalar: Optional[int] = None,
     # LoRA args
@@ -232,7 +238,6 @@ def lora_gemma2(
 
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
-    
     layers = nn.ModuleList()
     for layer_idx in range(num_layers):
         if apply_lora_to_mlp:
@@ -246,7 +251,9 @@ def lora_gemma2(
                 quantize_base=quantize_base,
             )
         else:
-            mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
+            mlp = gemma_mlp(
+                dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base
+            )
         self_att = lora_gemma2_self_attention(
             lora_modules=lora_attn_modules,
             embed_dim=embed_dim,
@@ -257,7 +264,7 @@ def lora_gemma2(
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
             # perform sliding window on half of the layers only
-            sliding_window_size=sliding_window_size if (layer_idx % 2)==0 else None,
+            sliding_window_size=sliding_window_size if (layer_idx % 2) == 0 else None,
             softcapping=hidden_capping_value,
             query_pre_attn_scalar=query_pre_attn_scalar,
             lora_rank=lora_rank,
@@ -266,7 +273,14 @@ def lora_gemma2(
             use_dora=use_dora,
             quantize_base=quantize_base,
         )
-        
+        # Sliding window is applied on half of the layers only
+        # Currently returns a Tensor Mask so FlashAttention is not used
+        mask_mod = (
+            partial(get_sliding_attention_mask, sliding_window_size=sliding_window_size)
+            if (layer_idx % 2) == 0
+            else None
+        )
+
         layer = TransformerSelfAttentionLayer(
             attn=self_att,
             mlp=mlp,
@@ -274,9 +288,10 @@ def lora_gemma2(
             mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             sa_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
             mlp_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            mask_mod=mask_mod,
         )
         layers.append(layer)
-        
+
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
@@ -284,7 +299,7 @@ def lora_gemma2(
         num_heads=num_heads,
         output=output_proj,
         head_dim=head_dim,
-        norm=Gemma2FinalNorm(final_capping_value, embed_dim, eps=norm_eps)
+        norm=Gemma2FinalNorm(final_capping_value, embed_dim, eps=norm_eps),
     )
 
     if quantize_base:
@@ -292,7 +307,9 @@ def lora_gemma2(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model
 
@@ -317,8 +334,7 @@ def lora_gemma2_self_attention(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-    
-) -> Gemma2Attention:
+) -> MultiHeadAttention:
     if not lora_modules:
         raise ValueError(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
@@ -392,23 +408,24 @@ def lora_gemma2_self_attention(
         )
     )
 
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    
-    self_att = Gemma2Attention(
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            head_dim=head_dim,
-            q_proj=q_proj,
-            k_proj=k_proj,
-            v_proj=v_proj,
-            output_proj=output_proj,
-            pos_embeddings=rope,
-            kv_cache=None,
-            max_seq_len=max_seq_len,
-            attn_dropout=attn_dropout,
-            sliding_window_size=sliding_window_size,
-            softcapping=softcapping,
-            query_pre_attn_scalar=query_pre_attn_scalar
-        )
+    rope = RotaryPositionalEmbeddings(
+        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+    )
+
+    # Since `nn.SPDA` doesn't support SoftCapping, soft capping is skipped
+    self_att = MultiHeadAttention(
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_kv_heads,
+        head_dim=head_dim,
+        q_proj=q_proj,
+        k_proj=k_proj,
+        v_proj=v_proj,
+        output_proj=output_proj,
+        pos_embeddings=rope,
+        kv_cache=None,
+        max_seq_len=max_seq_len,
+        attn_dropout=attn_dropout,
+        scale=(query_pre_attn_scalar or head_dim) ** -0.5,
+    )
     return self_att
