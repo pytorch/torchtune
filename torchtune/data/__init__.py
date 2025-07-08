@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data._collate import (
+    collate_packed,
     left_pad_sequence,
     padded_collate,
     padded_collate_dpo,
@@ -59,5 +60,6 @@ __all__ = [
     "padded_collate",
     "padded_collate_tiled_images_and_mask",
     "padded_collate_packed",
+    "collate_packed",
     "load_image",
 ]
