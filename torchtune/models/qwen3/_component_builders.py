@@ -14,7 +14,6 @@ from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalE
 from torchtune.models.qwen3._attention import Qwen3Attention
 
 from torchtune.modules import (
-    MultiHeadAttention,
     FeedForward,
     RMSNorm,
     TransformerSelfAttentionLayer,
