@@ -26,7 +26,9 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
+from torchtune.modules.moe import utils as moe_utils
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import (
     DummyProfiler,
@@ -58,7 +60,6 @@ class QATRecipeDistributed(FTRecipeInterface):
             Empirically, allowing the model to finetune without fake quantization initially allows the
             weight and activation values to stabilize before fake quantizing them, potentially leading
             to improved quantized accuracy. This can be specified through ``fake_quant_after_n_steps``.
-
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
             is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
             done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
@@ -127,7 +128,6 @@ class QATRecipeDistributed(FTRecipeInterface):
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
-        ValueError: If ``compile`` is set to True.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA or XPU.
@@ -168,6 +168,9 @@ class QATRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
+        if self.tp_degree > 1:
+            # DTensor does not support grouped_mm yet
+            moe_utils.use_grouped_mm = False
         self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
@@ -233,9 +236,6 @@ class QATRecipeDistributed(FTRecipeInterface):
                     "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
                 )
 
-        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
-        self._checkpoint_client = CheckpointClient(cfg)
-
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
@@ -246,7 +246,11 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._activation_offloading_use_streams = cfg.get(
             "activation_offloading_use_streams", True
         )
-        if self._activation_offloading_use_streams and self.parallel_dims.tp_enabled:
+        if (
+            self._enable_activation_offloading
+            and self._activation_offloading_use_streams
+            and self.parallel_dims.tp_enabled
+        ):
             warn(
                 message=(
                     "Using activation offloading with streams is not advised in tensor parallel, and may "
@@ -353,6 +357,9 @@ class QATRecipeDistributed(FTRecipeInterface):
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
             self._compile_scale_grads = compile.get("scale_grads", True)
+        if self._compile_model:
+            # Capture scalar outputs is required to compile MoE
+            torch._dynamo.config.capture_scalar_outputs = True
 
         # This indirection is needed to apply torch.compile to scale_grads step.
         self._grad_scaler = training.scale_grads_
@@ -360,6 +367,14 @@ class QATRecipeDistributed(FTRecipeInterface):
             self._grad_scaler = torch.compile(
                 self._grad_scaler, backend=self._compile_backend
             )
+
+        # initialize loss
+        self._loss_fn = config.instantiate(cfg.loss)
+        self.use_loss_parallel_ctx_manager = self.parallel_dims.tp_enabled and getattr(
+            self._loss_fn,
+            "tp_requires_loss_parallel_ctx_manager",
+            False,
+        )
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -375,6 +390,9 @@ class QATRecipeDistributed(FTRecipeInterface):
             quantizer_cfg=cfg.get("quantizer", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
+
+        if cfg.get("resize_token_embeddings", False):
+            resize_token_embeddings(self._model, self._tokenizer.vocab_size)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -420,33 +438,6 @@ class QATRecipeDistributed(FTRecipeInterface):
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
 
-        if self._resume_from_checkpoint:
-            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
-            # using the DistributedCheckpointer.
-            # Therefore the recipe needs to load the distributed checkpoint to restore the training
-            # progress.
-            if self._enable_async_checkpointing:
-                try:
-                    checkpoint_dict = (
-                        self._checkpoint_client.load_distributed_checkpoint(
-                            self._model,
-                            (
-                                self._optim_ckpt_wrapper
-                                if self._optimizer_in_bwd
-                                else self._optimizer
-                            ),
-                        )
-                    )
-                except Exception as e:
-                    log.warning(
-                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
-                    )
-
-            # Update the recipe state from the checkpoint state dict.
-            self._update_recipe_state(checkpoint_dict)
-
-        # initialize loss
-        self._loss_fn = config.instantiate(cfg.loss)
         if isinstance(self._loss_fn, SFTLoss):
             self._loss_fn.set_model_output(self._model)
 
@@ -633,6 +624,10 @@ class QATRecipeDistributed(FTRecipeInterface):
                     self.tp_plan,
                     model=model,
                 )
+                if isinstance(self._loss_fn, SFTLoss):
+                    self._loss_fn.tp_enabled = True
+                    self.tp_plan = self._loss_fn.patch_tp_plan(self.tp_plan)
+
             parallelize_module(
                 model,
                 self.world_mesh["tp"],
@@ -693,13 +688,6 @@ class QATRecipeDistributed(FTRecipeInterface):
                 dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
-        # Define context manager for context parallelism
-        self.context_parallel_manager = training.get_context_parallel_manager(
-            enabled=self.cp_degree > 1,
-            world_mesh=self.world_mesh,
-            model=model,
-        )
-
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
@@ -719,6 +707,16 @@ class QATRecipeDistributed(FTRecipeInterface):
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading, activation_offloading_use_streams
+        )
+        # context parallel
+        self.context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            world_mesh=self.world_mesh,
+            model=model,
+        )
+        # remaining context managers for fwd/bwd
+        self.train_context = training.get_train_context(
+            enable_loss_parallel=self.use_loss_parallel_ctx_manager,
         )
 
         # Ensure no params and buffers are on meta device
@@ -843,27 +841,6 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
-    def save_checkpoint(
-        self,
-        epoch: int,
-    ) -> None:
-        self._checkpoint_client.save_checkpoint(
-            model=self._model,
-            optimizer=(
-                self._optimizer
-                if not self._optimizer_in_bwd
-                else self._optim_ckpt_wrapper
-            ),
-            training_progress=TrainingProgress(
-                seed=self.seed,
-                epochs_run=self.epochs_run,
-                total_epochs=self.total_epochs,
-                max_steps_per_epoch=self.max_steps_per_epoch,
-                dataloader_state_dict=self._dataloader.state_dict(),
-            ),
-            epoch=epoch,
-        )
-
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
@@ -974,19 +951,19 @@ class QATRecipeDistributed(FTRecipeInterface):
                 ).sum()
                 num_tokens += current_num_tokens
 
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                with self.context_parallel_manager(list(batch.values())):
+                with self.train_context(
+                    self.context_parallel_manager(list(batch.values()))
+                ):
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
-
                     # For optimizer in backward, we need to normalize before calling backward
                     # This case and gradient accumulation are mutually exclusive
                     if self._optimizer_in_bwd:
                         torch.distributed.all_reduce(num_tokens)
                         torch.distributed.all_reduce(running_loss)
                         current_loss = current_loss * (self.dp_degree / num_tokens)
-
                     current_loss.backward()
 
                 # Optimizer step (if not fused in backward call)
@@ -999,7 +976,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         self._grad_scaler(
-                            self._model.parameters(),
+                            list(self._model.parameters()),
                             self.world_size / num_tokens,
                             False if self.parallel_dims.tp_enabled else None,
                         )
