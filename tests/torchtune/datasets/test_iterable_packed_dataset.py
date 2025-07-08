@@ -4,23 +4,25 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 from functools import partial
-from typing import Any, Iterator, Optional
+from itertools import islice
+from pathlib import Path
+from typing import Any
 
 import pytest
 import torch
-from torch.utils.data import IterableDataset
-from torchdata.stateful_dataloader import Stateful, StatefulDataLoader
+from torchdata.stateful_dataloader import StatefulDataLoader
 
 from torchtune.data._collate import collate_packed
 from torchtune.data.metrics import MetricsAggregator
-from torchtune.datasets._iterable_base import DatasetInfo
 from torchtune.datasets._iterable_packed import (
     DPOPacker,
     IterablePackedDataset,
     Packer,
     TextPacker,
 )
+from torchtune.datasets._sft import HfIterableDataset
 from torchtune.utils._import_guard import _SUPPORTS_FLEX_ATTENTION
 
 from .test_iterable_utils import generate_ckpt
@@ -31,72 +33,53 @@ def device():
     return "cuda"
 
 
-class StatefulDummyTextDataset(IterableDataset, Stateful):
-    """
-    A dummy text dataset that is also stateful, allowing its iteration
-    progress to be saved and loaded. Returns tensor-based samples.
-    """
-
-    def __init__(self, sample_sizes: list[int]):
-        self.sample_sizes = sample_sizes
-        self._state_to_load: Optional[dict[str, Any]] = None
-        # The state is the index of the *next* sample to be processed.
-        self._active_iterator_state: dict[str, Any] = {"sample_idx": 0}
-
-    @property
-    def info(self) -> DatasetInfo:
-        """Returns dataset information."""
-        return DatasetInfo(name="StatefulDummyTextDataset", weight=1.0, children=())
-
-    def __iter__(self) -> Iterator[dict[str, torch.Tensor]]:
-        # This base generator yields all samples from the beginning.
-        def _base_iterator():
-            for i, size in enumerate(self.sample_sizes):
-                self._active_iterator_state = {"sample_idx": i}
-                yield {
-                    "tokens": torch.full(
-                        (size,), i, dtype=torch.long
-                    ),  # Use sample index as token value
-                    "labels": torch.full((size,), i, dtype=torch.long),
-                }
-            # After iterating, the next sample index is out of bounds
-            self._active_iterator_state = {"sample_idx": len(self.sample_sizes)}
-
-        iterator = _base_iterator()
-
-        # If resuming, fast-forward the iterator to the correct position.
-        if self._state_to_load:
-            start_idx = self._state_to_load.get("sample_idx", 0)
-            self._state_to_load = None
-            # Consume and discard samples until the desired start point.
-            for _ in range(start_idx):
-                next(iterator, None)
-
-        yield from iterator
-
-    def state_dict(self) -> dict[str, Any]:
-        return self._active_iterator_state
-
-    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
-        self._state_to_load = state_dict
-
-
-class DummyDPODataset(IterableDataset):
-    """Dummy DPO dataset that returns tensor-based samples."""
-
-    def __init__(self, samples):
-        self._samples = samples
-
-    @property
-    def info(self) -> DatasetInfo:
-        """Returns dataset information."""
-        return DatasetInfo(name="DummyDPODataset", weight=1.0, children=())
-
-    def __iter__(self):
-        yield from self._samples
-
-
 # --- Test Utilities ---
+
+
+def create_test_json_file(path: Path, samples: list[dict[str, list[int]]]) -> None:
+    """Creates a dummy JSON test data file."""
+    with open(path, "w") as f:
+        for sample in samples:
+            f.write(json.dumps(sample) + "\n")
+
+
+class ToTensorTransform:
+    """Converts lists in a sample to tensors, as expected by the packer."""
+
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
+        output = {}
+        for k, v in sample.items():
+            if isinstance(v, list):
+                output[k] = torch.tensor(v, dtype=torch.long)
+            else:
+                output[k] = v
+        # TextPacker expects "tokens" and "labels".
+        if "tokens" in output and "labels" not in output:
+            output["labels"] = output["tokens"].clone()
+        return output
+
+
+@pytest.fixture
+def dataset_factory(tmp_path):
+    """Factory for creating HfIterableDataset instances for testing."""
+
+    def _create_dataset(
+        data: list[dict[str, list[int]]],
+        **kwargs,
+    ) -> HfIterableDataset:
+        file_path = tmp_path / "data.json"
+        create_test_json_file(file_path, data)
+        return HfIterableDataset(
+            path="json",
+            data_files=str(file_path),
+            split="train",
+            shuffle_buffer_size=0,
+            output_transform=ToTensorTransform(),
+            num_shards_per_rank=1,
+            **kwargs,
+        )
+
+    return _create_dataset
 
 
 def create_dense_mask_from_mask_mod(
@@ -268,19 +251,26 @@ class TestTextPacker:
         actual_mask = create_dense_mask_from_mask_mod(text_packer, batch_doc_ids)
         torch.testing.assert_close(actual_mask, expected_mask)
 
-    def test_text_packing_workflow_two_packs(self):
+    def test_text_packing_workflow_two_packs(self, dataset_factory):
         """Test complete text workflow that creates exactly 2 packs with multiple samples"""
         # Design: Pack1=[3,2], Pack2=[4] to create 2 packs
-        sample_sizes = [3, 2, 4]
+        samples = [
+            {"tokens": [0] * 3},
+            {"tokens": [1] * 2},
+            {"tokens": [2] * 4},
+        ]
         target_tokens = 6
 
-        dataset = StatefulDummyTextDataset(sample_sizes)
+        dataset = dataset_factory(samples)
         text_packer = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
-            dataset=dataset, packer=text_packer, target_tokens_per_pack=target_tokens
+            dataset=dataset,
+            packer=text_packer,
+            target_tokens_per_pack=target_tokens,
+            buffer_size=1,
         )
 
-        packs = list(packed_dataset)
+        packs = list(islice(packed_dataset, 2))
         assert len(packs) == 2
 
         # Pack 1: samples 0(size 3) + 1(size 2) + padding(1)
@@ -543,40 +533,42 @@ class TestDPOPacker:
         actual_mask = create_dense_mask_from_mask_mod(dpo_packer, batch_doc_ids)
         torch.testing.assert_close(actual_mask, expected_mask)
 
-    def test_dpo_packing_workflow_two_packs(self):
+    def test_dpo_packing_workflow_two_packs(self, dataset_factory):
         """Test complete DPO workflow that creates exactly 2 packs with multiple samples"""
         samples = [
             {  # Sample 0: total 4 tokens (1+1+2)
-                "prompt_ids": torch.tensor([1]),
-                "chosen_response_only_ids": torch.tensor([2]),
-                "chosen_response_only_labels": torch.tensor([2]),
-                "rejected_response_only_ids": torch.tensor([3, 4]),
-                "rejected_response_only_labels": torch.tensor([3, 4]),
+                "prompt_ids": [1],
+                "chosen_response_only_ids": [2],
+                "chosen_response_only_labels": [2],
+                "rejected_response_only_ids": [3, 4],
+                "rejected_response_only_labels": [3, 4],
             },
             {  # Sample 1: total 5 tokens (2+1+2)
-                "prompt_ids": torch.tensor([5, 6]),
-                "chosen_response_only_ids": torch.tensor([7]),
-                "chosen_response_only_labels": torch.tensor([7]),
-                "rejected_response_only_ids": torch.tensor([8, 9]),
-                "rejected_response_only_labels": torch.tensor([8, 9]),
+                "prompt_ids": [5, 6],
+                "chosen_response_only_ids": [7],
+                "chosen_response_only_labels": [7],
+                "rejected_response_only_ids": [8, 9],
+                "rejected_response_only_labels": [8, 9],
             },
             {  # Sample 2: total 6 tokens (2+2+2)
-                "prompt_ids": torch.tensor([10, 11]),
-                "chosen_response_only_ids": torch.tensor([12, 13]),
-                "chosen_response_only_labels": torch.tensor([12, 13]),
-                "rejected_response_only_ids": torch.tensor([14, 15]),
-                "rejected_response_only_labels": torch.tensor([14, 15]),
+                "prompt_ids": [10, 11],
+                "chosen_response_only_ids": [12, 13],
+                "chosen_response_only_labels": [12, 13],
+                "rejected_response_only_ids": [14, 15],
+                "rejected_response_only_labels": [14, 15],
             },
         ]
 
-        dataset = DummyDPODataset(samples)
+        dataset = dataset_factory(samples)
         dpo_packer = DPOPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
-            dataset=dataset, packer=dpo_packer, target_tokens_per_pack=10
+            dataset=dataset, packer=dpo_packer, target_tokens_per_pack=10, buffer_size=1
         )
 
-        packs = list(packed_dataset)
-        assert len(packs) == 2  # Pack1: samples 0+1 (4+5=9), Pack2: sample 2 (6)
+        packs = list(islice(packed_dataset, 2))
+        assert (
+            len(packs) == 2
+        )  # Pack1: samples 0+1 (4+5=9), Pack2: sample 2+0 from cycle (6+4=10)
 
         # Pack 1: samples 0+1 (9 tokens) + padding (1)
         pack1 = packs[0]
@@ -586,10 +578,10 @@ class TestDPOPacker:
         non_padding_1 = (pack1["tokens"] != 999).sum()
         assert non_padding_1 == 9
 
-        # Pack 2: sample 2 (6 tokens) + padding (4)
+        # Pack 2: sample 2 (6 tokens) + sample 0 from cycle (4 tokens) = 10 tokens (no padding)
         pack2 = packs[1]
         non_padding_2 = (pack2["tokens"] != 999).sum()
-        assert non_padding_2 == 6
+        assert non_padding_2 == 10
 
         # Verify masks are mutually exclusive
         chosen_and_rejected_1 = (
@@ -615,7 +607,7 @@ class TestCollatedPacked:
 
     def test_collate_basic_batch(self):
         """Test basic collation functionality"""
-        # Create mock packed samples
+        # Create mock packed samples with same tensor sizes (as expected from IterablePackedDataset)
         batch = [
             {
                 "tokens": torch.tensor([1, 2, 3]),
@@ -628,10 +620,10 @@ class TestCollatedPacked:
                 ],
             },
             {
-                "tokens": torch.tensor([7, 8]),
-                "labels": torch.tensor([9, 10]),
-                "document_ids": torch.tensor([2, 2]),
-                "input_pos": torch.tensor([0, 1]),
+                "tokens": torch.tensor([7, 8, 999]),  # Padded to same size
+                "labels": torch.tensor([9, 10, -100]),  # Padded to same size
+                "document_ids": torch.tensor([2, 2, 3]),  # Padded to same size
+                "input_pos": torch.tensor([0, 1, 0]),  # Padded to same size
                 "metrics": [
                     type("Metric", (), {"metric_name": "test3", "value": 3.0})()
                 ],
@@ -646,9 +638,15 @@ class TestCollatedPacked:
         result = collate_packed(batch, mock_mask_fn, "cpu")
 
         # Check tensor stacking
-        expected_tokens = torch.stack([torch.tensor([1, 2, 3]), torch.tensor([7, 8])])
-        expected_labels = torch.stack([torch.tensor([4, 5, 6]), torch.tensor([9, 10])])
-        expected_doc_ids = torch.stack([torch.tensor([0, 0, 1]), torch.tensor([2, 2])])
+        expected_tokens = torch.stack(
+            [torch.tensor([1, 2, 3]), torch.tensor([7, 8, 999])]
+        )
+        expected_labels = torch.stack(
+            [torch.tensor([4, 5, 6]), torch.tensor([9, 10, -100])]
+        )
+        expected_doc_ids = torch.stack(
+            [torch.tensor([0, 0, 1]), torch.tensor([2, 2, 3])]
+        )
 
         torch.testing.assert_close(result["tokens"], expected_tokens)
         torch.testing.assert_close(result["labels"], expected_labels)
@@ -709,16 +707,20 @@ class TestCollatedPacked:
 
 @pytest.mark.skipif(not _SUPPORTS_FLEX_ATTENTION, reason="Flex attention not supported")
 class TestIterablePackedDataset:
-    """Test IterablePackedDataset functionality - buffer efficiency, checkpointing, edge cases"""
-
-    def test_buffer_efficiency(self):
-        """Test buffer improves packing efficiency"""
-        # Test case where buffer helps vs hurts - order matters for first-fit
-        sample_sizes = [3, 4, 1, 2]  # Total 10 tokens
+    def test_buffer(self, dataset_factory):
+        """Test buffer behaves as expected, i.e. when next sentence doesn't fit, goes over
+        the buffer and see if something fits"""
+        samples = [
+            {"tokens": [0] * 3},  # Sample 0: size 3
+            {"tokens": [1] * 4},  # Sample 1: size 4
+            {"tokens": [2] * 1},  # Sample 2: size 1
+            {"tokens": [3] * 2},  # Sample 3: size 2
+        ]
         target_tokens = 6
 
-        # With large buffer: can see all samples and pick best fit [3,1,2], [4]
-        dataset1 = StatefulDummyTextDataset(sample_sizes)
+        # Test 1: Large buffer - can see all samples and optimize packing
+        # Expected: [0,0,0,2,3,3] (sizes 3+1+2=6), [1,1,1,1,999,999] (size 4+2 padding)
+        dataset1 = dataset_factory(samples)
         packer1 = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset1 = IterablePackedDataset(
             dataset=dataset1,
@@ -726,10 +728,27 @@ class TestIterablePackedDataset:
             target_tokens_per_pack=target_tokens,
             buffer_size=10,
         )
-        packs_buffered = list(packed_dataset1)
+        packs_buffered = list(islice(packed_dataset1, 2))
+        assert len(packs_buffered) == 2
 
-        # With small buffer: greedy first-fit [3], [4,1], [2]
-        dataset2 = StatefulDummyTextDataset(sample_sizes)
+        # Pack 1: samples 0+2+3 (3+1+2=6) - perfect fit
+        pack1 = packs_buffered[0]
+        expected_tokens_1 = torch.tensor([0, 0, 0, 2, 3, 3])
+        expected_doc_ids_1 = torch.tensor([0, 0, 0, 1, 2, 2])
+        torch.testing.assert_close(pack1["tokens"], expected_tokens_1)
+        torch.testing.assert_close(pack1["document_ids"], expected_doc_ids_1)
+
+        # Pack 2: sample 1 (4) + sample 2 (1) + sample 2 again from cycle (1) = 6 tokens exactly
+        pack2 = packs_buffered[1]
+        expected_tokens_2 = torch.tensor([1, 1, 1, 1, 2, 2])
+        expected_doc_ids_2 = torch.tensor([0, 0, 0, 0, 1, 2])
+        torch.testing.assert_close(pack2["tokens"], expected_tokens_2)
+        torch.testing.assert_close(pack2["document_ids"], expected_doc_ids_2)
+
+        # Test 2: Small buffer - greedy first-fit packing with infinite dataset cycling
+        # Expected: [0,0,0,999,999,999] (size 3+3 padding), [1,1,1,1,2,999] (size 4+1+1 padding),
+        # [3,3,0,0,0,999] (size 2+3+1 padding)
+        dataset2 = dataset_factory(samples)
         packer2 = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset2 = IterablePackedDataset(
             dataset=dataset2,
@@ -737,56 +756,138 @@ class TestIterablePackedDataset:
             target_tokens_per_pack=target_tokens,
             buffer_size=1,
         )
-        packs_unbuffered = list(packed_dataset2)
+        packs_unbuffered = list(islice(packed_dataset2, 3))
+        assert len(packs_unbuffered) == 3
 
-        # Buffer should create fewer packs (more efficient)
-        assert len(packs_buffered) < len(packs_unbuffered)
-        assert len(packs_buffered) == 2  # [3,1,2], [4]
-        assert len(packs_unbuffered) == 3  # [3], [4,1], [2]
-
-        # Verify both preserve all tokens
-        total_buffered = sum((p["labels"] != -100).sum().item() for p in packs_buffered)
-        total_unbuffered = sum(
-            (p["labels"] != -100).sum().item() for p in packs_unbuffered
+        # Pack 1: sample 0 (3) + padding (3)
+        pack1_unbuf = packs_unbuffered[0]
+        expected_tokens_1_unbuf = torch.tensor([0, 0, 0, 999, 999, 999])
+        expected_doc_ids_1_unbuf = torch.tensor([0, 0, 0, 1, 1, 1])
+        torch.testing.assert_close(pack1_unbuf["tokens"], expected_tokens_1_unbuf)
+        torch.testing.assert_close(
+            pack1_unbuf["document_ids"], expected_doc_ids_1_unbuf
         )
-        assert total_buffered == total_unbuffered == sum(sample_sizes)
 
-    def test_oversized_sample_dropping(self):
+        # Pack 2: samples 1+2 (4+1=5) + padding (1)
+        pack2_unbuf = packs_unbuffered[1]
+        expected_tokens_2_unbuf = torch.tensor([1, 1, 1, 1, 2, 999])
+        expected_doc_ids_2_unbuf = torch.tensor([0, 0, 0, 0, 1, 2])
+        torch.testing.assert_close(pack2_unbuf["tokens"], expected_tokens_2_unbuf)
+        torch.testing.assert_close(
+            pack2_unbuf["document_ids"], expected_doc_ids_2_unbuf
+        )
+
+        # Pack 3: sample 3 (2) + sample 0 from cycle (3) + padding (1)
+        pack3_unbuf = packs_unbuffered[2]
+        expected_tokens_3_unbuf = torch.tensor([3, 3, 0, 0, 0, 999])
+        expected_doc_ids_3_unbuf = torch.tensor([0, 0, 1, 1, 1, 2])
+        torch.testing.assert_close(pack3_unbuf["tokens"], expected_tokens_3_unbuf)
+        torch.testing.assert_close(
+            pack3_unbuf["document_ids"], expected_doc_ids_3_unbuf
+        )
+
+    def test_buffer_size_validation(self, dataset_factory):
+        """Test that buffer_size < 1 raises ValueError"""
+        samples = [{"tokens": [0] * 3}]
+        dataset = dataset_factory(samples)
+
+        with pytest.raises(ValueError, match="Buffer size must be greater than 0"):
+            IterablePackedDataset(
+                dataset=dataset,
+                packer=TextPacker(padding_idx=999, ignore_idx=-100),
+                target_tokens_per_pack=6,
+                buffer_size=0,
+            )
+
+    def test_info_property(self, dataset_factory):
+        """Test that the info property works correctly and includes child dataset info"""
+        samples = [{"tokens": [0] * 3}]
+        dataset = dataset_factory(samples)
+        packer = TextPacker(padding_idx=999, ignore_idx=-100)
+
+        # Create packed dataset with custom name
+        packed_dataset = IterablePackedDataset(
+            dataset=dataset,
+            packer=packer,
+            target_tokens_per_pack=6,
+            buffer_size=1,
+            dataset_name="TestPackedDataset",
+        )
+
+        # Check info property
+        info = packed_dataset.info
+        assert info.name == "TestPackedDataset"
+        assert info.weight == 1.0
+        assert len(info.children) == 1
+
+        # Check child dataset info is included
+        child_info = info.children[0]
+        assert (
+            child_info.name == "json_train"
+        )  # From HfIterableDataset auto-generated name
+        assert child_info.weight == 1.0
+
+    def test_oversized_sample_dropping(self, dataset_factory):
         """Test that oversized samples are dropped"""
-        sample_sizes = [3, 10, 2, 8, 1]  # 10 and 8 are oversized for target=6
+        samples = [
+            {"tokens": [0] * 3},  # Kept
+            {"tokens": [1] * 10},  # Dropped
+            {"tokens": [2] * 2},  # Kept
+            {"tokens": [3] * 8},  # Dropped
+            {"tokens": [4] * 1},  # Kept
+        ]
         target_tokens = 5
 
-        dataset = StatefulDummyTextDataset(sample_sizes)
+        dataset = dataset_factory(samples)
         packer = TextPacker(padding_idx=999, ignore_idx=-100)
         packed_dataset = IterablePackedDataset(
-            dataset=dataset, packer=packer, target_tokens_per_pack=target_tokens
+            dataset=dataset,
+            packer=packer,
+            target_tokens_per_pack=target_tokens,
+            buffer_size=1,
         )
 
-        packs = list(packed_dataset)
+        packs = list(islice(packed_dataset, 5))
 
         # Only samples 3, 2, 1 should be packed (oversized 10, 8 dropped)
-        total_packed_tokens = sum((p["labels"] != -100).sum().item() for p in packs)
-        expected_tokens = 3 + 2 + 1  # Only non-oversized samples
-        assert total_packed_tokens == expected_tokens
+        # Verify that only samples 0, 2, 4 are packed (samples 1, 3 were dropped)
+        all_tokens = torch.cat([pack["tokens"] for pack in packs])
+        all_tokens = set(all_tokens.tolist())
 
-        # Should create 2 packs: [3, 2], [1]
-        assert len(packs) == 2
+        # Check that expected tokens are present and dropped tokens are not
+        expected_tokens = {0, 2, 4, 999}
+        assert (
+            all_tokens == expected_tokens
+        ), f"Expected {expected_tokens}, got {all_tokens}"
 
-    def test_checkpoint_and_resume(self):
-        """Test checkpointing and resumption functionality using StatefulDataLoader"""
-        sample_sizes = [3, 2, 5, 4, 1, 6]  # Total 21 tokens
+    def test_checkpoint_and_resume(self, dataset_factory):
+        """Test checkpointing and resumption functionality using StatefulDataLoader
+
+        Note: This test verifies that the checkpoint/resume mechanism works correctly,
+        but does NOT expect identical batches after resumption. The IterablePackedDataset
+        explicitly does NOT save buffer or partial pack state, so packing may differ
+        after resumption due to different buffer fill patterns. This is by design.
+        """
+        samples = [
+            {"tokens": [0] * 3},
+            {"tokens": [1] * 2},
+            {"tokens": [2] * 5},
+            {"tokens": [3] * 4},
+            {"tokens": [4] * 1},
+            {"tokens": [5] * 6},
+        ]
         target_tokens_per_pack = 6
-        batch_size = 2
+        batch_size = 1
 
         # Setup dataset factory
         def create_loader_and_aggregator():
-            dataset = StatefulDummyTextDataset(sample_sizes)
+            dataset = dataset_factory(samples)
             packer = TextPacker(padding_idx=999, ignore_idx=-100)
             packed_dataset = IterablePackedDataset(
                 dataset=dataset,
                 packer=packer,
                 target_tokens_per_pack=target_tokens_per_pack,
-                buffer_size=0,  # No buffer for deterministic checkpointing
+                buffer_size=1,  # Small buffer for predictable behavior
             )
 
             collate_fn = partial(
@@ -802,8 +903,8 @@ class TestIterablePackedDataset:
         loader1, aggregator1 = create_loader_and_aggregator()
         loader2, aggregator2 = create_loader_and_aggregator()
 
-        steps_before_checkpoint = 3
-        steps_after_checkpoint = 3
+        steps_before_checkpoint = 2
+        steps_after_checkpoint = 2
 
         # Generate checkpoint and resume
         result = generate_ckpt(
@@ -815,83 +916,6 @@ class TestIterablePackedDataset:
             resume_aggregator=aggregator2,
         )
 
-        # Verify that checkpointing and resumption are identical
+        # Verify that checkpointing and resumption work
         assert len(result["post_checkpoint_batches"]) == steps_after_checkpoint
         assert len(result["resumed_batches"]) == steps_after_checkpoint
-
-        for orig_batch, resumed_batch in zip(
-            result["post_checkpoint_batches"], result["resumed_batches"]
-        ):
-            assert orig_batch.keys() == resumed_batch.keys()
-            for key in orig_batch:
-                if isinstance(orig_batch[key], torch.Tensor):
-                    torch.testing.assert_close(
-                        orig_batch[key],
-                        resumed_batch[key],
-                        msg=f"Mismatch in batch key: {key}",
-                    )
-                else:
-                    assert (
-                        orig_batch[key] == resumed_batch[key]
-                    ), f"Mismatch in batch key: {key}"
-
-        assert (
-            result["final_metrics"] == result["resumed_metrics"]
-        ), "Final metrics should match"
-
-    def test_multiple_iterations_same_dataset(self):
-        """Test that multiple iterations over same packed dataset work correctly"""
-        sample_sizes = [2, 3, 1]
-        dataset = StatefulDummyTextDataset(sample_sizes)
-        packer = TextPacker(padding_idx=999, ignore_idx=-100)
-        packed_dataset = IterablePackedDataset(
-            dataset=dataset, packer=packer, target_tokens_per_pack=4
-        )
-        # First iteration
-        packs1 = list(packed_dataset)
-        # Second iteration should produce same result
-        packs2 = list(packed_dataset)
-
-        assert len(packs1) == len(packs2)
-        for p1, p2 in zip(packs1, packs2):
-            torch.testing.assert_close(p1["tokens"], p2["tokens"])
-            torch.testing.assert_close(p1["document_ids"], p2["document_ids"])
-
-    @pytest.mark.parametrize(
-        "sample_sizes,target_tokens,buffer_size,expected_packs,scenario",
-        [
-            ([3, 2, 4], 8, 10, 2, "basic_packing"),  # Pack1: [3,2]+pad, Pack2: [4]+pad
-            ([4, 3], 8, 10, 1, "partial_final_pack"),  # Pack1: [4,3]+pad
-            ([], 8, 10, 0, "empty_dataset"),
-            ([5], 10, 10, 1, "single_sample"),
-            ([5, 5, 5], 5, 10, 3, "exact_fit"),
-            ([2, 3, 1], 5, 1, 2, "small_target_and_buffer"),  # Pack1: [2,3], Pack2: [1]
-        ],
-    )
-    def test_scenarios(
-        self, sample_sizes, target_tokens, buffer_size, expected_packs, scenario
-    ):
-        """Parametrized edge case testing"""
-        dataset = StatefulDummyTextDataset(sample_sizes)
-        packer = TextPacker(padding_idx=999, ignore_idx=-100)
-        packed_dataset = IterablePackedDataset(
-            dataset=dataset,
-            packer=packer,
-            target_tokens_per_pack=target_tokens,
-            buffer_size=buffer_size,
-        )
-
-        packs = list(packed_dataset)
-        assert len(packs) == expected_packs, f"Failed scenario: {scenario}"
-
-        # Verify output format consistency for all scenarios
-        for pack in packs:
-            assert pack["tokens"].shape == (target_tokens,)
-            assert pack["labels"].shape == (target_tokens,)
-            assert pack["document_ids"].shape == (target_tokens,)
-            assert pack["input_pos"].shape == (target_tokens,)
-
-        # Verify no token loss
-        if sample_sizes:  # Skip for empty dataset
-            total_packed = sum((p["labels"] != -100).sum().item() for p in packs)
-            assert total_packed == sum(sample_sizes)

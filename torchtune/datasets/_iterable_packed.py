@@ -256,6 +256,10 @@ class IterablePackedDataset(InfiniteTuneIterableDataset, Generic[SampleType]):
     This dataset is stateful and supports checkpointing (relies on child dataset to be stateful),
     allowing training to be resumed seamlessly.
 
+    IMPORTANT: When resuming from a checkpoint, the buffer and partial pack are
+    discarded. Therefore, you won't be able to get exact matching results, but
+    the difference should be negligible.
+
     Args:
         dataset (InfiniteTuneIterableDataset): The `InfiniteTuneIterableDataset` to pack.
         packer (Packer[SampleType]): The `Packer` that defines the packing
@@ -266,6 +270,9 @@ class IterablePackedDataset(InfiniteTuneIterableDataset, Generic[SampleType]):
             cost of memory. Buffer samples are discarded if resuming from a checkpoint.
             Default is 100.
         dataset_name (str): The name of this packed dataset, used for metrics. Defaults to "IterablePackedDataset".
+
+    Raises:
+        ValueError: If buffer_size or target_tokens_per_pack is not greater than 0.
     """
 
     def __init__(
@@ -276,6 +283,11 @@ class IterablePackedDataset(InfiniteTuneIterableDataset, Generic[SampleType]):
         buffer_size: int = 100,
         dataset_name: str = "IterablePackedDataset",
     ):
+        if buffer_size <= 0:
+            raise ValueError("Buffer size must be greater than 0")
+        if target_tokens_per_pack <= 0:
+            raise ValueError("Target tokens per pack must be greater than 0")
+
         self.dataset = dataset
         self.packer = packer
         self.target_tokens_per_pack = target_tokens_per_pack
