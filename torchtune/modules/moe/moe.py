@@ -21,6 +21,8 @@ class TokenChoiceTopKRouter(nn.Module):
         dim (int): Dimension of input tokens.
         num_experts (int): Number of experts in each moe layer.
         experts_per_token (int): Number of experts each token will be routed to in Token Choice.
+        norm_topk_prob (bool): Whether to normalize the topk probabilities.
+        softmax (bool): use softmax if true and sigmoid if false
     """
 
     def __init__(
@@ -30,12 +32,16 @@ class TokenChoiceTopKRouter(nn.Module):
         dim: int,
         num_experts: int,
         experts_per_token: int,
+        norm_topk_prob: bool = False,
+        softmax: bool = False,
     ):
         super().__init__()
         self.gate = gate
         self.dim = dim
         self.num_experts = num_experts
         self.experts_per_token = experts_per_token
+        self.norm_topk_prob = norm_topk_prob
+        self.softmax = softmax
 
     def forward(
         self, x: torch.Tensor
@@ -56,14 +62,20 @@ class TokenChoiceTopKRouter(nn.Module):
         scores = self.gate(x)
 
         # By default, sigmoid is performed in float32 to avoid loss explosion
-        scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
+        if self.softmax:
+            scores = nn.functional.softmax(scores, dim=1, dtype=torch.float32).to(
+                x.dtype
+            )
+        else:
+            scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
 
         # top scores shape (bs*slen, top_k)
         top_scores, selected_experts_indices = torch.topk(
             scores, k=self.experts_per_token, dim=1
         )
         self.selected_experts_indices = selected_experts_indices
-        # top_scores /= top_scores.sum(dim=-1, keep_dim=True).to(x.dtype)
+        if self.norm_topk_prob:
+            top_scores /= top_scores.sum(dim=-1, keepdim=True).to(x.dtype)
 
         # group tokens together by expert indices from 0 to num_experts and pass that to experts forward
         num_tokens_per_expert = torch.histc(
@@ -93,6 +105,7 @@ class MoE(nn.Module):
         experts (nn.Module): experts module.
         router (nn.Module): router module.
         shared_expert (Optional[nn.Module]): shared expert module. Default is None.
+        scale_after_fwd (bool): if True, scale routed outputs by router scores instead of inputs.
     """
 
     def __init__(
@@ -101,12 +114,14 @@ class MoE(nn.Module):
         experts: nn.Module,
         router: nn.Module,
         shared_expert: Optional[nn.Module] = None,
+        scale_after_fwd: bool = False,
     ):
         super().__init__()
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
         self.use_grouped_mm = should_use_grouped_mm()
+        self.scale_after_fwd = scale_after_fwd
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -134,7 +149,8 @@ class MoE(nn.Module):
             dim=0,
             index=token_indices,
         )
-        routed_input = routed_input * top_scores.reshape(-1, 1)
+        if not self.scale_after_fwd:
+            routed_input = routed_input * top_scores.reshape(-1, 1)
 
         if self.use_grouped_mm:
             # NOTE: In order to use torch._grouped_mm, we need to make sure
@@ -162,9 +178,14 @@ class MoE(nn.Module):
             token_indices = token_indices[permuted_indices, :]
             routed_input = torch.vstack((routed_input, routed_input.new_zeros((dim))))
             routed_input = routed_input[permuted_indices, :]
+            if self.scale_after_fwd:
+                top_scores = torch.cat((top_scores, top_scores.new_zeros(1)), dim=0)
+                top_scores = top_scores[permuted_indices]
 
         # shape (bs*slen*top_k, dim)
         routed_output = self.experts(routed_input, num_tokens_per_expert)
+        if self.scale_after_fwd:
+            routed_output = routed_output * top_scores.reshape(-1, 1)
 
         # shared expert
         if self.shared_expert is not None:
