@@ -37,21 +37,6 @@ def tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
         dict[str, Any]: The tensor parallel plan for Llama4 model.
     """
     plan = {
-        # "decoder": PrepareModuleInput(
-        #     input_kwarg_layouts={
-        #         "tokens": None,
-        #         "mask": None,
-        #         "input_pos": None,
-        #         "input_embeds": Replicate(),
-        #     },
-        #     desired_input_kwarg_layouts={
-        #         "tokens": None,
-        #         "mask": None,
-        #         "input_pos": None,
-        #         "input_embeds": Shard(1),
-        #     },
-        #     use_local_output=True,
-        # ),
         "norm": SequenceParallel(),
         "output": ColwiseParallel(
             input_layouts=Shard(1),
@@ -69,9 +54,9 @@ def tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
                 input_layouts=(Shard(1), Shard(1)),
                 desired_input_layouts=(Replicate(), Replicate()),
             ),
-            # f"layers.{layer_id}.attn.q_norm": SequenceParallel(),
+            f"layers.{layer_id}.attn.q_norm": NoParallel(),
             f"layers.{layer_id}.attn.q_proj": ColwiseParallel(),
-            # f"layers.{layer_id}.attn.k_norm": SequenceParallel(),
+            f"layers.{layer_id}.attn.k_norm": NoParallel(),
             f"layers.{layer_id}.attn.k_proj": ColwiseParallel(),
             f"layers.{layer_id}.attn.v_proj": ColwiseParallel(),
             f"layers.{layer_id}.attn.output_proj": RowwiseParallel(
@@ -158,15 +143,23 @@ def tp_inference_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     return plan
 
 
-def tp_plan(model: nn.Module, inference: bool = False) -> dict[str, ParallelStyle]:
+def tp_plan(
+    model: nn.Module, inference: bool = False, enable_fp8_training: bool = False
+) -> dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 
     Args:
         model (nn.Module): Model to generate plan for (no-op)
         inference (bool): Whether running inference or not.
+        enable_fp8_training (bool): Whether to enable float8 training. Currently not supported for Qwen3 MoE.
 
     Returns:
         dict[str, Any]: The tensor parallel plan for Llama3 model.
+
+    Raises:
+        ValueError: if FP8 training is enabled.
     """
+    if enable_fp8_training:
+        raise ValueError("FP8 training is not supported for Llama4")
     return tp_inference_plan(model) if inference else tp_training_plan(model)
