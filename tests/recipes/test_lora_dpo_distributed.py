@@ -6,7 +6,6 @@
 
 import os
 import runpy
-import shutil
 import sys
 from pathlib import Path
 
@@ -17,12 +16,9 @@ from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     dummy_stack_exchange_dataset_config,
     MODEL_TEST_CONFIGS,
-    write_hf_ckpt_config,
 )
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
-    gen_log_file_name,
-    get_loss_values_from_metric_logger,
     gpu_test,
 )
 from torchtune import config
