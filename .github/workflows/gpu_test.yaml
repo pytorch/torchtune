@@ -27,6 +27,7 @@ jobs:
     runs-on: linux.g5.12xlarge.nvidia.gpu
     strategy:
       fail-fast: false  # <--- ensure all matrix jobs run
+      max-parallel: 1
       matrix:
         python-version: ['3.9', '3.10', '3.11']
         torch-version: ["stable", "nightly"]
