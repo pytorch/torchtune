@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -110,7 +111,7 @@ class TestFullDPODistributedRecipe:
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_dir='{tmpdir}/epoch_0' \
             checkpointer.checkpoint_files=[{ckpt_to_resume_from}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
@@ -186,6 +187,8 @@ class TestFullDPODistributedRecipe:
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
+        shutil.rmtree(tmpdir / "epoch_1")
+
         # Resume training
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
@@ -212,6 +215,8 @@ class TestFullDPODistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
+        print(f"{resumed_loss_values=}")
+        print(f"{expected_loss_values=}")
         torch.testing.assert_close(
             resumed_loss_values, self.expected_loss_values()[2:], rtol=1e-5, atol=1e-5
         )
