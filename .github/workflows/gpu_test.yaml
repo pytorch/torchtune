@@ -26,13 +26,12 @@ jobs:
     if: github.repository_owner == 'pytorch'
     runs-on: linux.g5.12xlarge.nvidia.gpu
     strategy:
-      fail-fast: false  # <--- ensure all matrix jobs run
       matrix:
         python-version: ['3.9', '3.10', '3.11']
         torch-version: ["stable", "nightly"]
         # Do not run against nightlies on PR
-        # exclude:
-          # - torch-version: ${{ github.event_name == 'pull_request' && 'nightly' }}
+        exclude:
+          - torch-version: ${{ github.event_name == 'pull_request' && 'nightly' }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
