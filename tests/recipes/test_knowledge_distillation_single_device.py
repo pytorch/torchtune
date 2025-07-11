@@ -13,12 +13,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
-from tests.recipes.utils import (
-    CKPT_COMPONENT_MAP,
-    dummy_alpaca_dataset_config,
-    MODEL_TEST_CONFIGS,
-    write_hf_ckpt_config,
-)
+from tests.recipes.utils import dummy_alpaca_dataset_config, MODEL_TEST_CONFIGS
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
@@ -54,16 +49,20 @@ class TestKDSingleDeviceRecipe:
             "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
-    def _fetch_expected_loss_values(self, model_type):
+    def _fetch_expected_loss_values(self, model_ckpt):
         loss_values_map = {
-            "llama3": [11.7898, 11.7825, 11.7788, 11.7671],
+            # "llama3_hf_138m": [11.7898, 11.7825, 11.7788, 11.7671],
         }
-        return loss_values_map[model_type]
+        return loss_values_map[model_ckpt]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "micro_batch_size, gradient_accumulation_steps, compile",
         [(8, 1, False), (2, 4, True), (2, 4, False)],
+    )
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [("llama3_hf_138m")],
     )
     @gpu_test(gpu_count=1)
     def test_loss(
@@ -73,15 +72,11 @@ class TestKDSingleDeviceRecipe:
         compile,
         tmpdir,
         monkeypatch,
+        model_ckpt,
     ):
         config = "qwen2/1.5_to_0.5B_KD_lora_single_device"
-        model_type = "llama3"
-        ckpt_type = "tune"
-        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
-        ckpt = model_type + "_" + ckpt_type
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
-        ckpt_dir = ckpt_path.parent
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
@@ -90,28 +85,22 @@ class TestKDSingleDeviceRecipe:
             output_dir={tmpdir} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}] \
+            checkpointer.checkpoint_files=[model.safetensors] \
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type.upper()} \
-            teacher_checkpointer._component_={ckpt_component} \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.checkpoint_files=[model.safetensors] \
             teacher_checkpointer.output_dir={tmpdir} \
-            teacher_checkpointer.model_type={model_type.upper()} \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
-            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
+        model_config = MODEL_TEST_CONFIGS[model_ckpt + "_lora"]
         teacher_config = [
-            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_type]
+            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_ckpt]
         ]
 
         cmd = (
@@ -132,14 +121,20 @@ class TestKDSingleDeviceRecipe:
         # only take the first loss
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
         loss_values = loss_values[0::num_losses]
-        expected_loss_values = self._fetch_expected_loss_values(model_type)
+        expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
-    def test_training_state_on_resume(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [
+            ("llama3_hf_138m"),
+        ],
+    )
+    def test_training_state_on_resume(self, tmpdir, monkeypatch, model_ckpt):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
@@ -148,42 +143,29 @@ class TestKDSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
         log_file = gen_log_file_name(tmpdir)
-        tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
-
-        # Config file needed for model conversion.
-        # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
 
         # Train for two epochs
         cmd_1 = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.checkpoint_files=[model.safetensors] \
             teacher_checkpointer.output_dir={tmpdir} \
-            teacher_checkpointer.model_type=LLAMA3 \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
-            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama3_lora"]
+        model_config = MODEL_TEST_CONFIGS[model_ckpt + "_lora"]
         teacher_config = [
-            "teacher_" + config for config in MODEL_TEST_CONFIGS["llama3"]
+            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_ckpt]
         ]
 
         cmd_1 = (
@@ -200,22 +182,16 @@ class TestKDSingleDeviceRecipe:
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.checkpoint_files=[model.safetensors]\
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.checkpoint_files=[model.safetensors] \
             teacher_checkpointer.output_dir={tmpdir} \
-            teacher_checkpointer.model_type=LLAMA3 \
             resume_from_checkpoint=True \
-            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
@@ -231,7 +207,7 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        expected_loss_values = self._fetch_expected_loss_values("llama3")[2:]
+        expected_loss_values = self._fetch_expected_loss_values(model_ckpt)[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)
         # only take the first loss
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
@@ -243,8 +219,14 @@ class TestKDSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [
+            ("llama3_hf_138m"),
+        ],
+    )
     def test_training_state_on_resume_with_async_checkpointing(
-        self, tmpdir, monkeypatch
+        self, tmpdir, monkeypatch, model_ckpt
     ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -254,42 +236,29 @@ class TestKDSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
         log_file = gen_log_file_name(tmpdir)
-        tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
-
-        # Config file needed for model conversion.
-        # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(tmpdir)
 
         # Train for two epochs
         cmd_1 = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.checkpoint_files=[model.safetensors] \
             teacher_checkpointer.output_dir={tmpdir} \
-            teacher_checkpointer.model_type=LLAMA3 \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
-            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["llama3_lora"]
+        model_config = MODEL_TEST_CONFIGS[model_ckpt + "_lora"]
         teacher_config = [
-            "teacher_" + config for config in MODEL_TEST_CONFIGS["llama3"]
+            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_ckpt]
         ]
 
         cmd_1 = (
@@ -306,22 +275,16 @@ class TestKDSingleDeviceRecipe:
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.checkpoint_files=[model.safetensors]\
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.checkpoint_files=[model.safetensors] \
             teacher_checkpointer.output_dir={tmpdir} \
-            teacher_checkpointer.model_type=LLAMA3 \
             resume_from_checkpoint=True \
-            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
@@ -337,7 +300,7 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        expected_loss_values = self._fetch_expected_loss_values("llama3")[2:]
+        expected_loss_values = self._fetch_expected_loss_values(model_ckpt)[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)
         # only take the first loss
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
@@ -348,41 +311,37 @@ class TestKDSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
-        ckpt_type = "tune"
-        model_type = "llama3"
-        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
-        ckpt = model_type + "_" + ckpt_type
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
-        ckpt_dir = ckpt_path.parent
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [
+            ("llama3_hf_138m"),
+        ],
+    )
+    @gpu_test(gpu_count=1)
+    def test_save_and_load_merged_weights(self, tmpdir, monkeypatch, model_ckpt):
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
-            checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}] \
+            checkpointer.checkpoint_files=[model.safetensors] \
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type.upper()} \
-            teacher_checkpointer._component_={ckpt_component} \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            teacher_checkpointer.checkpoint_files=[{ckpt_path}] \
+            teacher_checkpointer.checkpoint_files=[model.safetensors] \
             teacher_checkpointer.output_dir={tmpdir} \
-            teacher_checkpointer.model_type={model_type.upper()} \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             ~tokenizer.merges_file \
-            metric_logger._component_=torchtune.training.metric_logging.DiskLogger \
             metric_logger.filename={log_file} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
+        model_config = MODEL_TEST_CONFIGS[model_ckpt + "_lora"]
         teacher_config = [
-            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_type]
+            "teacher_" + config for config in MODEL_TEST_CONFIGS[model_ckpt]
         ]
 
         cmd = (
@@ -404,7 +363,7 @@ class TestKDSingleDeviceRecipe:
         lora_model = config.instantiate(OmegaConf.from_dotlist(model_config).model)
 
         # Build base llama3 model for loading merged weights
-        base_llama3_config = MODEL_TEST_CONFIGS[model_type]
+        base_llama3_config = MODEL_TEST_CONFIGS[model_ckpt]
         llama3_model = config.instantiate(
             OmegaConf.from_dotlist(base_llama3_config).model
         )
@@ -414,16 +373,18 @@ class TestKDSingleDeviceRecipe:
         adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 
-        with open(ckpt_path, "rb") as f:
-            base_model_sd = torch.load(f, weights_only=True)
+        # Load base model from HF checkpoint
+        base_model_path = os.path.join(ckpt_dir, "model.safetensors")
+        base_model_sd = safe_torch_load(base_model_path, weights_only=True)
+
         lora_model.load_state_dict(lora_sd, strict=False)
         lora_model.load_state_dict(base_model_sd, strict=False)
         baseline_out = lora_model(inputs)
 
         # Load merged final ckpt directly into 3 and call fwd
-        suffix = ".safetensors" if ckpt_type == "hf" else ".bin"
         model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + ".safetensors"
         )
         model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
         sd = safe_torch_load(model_path, weights_only=True)

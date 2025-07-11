@@ -15,11 +15,10 @@ import pytest
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     llama3_2_vision_test_config,
-    llama3_test_config,
-    write_hf_ckpt_config,
+    MODEL_TEST_CONFIGS,
     write_hf_vision_ckpt_config,
 )
-from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
+from tests.test_utils import CKPT_MODEL_PATHS, gpu_test, TOKENIZER_PATHS
 
 
 class TestEleutherEval:
@@ -48,20 +47,19 @@ class TestEleutherEval:
         }
 
     @pytest.mark.parametrize(
-        "eval_name, expected_acc, bsz",
+        "model_ckpt, eval_name, expected_acc, bsz",
         [
-            ("truthfulqa_gen", 0.1818, 4),
-            ("truthfulqa_mc2", 0.3015, 4),
+            ("llama3_hf_138m", "truthfulqa_gen", 0.1818, 4),
+            ("llama3_hf_138m", "truthfulqa_mc2", 0.3015, 4),
         ],
     )
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
     def test_torchtune_checkpoint_eval_results(
-        self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz
+        self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz, model_ckpt
     ):
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
 
         # explicitly setting limit to an odd number here to ensure generation tasks
         # work with KV-cacheing + bsz > 1 - we'll receive batches of size 4, 4, 3
@@ -69,13 +67,10 @@ class TestEleutherEval:
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.path='{tokenizer_path}'\
             tokenizer.prompt_template=null \
             limit=11 \
             dtype=fp32 \
@@ -83,7 +78,7 @@ class TestEleutherEval:
             batch_size={bsz} \
         """.split()
 
-        model_config = llama3_test_config()
+        model_config = MODEL_TEST_CONFIGS[model_ckpt]
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -108,28 +103,30 @@ class TestEleutherEval:
     @pytest.mark.integration_test
     @pytest.mark.usefixtures("hide_correct_version_number")
     @gpu_test(gpu_count=1)
-    def test_eval_recipe_errors_without_lm_eval(self, monkeypatch, tmpdir):
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [
+            ("llama3_hf_138m"),
+        ],
+    )
+    def test_eval_recipe_errors_without_lm_eval(self, monkeypatch, tmpdir, model_ckpt):
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
 
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
         """.split()
 
-        model_config = llama3_test_config()
+        model_config = MODEL_TEST_CONFIGS[model_ckpt]
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -142,27 +139,26 @@ class TestEleutherEval:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [
+            ("llama3_hf_138m"),
+        ],
+    )
     def test_eval_recipe_errors_with_quantization_hf_checkpointer(
-        self, monkeypatch, tmpdir
+        self, monkeypatch, tmpdir, model_ckpt
     ):
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
-
-        # Config file needed for model conversion.
-        write_hf_ckpt_config(ckpt_dir)
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
 
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
@@ -170,7 +166,7 @@ class TestEleutherEval:
             quantizer.groupsize=256 \
         """.split()
 
-        model_config = llama3_test_config()
+        model_config = MODEL_TEST_CONFIGS[model_ckpt]
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -183,22 +179,26 @@ class TestEleutherEval:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
-    def test_eval_recipe_errors_with_qat_quantizer(self, monkeypatch, tmpdir):
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
+    @pytest.mark.parametrize(
+        "model_ckpt",
+        [
+            ("llama3_hf_138m"),
+        ],
+    )
+    def test_eval_recipe_errors_with_qat_quantizer(
+        self, monkeypatch, tmpdir, model_ckpt
+    ):
+        ckpt_dir = Path(CKPT_MODEL_PATHS[model_ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_ckpt])
 
         cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.checkpoint_files=[model.safetensors]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            tokenizer._component_=torchtune.models.llama3.llama3_tokenizer \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
+            tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
@@ -206,7 +206,7 @@ class TestEleutherEval:
             quantizer.groupsize=32\
         """.split()
 
-        model_config = llama3_test_config()
+        model_config = MODEL_TEST_CONFIGS[model_ckpt]
         cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -222,6 +222,9 @@ class TestEleutherEval:
         ckpt = "llama3_2_vision_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+
+        # Config file needed for model conversion.
+        write_hf_vision_ckpt_config(ckpt_dir)
 
         cmd = f"""
         tune run eleuther_eval \
