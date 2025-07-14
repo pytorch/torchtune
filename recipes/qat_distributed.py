@@ -696,14 +696,6 @@ class QATRecipeDistributed(FTRecipeInterface):
                 dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
-        # Define context manager for context parallelism
-        self.context_parallel_manager = training.get_context_parallel_manager(
-            enabled=self.cp_degree > 1,
-            rotate_method=self.context_parallel_rotate_method,
-            world_mesh=self.world_mesh,
-            model=model,
-        )
-
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
@@ -723,6 +715,17 @@ class QATRecipeDistributed(FTRecipeInterface):
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading, activation_offloading_use_streams
+        )
+        # context parallel
+        self.context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            rotate_method=self.context_parallel_rotate_method,
+            world_mesh=self.world_mesh,
+            model=model,
+        )
+        # remaining context managers for fwd/bwd
+        self.train_context = training.get_train_context(
+            enable_loss_parallel=self.use_loss_parallel_ctx_manager,
         )
 
         # Ensure no params and buffers are on meta device
@@ -972,15 +975,17 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                with self.context_parallel_manager(list(batch.values())):
+                with self.train_context(
+                    self.context_parallel_manager(list(batch.values()))
+                ):
                     # Calculate the number of unmasked tokens in the current batch
                     # and increment the total number of tokens seen in the step
                     current_num_tokens = (
                         batch["labels"] != self._loss_fn.ignore_index
                     ).sum()
                     num_tokens += current_num_tokens
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
 
