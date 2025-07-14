@@ -858,9 +858,6 @@ def get_context_parallel_manager(
     if enabled and any([layer.mask_mod is not None for layer in model.layers]):
         raise ValueError("Context parallel with flex attention is not yet supported")
 
-    if rotate_method is None:
-        rotate_method = "allgather"
-
     @contextlib.contextmanager
     def context(model_inputs: list[torch.Tensor]):
         # Create context parallel context if enabled

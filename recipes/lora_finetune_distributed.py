@@ -161,7 +161,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self.cp_degree = cfg.get("context_parallel_dim", 1)
         self.context_parallel_rotate_method = cfg.get(
-            "context_parallel_rotate_method", None
+            "context_parallel_rotate_method", "allgather"
         )
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
