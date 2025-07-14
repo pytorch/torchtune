@@ -160,7 +160,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         ), "Tensor parallelism is not supported in this recipe. Please set tensor_parallel_dim to 1."
 
         self.cp_degree = cfg.get("context_parallel_dim", 1)
-        self.context_parallel_rotate_method = cfg.get("context_parallel_rotate_method", None)
+        self.context_parallel_rotate_method = cfg.get(
+            "context_parallel_rotate_method", None
+        )
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -521,7 +523,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Apply Fully Sharded Data Parallelism to the model
         if self.parallel_dims.dp_shard_enabled or self.parallel_dims.cp_enabled:
-        # For FSDP sharding
+            # For FSDP sharding
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,

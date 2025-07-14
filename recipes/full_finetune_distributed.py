@@ -163,7 +163,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # DTensor does not support grouped_mm yet
             moe_utils.use_grouped_mm = False
         self.cp_degree = cfg.get("context_parallel_dim", 1)
-        self.context_parallel_rotate_method = cfg.get("context_parallel_rotate_method", None)
+        self.context_parallel_rotate_method = cfg.get(
+            "context_parallel_rotate_method", None
+        )
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -939,8 +941,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 with self.train_context(
                     self.context_parallel_manager(list(batch.values()))
                 ):
-                # Calculate the number of unmasked tokens in the current batch
-                # and increment the total number of tokens seen in the step
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
                     current_num_tokens = (
                         batch["labels"] != self._loss_fn.ignore_index
                     ).sum()

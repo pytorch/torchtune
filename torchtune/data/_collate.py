@@ -205,6 +205,7 @@ def padded_collate_sft(
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
             This is useful for proper sharding with e.g. SequenceParallel.
         stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False
+        cp_degree (int): If > 1, adds input_pos to the batch dict. This is useful for selecting right RoPE embeddings.
 
     Returns:
         dict[str, torch.Tensor]: Collated input and label tensors.

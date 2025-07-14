@@ -820,6 +820,7 @@ def get_context_parallel_manager(
 
     Args:
         enabled (bool): Whether context parallel is enabled. Default: False
+        rotate_method (str): Method to use for rotating the sequence dimension. Default: "allgather".
         world_mesh (torch.distributed.DeviceMesh): Global device mesh.
         model (TransformerDecoder): Model to apply context parallelism to.
 
@@ -856,7 +857,6 @@ def get_context_parallel_manager(
     # remove this once flex is supported
     if enabled and any([layer.mask_mod is not None for layer in model.layers]):
         raise ValueError("Context parallel with flex attention is not yet supported")
-
 
     if rotate_method is None:
         rotate_method = "allgather"
