@@ -169,6 +169,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
         self.cp_degree = cfg.get("context_parallel_dim", 1)
+        self.context_parallel_rotate_method = cfg.get("context_parallel_rotate_method", None)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -672,7 +673,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         model = quantizer.prepare(model)
 
         # Apply Fully Sharded Data Parallelism to the model
-        if self.parallel_dims.dp_shard_enabled:
+        if self.parallel_dims.dp_shard_enabled or self.parallel_dims.cp_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
@@ -681,9 +682,9 @@ class QATRecipeDistributed(FTRecipeInterface):
             ]
 
             if self.parallel_dims.dp_replicate_enabled:
-                dp_mesh_dim_names = ("dp_replicate", "dp_shard")
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard_cp")
             else:
-                dp_mesh_dim_names = ("dp_shard",)
+                dp_mesh_dim_names = ("dp_shard_cp",)
 
             training.shard_model(
                 model=model,
@@ -696,6 +697,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         # Define context manager for context parallelism
         self.context_parallel_manager = training.get_context_parallel_manager(
             enabled=self.cp_degree > 1,
+            rotate_method=self.context_parallel_rotate_method,
             world_mesh=self.world_mesh,
             model=model,
         )
@@ -832,6 +834,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
+                    cp_degree=self.parallel_dims.cp_degree,
                     pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
@@ -967,16 +970,15 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
-                # Calculate the number of unmasked tokens in the current batch
-                # and increment the total number of tokens seen in the step
-                current_num_tokens = (
-                    batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
-                num_tokens += current_num_tokens
-
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 with self.context_parallel_manager(list(batch.values())):
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+                    num_tokens += current_num_tokens
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
 
