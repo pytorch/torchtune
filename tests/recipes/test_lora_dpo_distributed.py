@@ -24,8 +24,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     gpu_test,
 )
-from tests.recipes.utils import dummy_stack_exchange_dataset_config, MODEL_TEST_CONFIGS
-from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 from torchtune import config
 
 from torchtune.training.checkpointing._utils import (
