@@ -825,6 +825,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._profiler.stop()
 
+        # Save final non-distributed ckpt
         self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:

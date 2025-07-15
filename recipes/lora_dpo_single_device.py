@@ -613,6 +613,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
             self.epochs_run += 1
 
+        # Save final non-distributed ckpt
         self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:

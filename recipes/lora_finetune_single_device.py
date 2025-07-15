@@ -723,6 +723,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self.epochs_run += 1
             start_save_checkpoint = time.perf_counter()
             self._logger.info("Starting checkpoint save...")
+
+            # Save final non-distributed ckpt
             self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
             self._logger.info(
                 "Checkpoint saved in {:.2f} seconds.".format(

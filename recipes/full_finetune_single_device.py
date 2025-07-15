@@ -691,7 +691,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._profiler.stop()
 
-        # Save final checkpoint
+        # Save final non-distributed ckpt
         self.save_checkpoint(
             epoch=self.total_epochs - 1, step=self.global_step, full_tensors=True
         )

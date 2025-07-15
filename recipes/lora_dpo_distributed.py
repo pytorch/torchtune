@@ -821,6 +821,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         self._logger.info(f"[Rank {dist.get_rank()}] About to save final checkpoint")
 
+        # Save final non-distributed ckpt
         self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:

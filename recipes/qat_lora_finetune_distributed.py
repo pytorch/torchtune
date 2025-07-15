@@ -845,9 +845,11 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
         self._profiler.stop()
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model

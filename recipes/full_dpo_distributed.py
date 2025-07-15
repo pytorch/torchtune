@@ -229,9 +229,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         try:
             self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
             self.global_step = ckpt_dict[training.STEPS_KEY]
-            if torch.distributed.get_rank() == 0:
-                self._logger.info(f"{self.epochs_run=}")
-                self._logger.info(f"{self.global_step=}")
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -1011,6 +1008,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         self._profiler.stop()
 
+        # Save final non-distributed ckpt
         self.save_checkpoint(epoch=self.total_epochs - 1, full_tensors=True)
 
     def cleanup(self) -> None:
