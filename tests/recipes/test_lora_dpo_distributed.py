@@ -6,9 +6,9 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
-import shutil
 
 import pytest
 import torch
