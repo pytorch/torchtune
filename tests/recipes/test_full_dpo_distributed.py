@@ -215,8 +215,6 @@ class TestFullDPODistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
-        print(f"{resumed_loss_values=}")
-        print(f"{expected_loss_values=}")
         torch.testing.assert_close(
             resumed_loss_values, self.expected_loss_values()[2:], rtol=1e-5, atol=1e-5
         )
