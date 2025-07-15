@@ -834,7 +834,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    cp_degree=self.parallel_dims.cp_degree,
+                    cp_degree=self.cp_degree,
                     pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
