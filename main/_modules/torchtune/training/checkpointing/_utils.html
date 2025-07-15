@@ -524,6 +524,7 @@
 
 <span class="c1"># key used for dataloader state</span>
 <span class="n">DATALOADER_KEY</span> <span class="o">=</span> <span class="s2">&quot;dataloader&quot;</span>
+<span class="n">VAL_DATALOADER_KEY</span> <span class="o">=</span> <span class="s2">&quot;val_dataloader&quot;</span>
 
 
 <div class="viewcode-block" id="ModelType"><a class="viewcode-back" href="../../../../generated/torchtune.training.ModelType.html#torchtune.training.ModelType">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ModelType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
@@ -879,15 +880,17 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.</span>
+<span class="sd">    If recipe_checkpoint is None, look for recipe_state.pt in {checkpoint_dir/recipe_state.pt}.</span>
 <span class="sd">    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        output_dir (Union[str, Path]): Directory containing the recipe checkpoint.</span>
+<span class="sd">        output_dir (Union[str, Path]): Directory containing the directory that has the recipe checkpoint.</span>
+<span class="sd">        checkpoint_dir (Union[str, Path]): Directory containing the recipe checkpoint.</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.</span>
 <span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.</span>
 <span class="sd">    Returns:</span>
@@ -902,9 +905,7 @@
     <span class="k">if</span> <span class="n">recipe_checkpoint</span><span class="p">:</span>
         <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">recipe_checkpoint</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
-        <span class="p">)</span>
+        <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">)</span>
 
     <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
 
@@ -1167,6 +1168,37 @@
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">)</span>
 
     <span class="k">return</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_most_recent_checkpoint</span><span class="p">(</span><span class="nb">dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the most recent checkpoint in the given directory.</span>
+<span class="sd">    The function assumes that the checkpoint files are named in the format &quot;epoch_{epoch_number}&quot; or &quot;step_{step_number}&quot;.</span>
+<span class="sd">    The function will return None if no checkpoint files are found in the directory.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dir (Path): The directory containing the checkpoints.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: The path to the most recent checkpoint, or None if no checkpoints are found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># First, check for epochs</span>
+    <span class="n">checkpoints</span> <span class="o">=</span> <span class="n">get_all_checkpoints_in_dir</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># If no epochs found, check for steps</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">checkpoints</span><span class="p">:</span>
+        <span class="n">checkpoints</span> <span class="o">=</span> <span class="n">get_all_checkpoints_in_dir</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^step_(\d+)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># If no steps found, return None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">checkpoints</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># Finally, loop through checkpoints and return the most recent (non-empty) one</span>
+    <span class="n">checkpoints</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="k">while</span> <span class="n">checkpoints</span><span class="p">:</span>
+        <span class="n">ckpt</span> <span class="o">=</span> <span class="n">checkpoints</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">ckpt</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="n">ckpt</span>
 </pre></div>
 
              </article>

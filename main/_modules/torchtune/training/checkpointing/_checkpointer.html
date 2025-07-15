@@ -456,7 +456,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -465,7 +464,9 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">url_to_fs</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span> <span class="k">as</span> <span class="n">save_safetensors</span><span class="p">,</span> <span class="n">save_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">huggingface_hub.serialization</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_torch_state_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">huggingface_hub.serialization._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAX_SHARD_SIZE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span> <span class="k">as</span> <span class="n">save_safetensors</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">async_save</span><span class="p">,</span>
     <span class="n">DefaultLoadPlanner</span><span class="p">,</span>
@@ -484,16 +485,17 @@
     <span class="n">check_outdir_not_in_ckptdir</span><span class="p">,</span>
     <span class="n">copy_files</span><span class="p">,</span>
     <span class="n">get_adapter_checkpoint_path</span><span class="p">,</span>
+    <span class="n">get_all_checkpoints_in_dir</span><span class="p">,</span>
     <span class="n">get_model_checkpoint_path</span><span class="p">,</span>
+    <span class="n">get_most_recent_checkpoint</span><span class="p">,</span>
     <span class="n">get_recipe_checkpoint_path</span><span class="p">,</span>
     <span class="n">ModelType</span><span class="p">,</span>
+    <span class="n">prune_surplus_checkpoints</span><span class="p">,</span>
     <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span>
     <span class="n">REPO_ID_FNAME</span><span class="p">,</span>
     <span class="n">safe_torch_load</span><span class="p">,</span>
-    <span class="n">SAFETENSOR_INDEX_FNAME</span><span class="p">,</span>
     <span class="n">SHARD_FNAME</span><span class="p">,</span>
     <span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
-    <span class="n">TORCH_INDEX_FNAME</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span><span class="p">,</span> <span class="n">log_rank_zero</span>
 
@@ -638,12 +640,13 @@
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span><span class="p">,</span>
             <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
-            <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
+            <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^step_(\d+)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># resume recipe_state ckpt</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_recipe_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+            <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">recipe_checkpoint</span><span class="o">=</span><span class="n">recipe_checkpoint</span><span class="p">,</span>
             <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
         <span class="p">)</span>
@@ -711,6 +714,7 @@
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
@@ -737,12 +741,11 @@
 <span class="sd">            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the</span>
 <span class="sd">                recipe state</span>
 <span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
-
+<span class="sd">            **kwargs: Ignored keyword arguments to maintain compatibility with the Checkpointer interface</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="c1"># Output file is always a .bin file with the epoch number in the name</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="n">shard_name</span> <span class="o">=</span> <span class="n">SHARD_FNAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -790,7 +793,7 @@
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
             <span class="p">)</span>
             <span class="n">output_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
@@ -837,12 +840,12 @@
 <span class="sd">            of sorting by file ID, the order in this list does not matter.</span>
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
 <span class="sd">        output_dir (Optional[str]): Directory to save the checkpoint files, default None.</span>
-<span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,</span>
+<span class="sd">        adapter_checkpoint (str): Path to the adapter weights. If None,</span>
 <span class="sd">            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
-<span class="sd">            Default is None.</span>
-<span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,</span>
+<span class="sd">            Default is &quot;adapter_model.pt&quot;.</span>
+<span class="sd">        recipe_checkpoint (str): Path to the recipe state checkpoint file. If None,</span>
 <span class="sd">            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.</span>
-<span class="sd">            Default is None.</span>
+<span class="sd">            Default is &quot;recipe_state.pt&quot;.</span>
 <span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
 <span class="sd">            the receipe state from a previous run. Default is False. This flag is deprecated. Please use</span>
 <span class="sd">            the should_load_recipe_state flag instead.</span>
@@ -850,11 +853,12 @@
 <span class="sd">            Default is True.</span>
 <span class="sd">        should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
 <span class="sd">            the receipe state from a previous run. Default is False</span>
+<span class="sd">        keep_last_n_checkpoints (Optional[int]): How many checkpoints to keep. If None, all checkpoints are kept.</span>
 <span class="sd">        enable_dcp (bool): If True, the checkpointer will load the checkpoint file using dcp checkpointing apis.</span>
 <span class="sd">            This is currently an experimental feature.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If ther checkpoint_dir and output_dir are not on the same filesystem</span>
+<span class="sd">        ValueError: If recipe_state cannot be found when should_load_recipe_state is True</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -863,13 +867,21 @@
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
         <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adapter_model.pt&quot;</span><span class="p">,</span>
+        <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">,</span>
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">safe_serialization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">keep_last_n_checkpoints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">enable_dcp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_keep_last_n_checkpoints</span> <span class="o">=</span> <span class="n">keep_last_n_checkpoints</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span> <span class="o">=</span> <span class="n">safe_serialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span> <span class="o">=</span> <span class="n">enable_dcp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">should_load_recipe_state</span>
         <span class="k">if</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
@@ -877,79 +889,112 @@
                 <span class="s2">&quot;*resume_from_checkpoint is deprecated. Please use the &#39;should_load_recipe_state&#39; instead&quot;</span>
             <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span> <span class="o">=</span> <span class="n">safe_serialization</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span> <span class="o">=</span> <span class="n">enable_dcp</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
+        <span class="k">if</span> <span class="n">recipe_checkpoint</span> <span class="o">!=</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">:</span>
+            <span class="c1"># I don&#39;t want to log warning for None, b/c that&#39;s been the default for a long time</span>
+            <span class="k">if</span> <span class="n">recipe_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;recipe_checkpoint is deprecated. torchtune will always save the recipe state under &quot;</span>
+                    <span class="s2">&quot;output_dir / epoch_x (or step_x). If you are trying to resume from a specific checkpoint, then &quot;</span>
+                    <span class="s2">&quot;you can pass in checkpoint_dir=PATH/epoch_x (or step_x). We will then load PATH/epoch_1/recipe_state.pt&quot;</span>
+                <span class="p">)</span>
+            <span class="n">recipe_checkpoint</span> <span class="o">=</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
 
+        <span class="c1"># Create fsspec filesystem for the checkpoint directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+
+        <span class="c1"># Initialize the output directory if one is specified</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">check_outdir_not_in_ckptdir</span><span class="p">(</span>
-                <span class="n">ckpt_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span>
+                <span class="n">ckpt_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span>
             <span class="p">)</span>
-            <span class="n">output_fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span> <span class="o">!=</span> <span class="n">output_fs</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Checkpoint and output directories must be on the same filesystem. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;Got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">output_fs</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
-                <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># weight_map contains the state_dict key -&gt; checkpoint file mapping so we can correctly</span>
-        <span class="c1"># parition the state dict into output checkpoint files. This is updated during checkpoint</span>
-        <span class="c1"># load</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># parition the state dict into output checkpoint files. This is updated during checkpoint load</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="c1"># the config.json file contains model params needed for state dict conversion</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="s2">&quot;config.json&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">,</span> <span class="s2">&quot;config.json&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 
         <span class="c1"># repo_id is necessary for when saving an adapter config, so its compatible with HF.</span>
         <span class="c1"># This json file is produced and saved in the download step.</span>
         <span class="c1"># contents are {&quot;repo_id&quot;: &quot;some_model/some_model_version&quot;}</span>
-        <span class="n">repo_id_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">REPO_ID_FNAME</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
-
+        <span class="n">repo_id_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">,</span> <span class="n">REPO_ID_FNAME</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">repo_id</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">):</span>
-            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">):</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">repo_id</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;repo_id&quot;</span><span class="p">)</span>
 
-        <span class="c1">#  resume from adapter_model ckpt</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">get_adapter_checkpoint_path</span><span class="p">(</span>
-            <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-            <span class="n">adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span><span class="p">,</span>
-            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
-            <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># resume recipe_state ckpt</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_recipe_checkpoint_path</span><span class="p">(</span>
-            <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-            <span class="n">recipe_checkpoint</span><span class="o">=</span><span class="n">recipe_checkpoint</span><span class="p">,</span>
-            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># get ckpt paths</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span> <span class="o">=</span> <span class="n">get_model_checkpoint_path</span><span class="p">(</span>
-            <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">checkpoint_files</span><span class="p">,</span>
-            <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
-            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="p">)</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Loading the recipe state using: &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">checkpoint_paths: </span><span class="si">{</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">recipe_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;step&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="ow">or</span> <span class="s2">&quot;epoch&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">:</span>
+                <span class="c1"># If there&#39;s a step or epoch in the name, we assume it&#39;s loading from a predetermined ckpt</span>
+                <span class="n">checkpoint_dir_to_load_from</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">most_recent_checkpoint</span> <span class="o">=</span> <span class="n">get_most_recent_checkpoint</span><span class="p">(</span>
+                    <span class="nb">dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">most_recent_checkpoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Recipe state cannot be loaded because no checkpoints were found in the output directory.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">checkpoint_dir_to_load_from</span> <span class="o">=</span> <span class="n">most_recent_checkpoint</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">checkpoint_dir_to_load_from</span><span class="p">,</span> <span class="n">recipe_checkpoint</span>
             <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">recipe_checkpoint</span><span class="si">}</span><span class="s2"> not found in </span><span class="si">{</span><span class="n">checkpoint_dir_to_load_from</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">checkpoint_dir_to_load_from</span><span class="p">,</span> <span class="n">adapter_checkpoint</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span> <span class="o">=</span> <span class="n">get_model_checkpoint_path</span><span class="p">(</span>
+                <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">checkpoint_files</span><span class="p">,</span>
+                <span class="n">checkpoint_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span>
+                <span class="n">output_dir</span><span class="o">=</span><span class="n">checkpoint_dir_to_load_from</span><span class="p">,</span>
+                <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span> <span class="o">=</span> <span class="n">get_model_checkpoint_path</span><span class="p">(</span>
+                <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">checkpoint_files</span><span class="p">,</span>
+                <span class="n">checkpoint_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span>
+                <span class="n">output_dir</span><span class="o">=</span><span class="n">output_dir</span><span class="p">,</span>
+                <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_checkpoint_with_dcp_hf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint._hf_planner</span><span class="w"> </span><span class="kn">import</span> <span class="n">_HuggingFaceLoadPlanner</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint._hf_storage</span><span class="w"> </span><span class="kn">import</span> <span class="n">_HuggingFaceStorageReader</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint.state_dict_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span>
+
+        <span class="c1"># DCP load using the storage reader</span>
+        <span class="n">hf_storage_reader</span> <span class="o">=</span> <span class="n">_HuggingFaceStorageReader</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">)</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">hf_storage_reader</span><span class="o">.</span><span class="n">read_metadata</span><span class="p">()</span>
+        <span class="n">state_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">state_dict_metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="c1"># arbitrary value to ensure that the state_dict is not empty</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">weight_map</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">storage_data</span>
+
+        <span class="n">load</span><span class="p">(</span>
+            <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
+            <span class="n">storage_reader</span><span class="o">=</span><span class="n">hf_storage_reader</span><span class="p">,</span>
+            <span class="n">planner</span><span class="o">=</span><span class="n">_HuggingFaceLoadPlanner</span><span class="p">(</span><span class="n">allow_tensor_resize</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">weight_map</span>
 
 <div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -968,17 +1013,6 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the values in the input state_dict are not Tensors</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="c1"># merged state_dict contains keys and weights from all the checkpoint files</span>
-        <span class="n">merged_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="c1"># converted_state_dict is the final state_dict passed to the recipe after the</span>
-        <span class="c1"># keys are converted into the torchtune format. This optionally also contains</span>
-        <span class="c1"># the recipe state and adapter weights</span>
-        <span class="n">converted_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span><span class="p">:</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">HuggingFaceStorageReader</span>
 
@@ -998,6 +1032,7 @@
 
             <span class="n">merged_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">merged_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="c1"># _checkpoint_paths are already sorted so simply enumerate to generate the right id</span>
             <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">cpt_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">):</span>
                 <span class="n">state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="n">cpt_path</span><span class="p">)</span>
@@ -1016,6 +1051,11 @@
                 <span class="c1"># delete the state_dict to free up memory; TODO check if this del is needed</span>
                 <span class="k">del</span> <span class="n">state_dict</span>
                 <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="c1"># converted_state_dict is the final state_dict passed to the recipe after the</span>
+        <span class="c1"># keys are converted into the torchtune format. This optionally also contains</span>
+        <span class="c1"># the recipe state and adapter weights</span>
+        <span class="n">converted_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
             <span class="n">log_rank_zero</span><span class="p">(</span>
@@ -1127,13 +1167,18 @@
                 <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">:</span>
-            <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
-            <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">):</span>
+                <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
+                <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
             <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">converted_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Loading the recipe state using: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">checkpoint_paths: </span><span class="si">{</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">recipe_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">converted_state_dict</span></div>
 
@@ -1145,6 +1190,8 @@
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_shard_size</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MAX_SHARD_SIZE</span><span class="p">,</span>
+        <span class="n">dir_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
@@ -1160,17 +1207,40 @@
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
 <span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
-<span class="sd">            step (Optional[int]): Step number. Used to create the checkpoint file name.</span>
+<span class="sd">            step (Optional[int]): Step number. Used to create the checkpoint file name if ``dir_prefix`` is &#39;step&#39;.</span>
+<span class="sd">            max_shard_size (str): Maximum shard size for the checkpoint files. Default is &#39;5GB&#39;.</span>
+<span class="sd">            dir_prefix (str): Prefix for the checkpoint directory. Default is &#39;epoch&#39;.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
+<span class="sd">            ValueError:</span>
+<span class="sd">                If ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
+<span class="sd">                If ``output_dir`` is not specified.</span>
+<span class="sd">                If ``dir_prefix`` is &#39;step&#39; but ``step`` is None.</span>
+<span class="sd">                If ``dir_prefix`` is not &#39;epoch&#39; or &#39;step&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dir_prefix</span> <span class="o">==</span> <span class="s2">&quot;epoch&quot;</span><span class="p">:</span>
+            <span class="n">ckpt_save_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">ckpt_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
+        <span class="k">elif</span> <span class="n">dir_prefix</span> <span class="o">==</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Step number must be provided when dir_prefix is &#39;step&#39;.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">ckpt_save_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;step_</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">ckpt_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^step_(\d+)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid dir_prefix: </span><span class="si">{</span><span class="n">dir_prefix</span><span class="si">}</span><span class="s2">. Expected &#39;epoch&#39; or &#39;step&#39;.&quot;</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Output directory not specified. Please specify an output directory to save the checkpoint.&quot;</span>
             <span class="p">)</span>
-        <span class="n">output_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;step_</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="c1"># convert the state_dict back to hf format; do this inplace</span>
+        <span class="n">ckpt_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">ckpt_save_dirname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">ckpt_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># 1. Convert the model weights back to transformer format inplace</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
                 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_tune_to_hf</span>
@@ -1256,6 +1326,7 @@
                     <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="p">)</span>
 
+            <span class="c1"># Here we actually save the model weights</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span><span class="p">:</span>
                 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">HuggingFaceStorageWriter</span>
 
@@ -1265,7 +1336,7 @@
                     <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
                     <span class="n">fqn_to_file_index_mapping</span><span class="p">[</span><span class="n">fqn</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span>
                 <span class="n">storage_writer</span> <span class="o">=</span> <span class="n">HuggingFaceStorageWriter</span><span class="p">(</span>
-                    <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+                    <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">ckpt_save_dirname</span><span class="p">),</span>
                     <span class="n">fqn_to_index_mapping</span><span class="o">=</span><span class="n">fqn_to_file_index_mapping</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">save</span><span class="p">(</span>
@@ -1274,98 +1345,31 @@
                     <span class="n">no_dist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># split the state_dict into separate dicts, one for each output checkpoint file</span>
-                <span class="c1"># e.g. split_state_dicts= {</span>
-                <span class="c1">#       &quot;0001&quot;: {&quot;key1&quot;: tensor1, &quot;key2&quot;: tensor2},</span>
-                <span class="c1">#       &quot;0002&quot;: {&quot;key3&quot;: tensor3}</span>
-                <span class="c1">#       }</span>
-                <span class="n">split_state_dicts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-                <span class="n">total_size</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="n">cpt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-                    <span class="c1"># initialize dict</span>
-                    <span class="k">if</span> <span class="n">cpt_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="p">:</span>
-                        <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-
-                    <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">weight</span><span class="p">})</span>
-                    <span class="n">total_size</span> <span class="o">+=</span> <span class="n">weight</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="n">weight</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
-
-                <span class="c1"># write the partitioned state dicts to the right checkpoint file</span>
-                <span class="c1"># e.g. model-00001-of-00004.safetensors, model-00002-of-00004.safetensors, etc</span>
-                <span class="n">num_shards</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_state_dicts</span><span class="p">)</span>
-                <span class="n">map_original_name_to_new_name</span> <span class="o">=</span> <span class="p">{}</span>
-                <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">model_state_dict</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="c1"># TODO: We should probably use the original shard name and just add a prefix</span>
-                    <span class="c1"># however, having the SHARD_FNAME standardizes our checkpoints</span>
-                    <span class="n">shard_name</span> <span class="o">=</span> <span class="n">SHARD_FNAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="n">cpt_idx</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span>
-                        <span class="n">num_shards</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_shards</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span>
-                    <span class="p">)</span>
-                    <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">shard_name</span>
-                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">output_dirname</span><span class="p">,</span> <span class="n">shard_name</span>
-                    <span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
-                        <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">=</span> <span class="s2">&quot;.bin&quot;</span>
-                        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
-                        <span class="n">save_file</span><span class="p">(</span>
-                            <span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">}</span>
-                        <span class="p">)</span>
-
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                        <span class="s2">&quot;Model checkpoint of size &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="p">)</span>
-
-                <span class="c1"># Save the appropriate index file based on serialization format</span>
-                <span class="c1"># e.g. {metadata: {total_size: 1234},</span>
-                <span class="c1"># weight_map: {&quot;key1&quot;: &quot;model_0001.safetensors&quot;, &quot;key2&quot;: &quot;model_0002.safetensors&quot;}}</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
-                    <span class="n">weight_map</span> <span class="o">=</span> <span class="p">{</span>
-                        <span class="n">k</span><span class="p">:</span> <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
-                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">cpt_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                    <span class="p">}</span>
-                    <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">SAFETENSOR_INDEX_FNAME</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">weight_map</span> <span class="o">=</span> <span class="p">{</span>
-                        <span class="n">k</span><span class="p">:</span> <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.bin&quot;</span>
-                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">cpt_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                    <span class="p">}</span>
-                    <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">TORCH_INDEX_FNAME</span>
-
-                <span class="n">index_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">output_dirname</span><span class="p">,</span> <span class="n">index_file_name</span>
+                <span class="n">save_torch_state_dict</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                    <span class="n">ckpt_output_dir</span><span class="p">,</span>
+                    <span class="n">safe_serialization</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">,</span>
+                    <span class="n">max_shard_size</span><span class="o">=</span><span class="n">max_shard_size</span><span class="p">,</span>
                 <span class="p">)</span>
-
-                <span class="n">index_data</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;total_size&quot;</span><span class="p">:</span> <span class="n">total_size</span><span class="p">},</span>
-                    <span class="s2">&quot;weight_map&quot;</span><span class="p">:</span> <span class="n">weight_map</span><span class="p">,</span>
-                <span class="p">}</span>
-                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">index_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">index_data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model checkpoint saved to </span><span class="si">{</span><span class="n">ckpt_output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
             <span class="c1"># TODO: saving it &quot;as is&quot; is a requirement because, if we only save with</span>
             <span class="c1"># convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn</span>
             <span class="c1"># convert_weights.peft_to_tune. The .pt format is not needed, but</span>
             <span class="c1"># it is an easy way to distinguish the adapters. Ideally we should save only one.</span>
-            <span class="n">output_path</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">output_dirname</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">)</span>
-                <span class="o">+</span> <span class="s2">&quot;.pt&quot;</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ckpt_output_dir</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.pt&quot;</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Please note that you have set adapter_only=True, so only adapter weights will be saved.&quot;</span>
+                <span class="s2">&quot;You need to merge the adapter weights into your base model for further use. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;See </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.save_checkpoint for more details.&quot;</span>
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
@@ -1395,17 +1399,15 @@
                     <span class="n">dim</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
                     <span class="n">head_dim</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="p">)</span>
-                <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">output_dirname</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ckpt_output_dir</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
                     <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;.bin&quot;</span>
-                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                         <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
-                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                         <span class="n">save_bytes</span> <span class="o">=</span> <span class="n">save_safetensors</span><span class="p">(</span>
                             <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span>
                             <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">},</span>
@@ -1413,7 +1415,7 @@
                         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">save_bytes</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
         <span class="k">elif</span> <span class="n">adapter_only</span><span class="p">:</span>
@@ -1438,55 +1440,49 @@
                     <span class="n">base_model_name_or_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_id</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">output_path</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">output_dirname</span><span class="p">,</span> <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">)</span>
-                    <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ckpt_output_dir</span><span class="p">,</span> <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
                 <span class="p">)</span>
-                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-        <span class="c1"># Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}</span>
-        <span class="c1"># So its easy to run inference with the model using this epoch&#39;s checkpoint</span>
+        <span class="c1"># 2. Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}</span>
+        <span class="c1"># or step_{step} directory so it&#39;s easy to run inference with the model using this checkpoint</span>
         <span class="n">copy_files</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">output_dirname</span><span class="p">),</span>
+            <span class="n">input_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+            <span class="n">output_dir</span><span class="o">=</span><span class="n">ckpt_output_dir</span><span class="p">,</span>
             <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
-        <span class="c1"># and if it exists, remove the adapter state dict as well</span>
+        <span class="c1"># 3. Save the recipe state, excluding the model weights and (if applicable) adapter weights</span>
         <span class="k">if</span> <span class="n">intermediate_checkpoint</span><span class="p">:</span>
-            <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
-            <span class="p">)</span>
-            <span class="n">parent_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">parent_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">,</span>
+                <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span>
+                <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span>
+            <span class="p">]:</span>
+                <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">recipe_state_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ckpt_output_dir</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">recipe_state_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Recipe checkpoint of size &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Recipe checkpoint of size </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">recipe_state_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">recipe_state_path</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving final epoch checkpoint.&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">&quot;Please note that you have set adapter_only=True, so only adapter weights will be saved.&quot;</span>
-                    <span class="s2">&quot;You need to merge the adapter weights into your base model for further use. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;See </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.save_checkpoint for more details.&quot;</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">&quot;The full model checkpoint, including all weights and configurations, has been saved successfully.&quot;</span>
-                    <span class="s2">&quot;You can now use this checkpoint for further training or inference.&quot;</span>
-                <span class="p">)</span></div></div>
+
+        <span class="c1"># 4. If specified, prune the checkpoints in the output directory</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_last_n_checkpoints</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">all_current_checkpoints</span> <span class="o">=</span> <span class="n">get_all_checkpoints_in_dir</span><span class="p">(</span>
+                <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">),</span> <span class="n">pattern</span><span class="o">=</span><span class="n">ckpt_pattern</span>
+            <span class="p">)</span>
+            <span class="n">prune_surplus_checkpoints</span><span class="p">(</span>
+                <span class="n">all_current_checkpoints</span><span class="p">,</span>
+                <span class="n">keep_last_n_checkpoints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_keep_last_n_checkpoints</span><span class="p">,</span>
+            <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FullModelMetaCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
@@ -1563,6 +1559,7 @@
         <span class="c1"># resume recipe_state ckpt</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_recipe_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+            <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">recipe_checkpoint</span><span class="o">=</span><span class="n">recipe_checkpoint</span><span class="p">,</span>
             <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1634,6 +1631,7 @@
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
@@ -1646,10 +1644,12 @@
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
 <span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
+<span class="sd">            **kwargs: Ignored keyword arguments to maintain compatibility with the Checkpointer interface</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ckpt_save_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
@@ -1684,7 +1684,7 @@
                 <span class="n">cpt_idx</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span> <span class="n">num_shards</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">model_filename</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">ckpt_save_dirname</span><span class="p">,</span> <span class="n">model_filename</span>
             <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.bin&quot;</span><span class="p">)</span>
             <span class="n">checkpoint_file</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -1697,7 +1697,7 @@
 
         <span class="k">if</span> <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">ckpt_save_dirname</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span>
             <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
             <span class="n">output_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">output_path</span><span class="p">)</span>
@@ -1716,7 +1716,7 @@
         <span class="c1"># So its easy to run inference with the model using this epoch&#39;s checkpoint</span>
         <span class="n">copy_files</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">ckpt_save_dirname</span><span class="p">),</span>
             <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -1772,84 +1772,33 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span> <span class="o">=</span> <span class="s2">&quot;dist_epoch&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_file</span> <span class="o">=</span> <span class="s2">&quot;.metadata&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_dir</span> <span class="o">=</span> <span class="s2">&quot;adapter_model&quot;</span>
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dist</span><span class="o">.</span><span class="n">ProcessGroup</span><span class="p">]</span> <span class="o">=</span> <span class="n">process_group</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_output_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get the output path for the checkpoint directory.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            str: The fully qualified path of the checkpoint directory.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_latest_intermediate_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        This method iterates over the available intermediate distributed checkpoints and</span>
-<span class="sd">        finds the latest checkpoint to load.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            str: The fully qualified path of the checkpoint directory containing the latest and valid</span>
-<span class="sd">            intermediate checkpoint. A valid checkpoint needs to have the metadata file.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">checkpoint_dir_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span><span class="si">}</span><span class="s2">_(</span><span class="se">\\</span><span class="s2">d+)&quot;</span><span class="p">)</span>
-        <span class="n">checkpoint_paths</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">name</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">checkpoint_dir_pattern</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_file</span><span class="p">)</span>
-                <span class="p">)</span>
-                <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_dir</span><span class="p">)</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-
-        <span class="k">if</span> <span class="n">checkpoint_paths</span><span class="p">:</span>
-            <span class="n">latest_checkpoint_dir</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-                <span class="n">checkpoint_paths</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-            <span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">latest_checkpoint_dir</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">output_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load a Distributed checkpoint saved at the &lt;checkpoint_path&gt;</span>
 <span class="sd">        If no path is provided, latest intermediate checkpoint is loaded.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">get_most_recent_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">checkpoint_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;State dict must be provided to load a distributed checkpoint.&quot;</span>
+                <span class="s2">&quot;No intermediate checkpoint was found in the output directory.&quot;</span>
+                <span class="s2">&quot;Please ensure that a checkpoint exists to load.&quot;</span>
             <span class="p">)</span>
 
-        <span class="c1"># If no checkpoint path is provided, load the latest intermediate checkpoint.</span>
-        <span class="k">if</span> <span class="n">checkpoint_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_latest_intermediate_checkpoint</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="n">checkpoint_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;No checkpoint path was provided.&quot;</span>
-                    <span class="s2">&quot;Also, No intermediate checkpoint was found in the output directory.&quot;</span>
-                    <span class="s2">&quot;Please ensure that a checkpoint exists to load.&quot;</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
-                <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_dir</span><span class="p">)</span>
 
         <span class="n">log_rank_zero</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Loading checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -1870,6 +1819,9 @@
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">save_async</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dir_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save a distributed checkpoint to storage.</span>
@@ -1882,18 +1834,28 @@
 <span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
 <span class="sd">            save_async (bool): If True, save the checkpoint asynchronously</span>
 <span class="sd">            adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.</span>
+<span class="sd">            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.</span>
+<span class="sd">            dir_prefix (str): Prefix to use for the checkpoint directory name. Defaults to &quot;epoch&quot;.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError:</span>
+<span class="sd">                If ``dir_prefix`` is &#39;step&#39; and ``step`` is None.</span>
+<span class="sd">                If ``dir_prefix`` is not one of &#39;epoch&#39; or &#39;step&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dir_prefix</span> <span class="o">==</span> <span class="s2">&quot;epoch&quot;</span><span class="p">:</span>
+            <span class="n">ckpt_save_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="n">dir_prefix</span> <span class="o">==</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Step number is required when dir_prefix is &#39;step&#39;.&quot;</span><span class="p">)</span>
+            <span class="n">ckpt_save_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;step_</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid dir_prefix: </span><span class="si">{</span><span class="n">dir_prefix</span><span class="si">}</span><span class="s2">. Must be one of &#39;epoch&#39; or &#39;step&#39;.&quot;</span>
+            <span class="p">)</span>
 
-        <span class="n">log_rank_zero</span><span class="p">(</span>
-            <span class="n">logger</span><span class="p">,</span>
-            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;DistributedCheckpointer is saving a checkpoint for the epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
+        <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">ckpt_save_dirname</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">adapter_only</span><span class="p">:</span>
-            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_dir</span><span class="p">)</span>
+            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_dir</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span><span class="o">.</span><span class="n">done</span><span class="p">():</span>
             <span class="c1"># Previous checkpoint needs to finish before saving the next one.</span>
@@ -1957,15 +1919,12 @@
                     <span class="n">thread_count</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
                     <span class="n">single_file_per_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">sync_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">cache_staged_state_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">process_group</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">log_rank_zero</span><span class="p">(</span>
-            <span class="n">logger</span><span class="p">,</span>
-            <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;The full model checkpoint, including all the weights and configurations, has been saved successfully &quot;</span>
-            <span class="s2">&quot;by the DistributedCheckpointer. You can now use this checkpoint for further training.&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="c1"># TODO: prune old checkpoints</span>
 </pre></div>
 
              </article>
