@@ -12,6 +12,8 @@ from typing import Any, Optional
 from warnings import warn
 
 import torch
+
+import torch.distributed as dist
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -140,6 +142,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.distributed_backend = training.get_distributed_backend(
             cfg.device, offload_ops_to_cpu=True
         )
+
         init_process_group(self.distributed_backend)
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
@@ -152,6 +155,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
         self._logger = utils.get_logger(cfg.log_level)
 
         if (
@@ -335,6 +339,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -557,6 +567,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        full_tensors: bool,
     ) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -566,11 +577,16 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 epochs_run=self.epochs_run,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
+                steps_run=self.global_step,
+                total_training_steps=self.total_epochs * self._steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
             ),
             epoch=epoch,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
+            full_tensors=full_tensors,
+            single_device=False,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def concatenated_forward(
@@ -717,6 +733,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
                     torch.distributed.all_reduce(running_loss)
+
+                    if num_tokens.device.type != self._device.type:
+                        num_tokens = num_tokens.to(self._device)
+
                     torch.distributed.all_reduce(num_tokens)
 
                     for key in running_metrics:
@@ -777,6 +797,13 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # If not last checkpoint
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and curr_epoch != self.total_epochs - 1
+                    ):
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Reset running stats for the next step
                     running_loss = 0
                     running_metrics = {key: 0 for key in running_metrics}
@@ -785,7 +812,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+        # Only do final sync checkpoint if async checkpointing is disabled
+
+        self._logger.info(f"[Rank {dist.get_rank()}] About to save final checkpoint")
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
