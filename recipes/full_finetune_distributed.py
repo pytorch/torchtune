@@ -454,11 +454,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 batch_size=batch_size_val,
                 collate_fn=collate_name,
                 shuffle=False,
-                dataloader_state_dict=(
-                    state_dict[training.VAL_DATALOADER_KEY]
-                    if training.VAL_DATALOADER_KEY in state_dict
-                    else None
-                ),
+                dataloader_state_dict=state_dict.get(training.VAL_DATALOADER_KEY, None),
             )
 
         # Finally update the recipe state which can only be correctly set after all of the

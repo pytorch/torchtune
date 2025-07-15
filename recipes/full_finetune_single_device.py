@@ -289,11 +289,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            dataloader_state_dict=(
-                state_dict[training.DATALOADER_KEY]
-                if training.DATALOADER_KEY in state_dict
-                else None
-            ),
+            dataloader_state_dict=state_dict.get(training.DATALOADER_KEY, None),
         )
 
         if self._resume_from_checkpoint:
