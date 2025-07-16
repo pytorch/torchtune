@@ -433,7 +433,7 @@ class CheckpointClient:
             adapter_only (bool): Whether to save adapter weights only. Defaults to False.
             single_device (bool): Whether the recipe uses only one device. Defaults to False.
             full_tensors (bool): Whether to save checkpoints into full tensors synchronously (final checkpoints). Defaults to True.
-            dir_prefix (bool): Whether "step" or "epoch" prefix is used for checkpoint dirs. Defaults to "epoch".
+            dir_prefix (str): Whether "step" or "epoch" prefix is used for checkpoint dirs. Defaults to "epoch".
         """
         try:
             # Handle None values for steps_run and total_training_steps
