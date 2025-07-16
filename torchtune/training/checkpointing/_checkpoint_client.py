@@ -199,8 +199,8 @@ class CheckpointClient:
             )
 
             if adapter_only:
-                # legacy support for epochs
                 save_path = dcp_saver.output_dir
+                # BC support for epoch-based ckpts
                 if dir_prefix == "step":
                     save_path = save_path / f"step_{training_progress.steps_run}"
                 else:
