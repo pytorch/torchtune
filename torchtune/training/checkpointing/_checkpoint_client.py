@@ -200,6 +200,7 @@ class CheckpointClient:
 
             if adapter_only:
                 save_path = dcp_saver.output_dir
+                # BC support for epoch-based ckpts
                 if dir_prefix == "step":
                     save_path = save_path / f"step_{training_progress.steps_run}"
                 else:
@@ -422,6 +423,17 @@ class CheckpointClient:
         as a distributed checkpoint.
         Otherwise, the checkpoint will be saved synchronously with the
         checkpointer user has configured.
+
+        Args:
+            model (torch.nn.Module): The model to save into a checkopint.
+            optimizer (Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]): The optimizer to save into a recipe_state file.
+            training_progress (TrainingProgress): Additional info about a run to be saved.
+            epoch (int): Epoch number to save into a checkpoint.
+            adapter_config (Optional[dict[str, Any]]): Adapter config to save if provided. Defaults to None.
+            adapter_only (bool): Whether to save adapter weights only. Defaults to False.
+            single_device (bool): Whether the recipe uses only one device. Defaults to False.
+            full_tensors (bool): Whether to save checkpoints into full tensors synchronously (final checkpoints). Defaults to True.
+            dir_prefix (str): Whether "step" or "epoch" prefix is used for checkpoint dirs. Defaults to "epoch".
         """
         try:
             # Handle None values for steps_run and total_training_steps
