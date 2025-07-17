@@ -782,11 +782,6 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If lora_modules arg is an empty list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">lora_modules</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span>
-        <span class="p">)</span>
-
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
     <span class="n">adapter_cls</span> <span class="o">=</span> <span class="n">DoRALinear</span> <span class="k">if</span> <span class="n">use_dora</span> <span class="k">else</span> <span class="n">LoRALinear</span>
     <span class="n">q_proj</span> <span class="o">=</span> <span class="p">(</span>
