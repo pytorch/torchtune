@@ -642,6 +642,7 @@
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
     <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">stack_on_new_dim</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">cp_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences to the longest sequence length in the batch, and</span>
 <span class="sd">    convert integer lists to tensors.</span>
@@ -653,6 +654,7 @@
 <span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
 <span class="sd">            This is useful for proper sharding with e.g. SequenceParallel.</span>
 <span class="sd">        stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False</span>
+<span class="sd">        cp_degree (int): If &gt; 1, adds input_pos to the batch dict. This is useful for selecting right RoPE embeddings.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict[str, torch.Tensor]: Collated input and label tensors.</span>
@@ -711,6 +713,11 @@
             <span class="n">value</span><span class="o">=</span><span class="n">ignore_idx</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span>
+    <span class="k">if</span> <span class="n">cp_degree</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_tokens</span> <span class="o">=</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_tokens</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_pos</span>
+
     <span class="k">if</span> <span class="s2">&quot;encoder_input&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
         <span class="n">batched_encodings</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_dim</span><span class="o">=</span><span class="n">stack_on_new_dim</span><span class="p">)</span>

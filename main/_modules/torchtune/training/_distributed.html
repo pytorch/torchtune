@@ -620,7 +620,9 @@
 <span class="sd">        Ref: https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ShardingStrategy</span><span class="p">:</span>
@@ -1256,6 +1258,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">get_context_parallel_manager</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">rotate_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;allgather&quot;</span><span class="p">,</span>
     <span class="n">world_mesh</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">DeviceMesh</span><span class="p">,</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]:</span>
@@ -1266,6 +1269,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        enabled (bool): Whether context parallel is enabled. Default: False</span>
+<span class="sd">        rotate_method (str): Method to use for rotating the sequence dimension. Default: &quot;allgather&quot;.</span>
 <span class="sd">        world_mesh (torch.distributed.DeviceMesh): Global device mesh.</span>
 <span class="sd">        model (TransformerDecoder): Model to apply context parallelism to.</span>
 
@@ -1302,7 +1306,6 @@
     <span class="c1"># remove this once flex is supported</span>
     <span class="k">if</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">layer</span><span class="o">.</span><span class="n">mask_mod</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">]):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Context parallel with flex attention is not yet supported&quot;</span><span class="p">)</span>
-    <span class="n">model_buffers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">buffers</span><span class="p">())</span>
 
     <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">context</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>
@@ -1313,11 +1316,11 @@
                 <span class="s2">&quot;Context parallel with flex attention is not yet supported&quot;</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">enabled</span><span class="p">:</span>
-            <span class="n">set_rotate_method</span><span class="p">(</span><span class="s2">&quot;allgather&quot;</span><span class="p">)</span>
+            <span class="n">set_rotate_method</span><span class="p">(</span><span class="n">rotate_method</span><span class="p">)</span>
             <span class="n">cp_context</span> <span class="o">=</span> <span class="n">context_parallel</span><span class="p">(</span>
                 <span class="n">world_mesh</span><span class="p">[</span><span class="s2">&quot;cp&quot;</span><span class="p">],</span>
-                <span class="n">buffers</span><span class="o">=</span><span class="n">model_inputs</span> <span class="o">+</span> <span class="n">model_buffers</span><span class="p">,</span>
-                <span class="n">buffer_seq_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_buffers</span><span class="p">),</span>
+                <span class="n">buffers</span><span class="o">=</span><span class="n">model_inputs</span><span class="p">,</span>
+                <span class="n">buffer_seq_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">),</span>
                 <span class="n">no_restore_buffers</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">),</span>
             <span class="p">)</span>
 
