@@ -461,10 +461,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Double check we have the right Eval Harness version
         from importlib.metadata import version
 
-        if version("lm-eval") < "0.4.5":
+        if version("lm-eval") < "0.4.5" or version("lm-eval") > "0.4.8":
             raise RuntimeError(
-                "This recipe requires EleutherAI Eval Harness v0.4.5 or higher. "
-                "Please install with `pip install lm-eval>=0.4.5`"
+                "This recipe requires EleutherAI Eval Harness between v0.4.5 - 0.4.8."
+                "Please install with `pip install lm-eval==0.4.8`"
             )
 
         # General variable initialization

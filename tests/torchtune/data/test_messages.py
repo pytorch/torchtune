@@ -579,7 +579,7 @@ class TestShareGPTToMessages:
                 column_map={"bananas": "maybe_conversations"},
             )
 
-    @mock.patch("torchtune.data._messages.load_image")
+    @mock.patch("torchtune.data._utils.load_image")
     def test_image_only_in_first_user_message(self, mock_load_image):
         mock_load_image.return_value = Image.new(mode="RGB", size=(4, 4))
         sample = {
@@ -675,7 +675,7 @@ class TestOpenAIToMessages:
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
 
-    @mock.patch("torchtune.data._messages.load_image")
+    @mock.patch("torchtune.data._utils.load_image")
     @pytest.mark.parametrize(
         "masking_strategy, is_multimodal, expected_message",
         [
@@ -745,7 +745,7 @@ class TestOpenAIToMessages:
                 column_map={"bananas": "maybe_messages"},
             )
 
-    @mock.patch("torchtune.data._messages.load_image")
+    @mock.patch("torchtune.data._utils.load_image")
     def test_convert_from_openai_content(self, mock_load_image):
         test_img = Image.new(mode="RGB", size=(4, 4))
         mock_load_image.return_value = test_img
@@ -759,7 +759,7 @@ class TestOpenAIToMessages:
         ]
         mock_load_image.assert_called_once_with("https://example.com")
 
-    @mock.patch("torchtune.data._messages.load_image")
+    @mock.patch("torchtune.data._utils.load_image")
     def test_call_image_messages(self, mock_load_image):
         test_img = Image.new(mode="RGB", size=(4, 4))
         mock_load_image.return_value = test_img

@@ -127,7 +127,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         ValueError: If world_size is 1
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
-        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA or XPU.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
@@ -154,11 +154,43 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._is_rank_zero = self.rank == 0
 
+        self.tp_degree = cfg.get("tensor_parallel_dim", 1)
+        assert (
+            self.tp_degree == 1
+        ), "Tensor parallelism is not supported in this recipe. Please set tensor_parallel_dim to 1."
+
+        self.cp_degree = cfg.get("context_parallel_dim", 1)
+        self.context_parallel_rotate_method = cfg.get(
+            "context_parallel_rotate_method", "allgather"
+        )
+        data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
+        data_replicate = cfg.get("data_parallel_replicate_dim", 1)
+
+        # Set up n-d device mesh
+        self.parallel_dims = training.ParallelDims(
+            dp_replicate=data_replicate,
+            dp_shard=data_shard,
+            tp=self.tp_degree,
+            cp=self.cp_degree,
+            world_size=self.world_size,
+        )
+        self.world_mesh = self.parallel_dims.build_mesh(device_type=cfg.device)
+        if self.parallel_dims.dp_enabled:
+            dp_mesh = self.world_mesh["dp"]
+            self.dp_degree, self.dp_rank = (
+                dp_mesh.size(),
+                dp_mesh.get_local_rank(),
+            )
+        else:
+            self.dp_degree, self.dp_rank = 1, 0
+
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
+
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         if (
             self._log_peak_memory_stats
@@ -202,9 +234,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             "enable_activation_offloading", False
         )
         if self._enable_activation_offloading:
-            if self._device.type != "cuda":
+            if self._device.type != "cuda" and self._device.type != "xpu":
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
+                    "enable_activation_offloading should only be True when training on CUDA or XPU"
                 )
             if not self._enable_activation_checkpointing:
                 raise RuntimeError(
@@ -385,6 +417,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        self.checkpoint_dir_prefix = ""
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
+
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -470,6 +509,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
+
+        if self.cp_degree > 1:
+            utils.log_rank_zero(
+                self._logger,
+                f"CP is enabled with degree {self.cp_degree} and rotate method {self.context_parallel_rotate_method}.",
+            )
         init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
@@ -485,19 +530,28 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        # For FSDP sharding
-        fsdp_shard_conditions = [
-            partial(
-                training.get_shard_conditions,
-                names_to_match=custom_sharded_layers,
+        # Apply Fully Sharded Data Parallelism to the model
+        if self.parallel_dims.dp_shard_enabled or self.parallel_dims.cp_enabled:
+            # For FSDP sharding
+            fsdp_shard_conditions = [
+                partial(
+                    training.get_shard_conditions,
+                    names_to_match=custom_sharded_layers,
+                )
+            ]
+
+            if self.parallel_dims.dp_replicate_enabled:
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard_cp")
+            else:
+                dp_mesh_dim_names = ("dp_shard_cp",)
+
+            training.shard_model(
+                model=model,
+                shard_conditions=fsdp_shard_conditions,
+                cpu_offload=fsdp_cpu_offload,
+                reshard_after_forward=reshard_after_forward,
+                dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
-        ]
-        training.shard_model(
-            model=model,
-            shard_conditions=fsdp_shard_conditions,
-            cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=reshard_after_forward,
-        )
 
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
@@ -548,6 +602,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
+        )
+
+        # context parallel
+        self.context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            rotate_method=self.context_parallel_rotate_method,
+            world_mesh=self.world_mesh,
+            model=model,
         )
 
         # log
@@ -624,8 +686,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         sampler = StatefulDistributedSampler(
             ds,
-            num_replicas=self.world_size,
-            rank=self.rank,
+            num_replicas=self.dp_degree,
+            rank=self.dp_rank,
             shuffle=shuffle,
         )
         dataloader = StatefulDataLoader(
@@ -637,6 +699,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
+                    cp_degree=self.cp_degree,
+                    pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
                 else padded_collate_packed
@@ -650,6 +714,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        full_tensors: bool,
     ) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -664,6 +729,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             epoch=epoch,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
+            full_tensors=full_tensors,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def train(self) -> None:
@@ -699,18 +766,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
-                # Calculate the number of unmasked tokens in the current batch
-                # and increment the total number of tokens seen in the step
-                current_num_tokens = (
-                    batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
-                num_tokens += current_num_tokens
+                with self.context_parallel_manager(list(batch.values())):
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+                    num_tokens += current_num_tokens
 
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
-                running_loss += current_loss
-                current_loss.backward()
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    current_loss = self._loss_step(batch) * current_num_tokens
+                    running_loss += current_loss
+                    current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -786,6 +854,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
+                    # If not last checkpoint
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and curr_epoch != self.total_epochs - 1
+                    ):
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Run validation after gradient update
                     if (
                         self._run_val_every_n_steps is not None
@@ -800,9 +875,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model

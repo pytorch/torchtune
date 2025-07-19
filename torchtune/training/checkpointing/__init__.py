@@ -27,6 +27,7 @@ from torchtune.training.checkpointing._utils import (
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
+    VAL_DATALOADER_KEY,
 )
 
 Checkpointer = Union[
@@ -57,4 +58,5 @@ __all__ = [
     "TOTAL_EPOCHS_KEY",
     "FormattedCheckpointFiles",
     "DATALOADER_KEY",
+    "VAL_DATALOADER_KEY",
 ]

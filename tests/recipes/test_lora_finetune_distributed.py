@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -31,7 +32,6 @@ from torchtune import config
 from torchtune.training.checkpointing._utils import (
     ADAPTER_MODEL_FNAME,
     get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
     safe_torch_load,
     SHARD_FNAME,
 )
@@ -172,9 +172,15 @@ class TestLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        shutil.rmtree((tmpdir / "epoch_1"))
+
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        if ckpt_type == "hf":
+            rc_path = "recipe_state.pt"
+        else:
+            rc_path = os.path.join(epoch_folder, "recipe_state.pt")
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {config} \
@@ -184,10 +190,10 @@ class TestLoRAFinetuneDistributedRecipe:
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
-            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_dir={tmpdir / epoch_folder} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")} \
+            checkpointer.recipe_checkpoint={rc_path} \
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
@@ -204,7 +210,7 @@ class TestLoRAFinetuneDistributedRecipe:
 
         expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
 
-        loss_values = get_loss_values_from_metric_logger(log_file)
+        loss_values = get_loss_values_from_metric_logger(log_file)[2:]
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
@@ -274,6 +280,8 @@ class TestLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        shutil.rmtree((tmpdir / "epoch_1"))
+
         # Resume training
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
@@ -301,7 +309,7 @@ class TestLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values(model_type)[2:]
+        expected_loss_values = self._fetch_expected_loss_values(model_type)
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(

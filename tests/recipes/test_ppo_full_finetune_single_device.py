@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-
 import runpy
 import sys
 from pathlib import Path
@@ -16,23 +15,18 @@ from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
     dummy_text_completion_alpaca_dataset_config,
-    llama2_classifier_test_config,
-    llama2_test_config,
-    write_hf_ckpt_config,
+    MODEL_TEST_CONFIGS,
+    write_llama3_hf_ckpt_config,
 )
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
     gpu_test,
-    mps_ignored_test,
+    TOKENIZER_PATHS,
 )
 
-from torchtune.training.checkpointing._utils import (
-    get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
-    SHARD_FNAME,
-)
+from torchtune.training.checkpointing._utils import get_largest_iter_folder, SHARD_FNAME
 
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
@@ -48,8 +42,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "enable_activation_offloading=False",
-            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "tokenizer._component_=torchtune.models.llama2.llama2_tokenizer",
+            f"tokenizer.path={TOKENIZER_PATHS['llama3']}",
+            "tokenizer._component_=torchtune.models.llama3.llama3_tokenizer",
             "tokenizer.prompt_template=null",
             "tokenizer.max_seq_len=64",
             "seed=9",
@@ -61,89 +55,54 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
 
-    # Unfortunately we get different values on different hardware.
-    # This is a hack to allow us to run CI on T4s/A10Gs and still run tests locally
-    def _get_expected_loss_values(self, device_capability):
-        if device_capability == (7, 5):
-            return [
-                1.0030436515808105,
-                0.9150941967964172,
-                0.8794946074485779,
-                1.0626529455184937,
-                0.964613676071167,
-                0.980392575263977,
-                1.0056356191635132,
-                0.9202911853790283,
-                0.8534448146820068,
-                1.045704960823059,
-                0.9574834704399109,
-                0.8822144865989685,
-            ]
-        elif device_capability == (8, 6):
-            return [
-                1.0133672952651978,
-                0.924409806728363,
-                0.8895752429962158,
-                1.0592315196990967,
-                0.9643043279647827,
-                0.9492722153663635,
-                1.0353240966796875,
-                0.9405008554458618,
-                0.9482318758964539,
-                1.0426965951919556,
-                0.945842981338501,
-                0.9685366153717041,
-            ]
-        elif device_capability == (9, 0):
-            return [
-                1.0266655683517456,
-                0.9376769661903381,
-                0.8898855447769165,
-                1.0626059770584106,
-                0.966614842414856,
-                0.9599114656448364,
-                1.0275567770004272,
-                0.9341378211975098,
-                0.9341893196105957,
-                1.0539714097976685,
-                0.9588900208473206,
-                0.950813889503479,
-            ]
-        else:
-            raise ValueError("Unsupported device")
+    # these values are for our current CI machines which use A10s
+    def _get_expected_loss_values(self):
+        return [
+            1.1089695692062378,
+            1.0091122388839722,
+            0.9985737800598145,
+            1.076175570487976,
+            0.9825485348701477,
+            0.9362708926200867,
+            1.0785716772079468,
+            0.9799201488494873,
+            0.9865158200263977,
+            1.0669920444488525,
+            0.976087749004364,
+            0.9090427756309509,
+        ]
 
     @pytest.mark.integration_test
     @pytest.mark.skipif(
         not torch.cuda.is_available()
-        or torch.cuda.get_device_capability() not in ((7, 5), (8, 6), (9, 0)),
+        or torch.cuda.get_device_capability() not in ((8, 6)),
         reason="Unexpected device type",
     )
-    @mps_ignored_test()
     @gpu_test(gpu_count=1)
     def test_loss(self, tmpdir, monkeypatch):
-        reward_ckpt = "llama2_reward_hf"
-        policy_ckpt = "llama2_hf"
-        reward_ckpt_path = Path(CKPT_MODEL_PATHS[reward_ckpt])
-        policy_ckpt_path = Path(CKPT_MODEL_PATHS[policy_ckpt])
+        reward_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_reward_hf"])
+        policy_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_tune"])
 
         ckpt_dir = policy_ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         policy_tmpdir = (tmpdir / "policy").mkdir()
         value_tmpdir = (tmpdir / "value").mkdir()
 
-        write_hf_ckpt_config(ckpt_dir)
+        write_llama3_hf_ckpt_config(ckpt_dir)
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
+            ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
@@ -156,17 +115,13 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS["llama3"]
         model_config = [k.replace("model.", "policy_model.") for k in model_config]
-        model_config += ["policy_model.intermediate_dim=null"]
 
-        reward_and_value_model_config = llama2_classifier_test_config()
+        reward_and_value_model_config = MODEL_TEST_CONFIGS["llama3_classifier"]
         reward_and_value_model_config = [
             k.replace("model.", "reward_and_value_model.")
             for k in reward_and_value_model_config
-        ]
-        reward_and_value_model_config += [
-            "reward_and_value_model.intermediate_dim=null"
         ]
         cmd_1 = (
             cmd_1
@@ -181,9 +136,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
 
-        expected_loss_values = self._get_expected_loss_values(
-            torch.cuda.get_device_capability()
-        )
+        expected_loss_values = self._get_expected_loss_values()
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
@@ -193,10 +146,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state correctly saved and restored after training."""
 
-        reward_ckpt = "llama2_reward_hf"
-        policy_ckpt = "llama2_hf"
-        reward_ckpt_path = Path(CKPT_MODEL_PATHS[reward_ckpt])
-        policy_ckpt_path = Path(CKPT_MODEL_PATHS[policy_ckpt])
+        reward_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_reward_hf"])
+        policy_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_tune"])
 
         ckpt_dir = policy_ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -205,9 +156,9 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(policy_tmpdir)
-        write_hf_ckpt_config(value_tmpdir)
+        write_llama3_hf_ckpt_config(ckpt_dir)
+        write_llama3_hf_ckpt_config(policy_tmpdir)
+        write_llama3_hf_ckpt_config(value_tmpdir)
 
         # There are 4 steps in total (num_steps / batch size)
         # and the dataset has 8 samples, so each epoch will be 2 batches
@@ -218,14 +169,16 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
+            ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
@@ -238,17 +191,13 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             metric_logger.filename={log_file} \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS["llama3"]
         model_config = [k.replace("model.", "policy_model.") for k in model_config]
-        model_config += ["policy_model.intermediate_dim=null"]
 
-        reward_and_value_model_config = llama2_classifier_test_config()
+        reward_and_value_model_config = MODEL_TEST_CONFIGS["llama3_classifier"]
         reward_and_value_model_config = [
             k.replace("model.", "reward_and_value_model.")
             for k in reward_and_value_model_config
-        ]
-        reward_and_value_model_config += [
-            "reward_and_value_model.intermediate_dim=null"
         ]
         cmd_1 = (
             cmd_1
@@ -269,26 +218,31 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        policy_suffix = ".bin"
+        policy_model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + policy_suffix
         )
+        value_model_ckpt_fname = "model.safetensors"
+
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir='{policy_tmpdir}/epoch_0' \
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
+            ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, value_model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -327,10 +281,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         This is identical to ``test_training_state_on_resume``, but adds optimizer_in_bwd.
         """
 
-        reward_ckpt = "llama2_reward_hf"
-        policy_ckpt = "llama2_hf"
-        reward_ckpt_path = Path(CKPT_MODEL_PATHS[reward_ckpt])
-        policy_ckpt_path = Path(CKPT_MODEL_PATHS[policy_ckpt])
+        reward_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_reward_hf"])
+        policy_ckpt_path = Path(CKPT_MODEL_PATHS["llama3_tune"])
 
         ckpt_dir = policy_ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -339,21 +291,23 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
-        write_hf_ckpt_config(ckpt_dir)
-        write_hf_ckpt_config(policy_tmpdir)
-        write_hf_ckpt_config(value_tmpdir)
+        write_llama3_hf_ckpt_config(ckpt_dir)
+        write_llama3_hf_ckpt_config(policy_tmpdir)
+        write_llama3_hf_ckpt_config(value_tmpdir)
         cmd_1 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{policy_ckpt_path}]\
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
+            ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{reward_ckpt_path}]\
@@ -368,18 +322,15 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             optimizer_in_bwd=True
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS["llama3"]
         model_config = [k.replace("model.", "policy_model.") for k in model_config]
-        model_config += ["policy_model.intermediate_dim=null"]
 
-        reward_and_value_model_config = llama2_classifier_test_config()
+        reward_and_value_model_config = MODEL_TEST_CONFIGS["llama3_classifier"]
         reward_and_value_model_config = [
             k.replace("model.", "reward_and_value_model.")
             for k in reward_and_value_model_config
         ]
-        reward_and_value_model_config += [
-            "reward_and_value_model.intermediate_dim=null"
-        ]
+
         cmd_1 = (
             cmd_1
             + self._get_test_config_overrides()
@@ -399,26 +350,31 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        policy_suffix = ".bin"
+        policy_model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + policy_suffix
         )
+        value_model_ckpt_fname = "model.safetensors"
+
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir='{policy_tmpdir}/epoch_0' \
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}] \
+            checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")} \
             checkpointer.output_dir={policy_tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=LLAMA3 \
 
+            ref_policy_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
+            ref_policy_checkpointer.model_type=LLAMA3 \
 
             value_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, value_model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
