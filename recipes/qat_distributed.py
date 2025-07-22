@@ -172,6 +172,9 @@ class QATRecipeDistributed(FTRecipeInterface):
             # DTensor does not support grouped_mm yet
             moe_utils.use_grouped_mm = False
         self.cp_degree = cfg.get("context_parallel_dim", 1)
+        self.context_parallel_rotate_method = cfg.get(
+            "context_parallel_rotate_method", "allgather"
+        )
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -216,6 +219,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self._fake_quant_after_n_steps = cfg.get("fake_quant_after_n_steps", None)
         self._quantizer_mode = None
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
         if self._run_val_every_n_steps is not None:
@@ -484,6 +488,12 @@ class QATRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
+
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
@@ -667,7 +677,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         model = quantizer.prepare(model)
 
         # Apply Fully Sharded Data Parallelism to the model
-        if self.parallel_dims.dp_shard_enabled:
+        if self.parallel_dims.dp_shard_enabled or self.parallel_dims.cp_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
@@ -676,9 +686,9 @@ class QATRecipeDistributed(FTRecipeInterface):
             ]
 
             if self.parallel_dims.dp_replicate_enabled:
-                dp_mesh_dim_names = ("dp_replicate", "dp_shard")
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard_cp")
             else:
-                dp_mesh_dim_names = ("dp_shard",)
+                dp_mesh_dim_names = ("dp_shard_cp",)
 
             training.shard_model(
                 model=model,
@@ -711,6 +721,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         # context parallel
         self.context_parallel_manager = training.get_context_parallel_manager(
             enabled=self.cp_degree > 1,
+            rotate_method=self.context_parallel_rotate_method,
             world_mesh=self.world_mesh,
             model=model,
         )
@@ -830,6 +841,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
+                    cp_degree=self.cp_degree,
                     pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
@@ -840,6 +852,29 @@ class QATRecipeDistributed(FTRecipeInterface):
         )
 
         return dataloader
+
+    def save_checkpoint(
+        self,
+        epoch: int,
+        full_tensors: bool,
+    ) -> None:
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=(
+                self._optimizer
+                if not self._optimizer_in_bwd
+                else self._optim_ckpt_wrapper
+            ),
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+                dataloader_state_dict=self._dataloader.state_dict(),
+            ),
+            epoch=epoch,
+            full_tensors=full_tensors,
+        )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
@@ -944,16 +979,15 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
-                # Calculate the number of unmasked tokens in the current batch
-                # and increment the total number of tokens seen in the step
-                current_num_tokens = (
-                    batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
-                num_tokens += current_num_tokens
-
                 with self.train_context(
                     self.context_parallel_manager(list(batch.values()))
                 ):
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    current_num_tokens = (
+                        batch["labels"] != self._loss_fn.ignore_index
+                    ).sum()
+                    num_tokens += current_num_tokens
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
                     current_loss = self._loss_step(batch) * current_num_tokens
@@ -1073,24 +1107,18 @@ class QATRecipeDistributed(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-            self._checkpoint_client.save_checkpoint(
-                model=self._model,
-                optimizer=(
-                    self._optimizer
-                    if not self._optimizer_in_bwd
-                    else self._optim_ckpt_wrapper
-                ),
-                training_progress=TrainingProgress(
-                    seed=self.seed,
-                    epochs_run=self.epochs_run,
-                    total_epochs=self.total_epochs,
-                    max_steps_per_epoch=self.max_steps_per_epoch,
-                    dataloader_state_dict=self._dataloader.state_dict(),
-                ),
-                epoch=curr_epoch,
-            )
+
+            # If not last checkpoint
+            if (
+                self.global_step % self.save_every_n_steps == 0
+                and curr_epoch != self.total_epochs - 1
+            ):
+                self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
         self._profiler.stop()
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

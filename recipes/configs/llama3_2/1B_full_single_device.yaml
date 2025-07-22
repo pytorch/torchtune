@@ -35,18 +35,16 @@ tokenizer:
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
-seed: null
+seed: 123
 shuffle: True
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
-  checkpoint_files: [
-    model.safetensors
-  ]
-  recipe_checkpoint: null
+  checkpoint_files: [model.safetensors]
   output_dir: ${output_dir}
   model_type: LLAMA3_2
+  keep_last_n_checkpoints: 2
 resume_from_checkpoint: False
 
 # Fine-tuning arguments

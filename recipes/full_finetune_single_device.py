@@ -145,6 +145,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self.optimizer_in_bwd = cfg.optimizer_in_bwd
@@ -198,44 +199,38 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
-        """
-        Updates the recipe state from checkpoint.
-        """
-        try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+        """Updates the recipe state from checkpoint."""
+        self.global_step = ckpt_dict[training.STEPS_KEY]
+        self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
-            # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[training.SEED_KEY]:
-                warn(
-                    message=(
-                        "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
-                    )
+        # Warn the user and prevent the override
+        if self.seed != ckpt_dict[training.SEED_KEY]:
+            warn(
+                message=(
+                    "Config value for seed does not match the checkpoint value, "
+                    f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                 )
-                self.seed = ckpt_dict[training.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
-                warn(
-                    message=(
-                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
-                    )
-                )
-                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
+            )
+            self.seed = ckpt_dict[training.SEED_KEY]
 
-            # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
-                warn(
-                    message=(
-                        "Config value for total_epochs does not match the checkpoint value, "
-                        f"using the config value: {self.total_epochs}"
-                    )
+        # Warn the user and prevent the override
+        if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
+            warn(
+                message=(
+                    "Config value for max_steps_per_epoch does not match the checkpoint value, "
+                    f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                 )
+            )
+            self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
-        except KeyError as e:
-            raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state. "
-                "Are you sure you passed in the right recipe checkpoint?"
-            ) from e
+        # warn the user but *allow* the override
+        if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
+            warn(
+                message=(
+                    "Config value for total_epochs does not match the checkpoint value, "
+                    f"using the config value: {self.total_epochs}"
+                )
+            )
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -243,11 +238,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         on the ``resume_from_checkpoint`` flag.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
-
         # log config with parameter override
         self._metric_logger.log_config(cfg)
 
-        ckpt_dict = self._checkpoint_client.load_base_checkpoint()
+        state_dict = self._checkpoint_client.load_base_checkpoint()
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -262,7 +256,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             compile_model=self._compile,
-            model_state_dict=ckpt_dict[training.MODEL_KEY],
+            model_state_dict=state_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         self._logger.info("Tokenizer is initialized from file.")
@@ -275,38 +269,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
-                ckpt_dict[training.OPT_KEY] if training.OPT_KEY in ckpt_dict else None
+                state_dict[training.OPT_KEY] if training.OPT_KEY in state_dict else None
             ),
         )
-
-        if self._resume_from_checkpoint:
-            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
-            # using the DistributedCheckpointer.
-            # Therefore the recipe needs to load the distributed checkpoint to restore the training
-            # progress.
-            if self._enable_async_checkpointing:
-                try:
-                    ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
-                        self._model,
-                        self.optimizer,
-                        single_device=True,
-                    )
-                except Exception as e:
-                    self._logger.warning(
-                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
-                    )
-
-            # Update the recipe state from the checkpoint state dict.
-            self._update_recipe_state(ckpt_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
         if isinstance(self._loss_fn, SFTLoss):
             self._loss_fn.set_model_output(self._model)
-
         if self._compile:
             training.compile_loss(self._loss_fn)
-
         self._logger.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -317,7 +289,26 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
+            dataloader_state_dict=state_dict.get(training.DATALOADER_KEY, None),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                try:
+                    state_dict = self._checkpoint_client.load_distributed_checkpoint(
+                        self._model,
+                        self.optimizer,
+                        dataloader=self._dataloader,
+                    )
+                except Exception as e:
+                    self._logger.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
+            self._update_recipe_state(state_dict)
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -334,7 +325,19 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
+
+        # For now, default to saving at epoch boundaries
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
+
+        if (
+            self._resume_from_checkpoint
+            and self.global_step % self._steps_per_epoch == 0
+        ):
+            list(self._dataloader)
 
         # Setup lr scheduler if a component is included in the config
         lr_scheduler_cfg = cfg.get("lr_scheduler", None)
@@ -467,6 +470,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -512,26 +516,34 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, *, epoch: int, step: int, full_tensors: bool) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
+        # Since we might save at an epoch boundary, we need to increment the epoch counter
+        if step % self._steps_per_epoch == 0:
+            epoch += 1
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self.optimizer,
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=self.epochs_run,
+                epochs_run=epoch,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
+                steps_run=step,
+                total_training_steps=self.total_epochs * self._steps_per_epoch,
             ),
             epoch=epoch,
             single_device=True,
+            full_tensors=full_tensors,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -561,15 +573,32 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._profiler.start()
 
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            pbar = tqdm(total=self._steps_per_epoch)
-            self._dataloader.sampler.set_epoch(curr_epoch)
+            inner_step_count = self.global_step % self._steps_per_epoch
+            pbar = tqdm(
+                initial=inner_step_count,
+                total=self._steps_per_epoch,
+                desc=f"{self.epochs_run}|{self.global_step}",
+            )
 
-            for idx, batch in enumerate(self._dataloader):
-                # Optionally start memory profiling
+            # Get iterator for the dataloader
+            self._dataloader.sampler.set_epoch(curr_epoch)
+            dataloader_iter = iter(self._dataloader)
+            batch_count = 0
+
+            # Continue looping until we reach max steps or exhaust the dataset
+            while inner_step_count < self._steps_per_epoch:
+                # Try to get the next batch, break if we've reached the end of the dataset
+                try:
+                    batch = next(dataloader_iter)
+                except StopIteration:
+                    break
+
+                # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
-                    and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    and batch_count
+                    == self.profiler_wait_steps + self.profiler_warmup_steps
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
@@ -588,10 +617,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 current_loss.backward()
 
                 # Take a normal optimizer step
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if (batch_count + 1) % self._gradient_accumulation_steps == 0:
                     grad_norm = None
                     if not self.optimizer_in_bwd:
-                        training.scale_grads(self._model, 1.0 / num_tokens)
+                        training.scale_grads_(
+                            self._model.parameters(), 1.0 / num_tokens
+                        )
                         if self._clip_grad_norm:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(), float(self._clip_grad_norm)
@@ -605,6 +636,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.lr_scheduler.step()
 
                     self.global_step += 1
+                    inner_step_count += 1
                     loss_value = (
                         running_loss
                         / (num_tokens if not self.optimizer_in_bwd else 1.0)
@@ -627,6 +659,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             log_dict["grad_norm"] = grad_norm
                         self._metric_logger.log_dict(log_dict, step=self.global_step)
 
+                    # Save checkpoint if specified by user
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(
+                            epoch=curr_epoch, step=self.global_step, full_tensors=False
+                        )
+
                     running_loss, num_tokens = 0.0, 0
                     t0 = time.perf_counter()
 
@@ -634,7 +672,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
-                    and idx
+                    and batch_count
                     == self.profiler_wait_steps
                     + self.profiler_warmup_steps
                     + self.profiler_active_steps
@@ -643,16 +681,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history(enabled=None)
 
                 self._profiler.step()
-
-                if (
-                    (idx + 1) // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
+                batch_count += 1
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(
+            epoch=self.total_epochs - 1, step=self.global_step, full_tensors=True
+        )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

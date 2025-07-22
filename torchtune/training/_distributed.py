@@ -171,7 +171,9 @@ class ParallelDims:
         Ref: https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
 
         """
-        return 2 * self.tp * self.cp
+        if self.cp > 1:
+            return 2 * self.tp * self.cp
+        return self.tp
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -807,6 +809,7 @@ def _get_sdpa_context() -> (
 def get_context_parallel_manager(
     *,
     enabled: bool = False,
+    rotate_method: str = "allgather",
     world_mesh: torch.distributed.DeviceMesh,
     model: TransformerDecoder,
 ) -> Callable[[list[torch.Tensor]], Generator[None, None, None]]:
@@ -817,6 +820,7 @@ def get_context_parallel_manager(
 
     Args:
         enabled (bool): Whether context parallel is enabled. Default: False
+        rotate_method (str): Method to use for rotating the sequence dimension. Default: "allgather".
         world_mesh (torch.distributed.DeviceMesh): Global device mesh.
         model (TransformerDecoder): Model to apply context parallelism to.
 
@@ -853,7 +857,6 @@ def get_context_parallel_manager(
     # remove this once flex is supported
     if enabled and any([layer.mask_mod is not None for layer in model.layers]):
         raise ValueError("Context parallel with flex attention is not yet supported")
-    model_buffers = list(model.buffers())
 
     @contextlib.contextmanager
     def context(model_inputs: list[torch.Tensor]):
@@ -864,11 +867,11 @@ def get_context_parallel_manager(
                 "Context parallel with flex attention is not yet supported"
             )
         if enabled:
-            set_rotate_method("allgather")
+            set_rotate_method(rotate_method)
             cp_context = context_parallel(
                 world_mesh["cp"],
-                buffers=model_inputs + model_buffers,
-                buffer_seq_dims=[1] * len(model_inputs) + [0] * len(model_buffers),
+                buffers=model_inputs,
+                buffer_seq_dims=[1] * len(model_inputs),
                 no_restore_buffers=set(model_inputs),
             )
 
