@@ -396,15 +396,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 state_dict[training.OPT_KEY] if training.OPT_KEY in state_dict else None
             ),
         )
-        if self._compile_optimizer_step:
-            if self._optimizer_in_bwd:
-                raise ValueError(
-                    "optimizer_in_bwd not supported with compiling the optimizer step"
-                )
-            self._optimizer.step = torch.compile(
-                self._optimizer.step,
-                backend=self._compile_backend,
-            )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -494,6 +485,23 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
+        if self._compile_optimizer_step:
+            if self._optimizer_in_bwd:
+                raise ValueError(
+                    "optimizer_in_bwd not supported with compiling the optimizer step"
+                )
+            if self._lr_scheduler is not None:
+                # Pytorch bug https://github.com/pytorch/pytorch/issues/126514
+                warn(
+                    message=(
+                        "If you see NaN loss after compiling optimizer step, set min_lr_warmup "
+                        "and min_lr_decay above 0.0 or disable optimizer compilation."
+                    )
+                )
+            self._optimizer.step = torch.compile(
+                self._optimizer.step,
+                backend=self._compile_backend,
+            )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
