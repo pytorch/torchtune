@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import inspect
 import logging
 from typing import Optional
 
@@ -13,6 +14,36 @@ from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
+
+
+def _call_pos_embedding_safely(
+    pos_embedding: nn.Module,
+    x: torch.Tensor,
+    input_pos: Optional[torch.Tensor] = None,
+    window_index: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """
+    Call positional embedding with only the parameters it accepts.
+
+    Args:
+        pos_embedding (nn.Module): The positional embedding module
+        x (torch.Tensor): Input tensor
+        input_pos (Optional[torch.Tensor]): Optional input position tensor
+        window_index (Optional[torch.Tensor]): Optional window index tensor
+
+    Returns:
+        Output tensor from positional embedding
+    """
+    sig = inspect.signature(pos_embedding.forward)
+    kwargs = {}
+
+    # Only add parameters that the method accepts
+    if "input_pos" in sig.parameters:
+        kwargs["input_pos"] = input_pos
+    if "window_index" in sig.parameters:
+        kwargs["window_index"] = window_index
+
+    return pos_embedding(x, **kwargs)
 
 
 class MultiHeadAttention(nn.Module):
@@ -185,6 +216,7 @@ class MultiHeadAttention(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
+        window_index: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -209,6 +241,8 @@ class MultiHeadAttention(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            window_index (Optional[torch.Tensor]): Optional tensor which contains the window index
+                of each token. Default is None.
 
         Raises:
             ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
@@ -239,7 +273,9 @@ class MultiHeadAttention(nn.Module):
 
         # Apply positional embeddings
         if self.pos_embeddings is not None:
-            q = self.pos_embeddings(q, input_pos=input_pos)
+            q = _call_pos_embedding_safely(
+                self.pos_embeddings, q, input_pos, window_index
+            )
 
         # [b, n_h, s_x, h_d]
         q = q.transpose(1, 2)
@@ -267,7 +303,9 @@ class MultiHeadAttention(nn.Module):
             k = k.view(b, s_y, -1, self.head_dim)
             v = v.view(b, s_y, -1, self.head_dim)
             if self.pos_embeddings is not None:
-                k = self.pos_embeddings(k, input_pos=input_pos)
+                k = _call_pos_embedding_safely(
+                    self.pos_embeddings, k, input_pos, window_index
+                )
 
             # k,v shape: [b, n_kv, s_y, h_d]
             k = k.transpose(1, 2)
