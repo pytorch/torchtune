@@ -318,6 +318,9 @@ class _LLMEvalWrapper(HFLM):
         self._batch_size = batch_size
         self._dtype = dtype
         self._enable_kv_cache = enable_kv_cache
+        # Set device explicitely here since HPU is not included in
+        # `device_list` in `HFLM` class
+        self._device = torch.device(device)
 
     @property
     def model(self):
