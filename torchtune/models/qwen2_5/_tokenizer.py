@@ -11,6 +11,7 @@ from torchtune.models.qwen2._tokenizer import (
     ENDOFTEXT,
     QWEN2_SPECIAL_TOKENS,
     Qwen2Tokenizer,
+    IM_END,
 )
 
 
@@ -39,7 +40,7 @@ QWEN2_5_SPECIAL_TOKENS = {
 template = {
     "system":    ("<|im_start|>system\n",    "<|im_end|>\n"),
     "user":      ("<|im_start|>user\n",      "<|im_end|>\n"),
-    "assistant": ("<|im_start|>assistant\n", ""),
+    "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
 }
 prompt_template=PromptTemplate(template=template)
 class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
@@ -98,7 +99,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
-        eos_token: str = ENDOFTEXT,
+        eos_token: str = IM_END,
         pad_token: Optional[str] = ENDOFTEXT,
         bpe_cache_size: int = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     ):
