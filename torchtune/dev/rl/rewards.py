@@ -9,8 +9,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, Union
 
-import math_verify
-
 import torch
 
 from torchtune.modules.transforms.tokenizers import (
@@ -239,6 +237,8 @@ def math_response_correct(
     cot: str, answer: str, potential_answer: str
 ) -> tuple[float, float]:
     """Did it get the right answer?"""
+    import math_verify
+
     if potential_answer is None:
         return 0.0, 0.0  # (reward, success)
     gold = math_verify.parse(answer)
