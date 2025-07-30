@@ -15,8 +15,6 @@ from typing import Any, Optional, Protocol, Union
 import torch
 import torch.distributed as dist
 from fsspec.core import url_to_fs
-from huggingface_hub.serialization import save_torch_state_dict
-from huggingface_hub.serialization._base import MAX_SHARD_SIZE
 from safetensors.torch import save as save_safetensors
 from torch.distributed.checkpoint import (
     async_save,
@@ -741,7 +739,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         adapter_only: bool = False,
         *,
         step: Optional[int] = None,
-        max_shard_size: str = MAX_SHARD_SIZE,
+        max_shard_size: str = "5GB",
         dir_prefix: str = "epoch",
     ) -> None:
         """
@@ -896,6 +894,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     no_dist=True,
                 )
             else:
+                from huggingface_hub.serialization import save_torch_state_dict
+
                 save_torch_state_dict(
                     state_dict[training.MODEL_KEY],
                     ckpt_output_dir,
