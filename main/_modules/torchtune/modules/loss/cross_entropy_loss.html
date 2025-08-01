@@ -519,7 +519,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">output</span></div>
 
 <div class="viewcode-block" id="LinearCrossEntropyLoss.patch_tp_plan"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.patch_tp_plan">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">patch_tp_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp_plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s2">&quot;output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tp_plan</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tp_plan</span> <span class="ow">and</span> <span class="s2">&quot;decoder.output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tp_plan</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;`tp_plan` requires `output` key&quot;</span><span class="p">)</span>
 
         <span class="n">tp_plan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColwiseParallel</span><span class="p">(</span>
