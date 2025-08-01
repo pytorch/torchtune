@@ -72,12 +72,18 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
     def patch_tp_plan(self, tp_plan) -> dict:
         if "output" not in tp_plan and "decoder.output" not in tp_plan:
             raise KeyError("`tp_plan` requires `output` key")
-
-        tp_plan["output"] = ColwiseParallel(
-            input_layouts=Shard(1),
-            output_layouts=Shard(-1),
-            use_local_output=False,
-        )
+        if "output" in tp_plan:
+            tp_plan["output"] = ColwiseParallel(
+                input_layouts=Shard(1),
+                output_layouts=Shard(-1),
+                use_local_output=False,
+            )
+        if "decoder.output" in tp_plan:
+            tp_plan["decoder.output"] = ColwiseParallel(
+                input_layouts=Shard(1),
+                output_layouts=Shard(-1),
+                use_local_output=False,
+            )
         return tp_plan
 
     @property
