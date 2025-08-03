@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Generator, Optional, Union
+from typing import Any, Callable, cast, Generator, Optional
 
 import torch
 import torch.distributed as dist
@@ -171,7 +171,9 @@ class ParallelDims:
         Ref: https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
 
         """
-        return 2 * self.tp * self.cp
+        if self.cp > 1:
+            return 2 * self.tp * self.cp
+        return self.tp
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -785,7 +787,7 @@ def _get_sdpa_context() -> (
     """
 
     @contextlib.contextmanager
-    def context(cp_context: Union[Generator[None, None, None], None] = None):
+    def context(cp_context: Optional[Generator[None, None, None]] = None):
         with contextlib.ExitStack() as stack:
             if cp_context is not None:
                 stack.enter_context(
@@ -807,6 +809,7 @@ def _get_sdpa_context() -> (
 def get_context_parallel_manager(
     *,
     enabled: bool = False,
+    rotate_method: str = "allgather",
     world_mesh: torch.distributed.DeviceMesh,
     model: TransformerDecoder,
 ) -> Callable[[list[torch.Tensor]], Generator[None, None, None]]:
@@ -817,6 +820,7 @@ def get_context_parallel_manager(
 
     Args:
         enabled (bool): Whether context parallel is enabled. Default: False
+        rotate_method (str): Method to use for rotating the sequence dimension. Default: "allgather".
         world_mesh (torch.distributed.DeviceMesh): Global device mesh.
         model (TransformerDecoder): Model to apply context parallelism to.
 
@@ -853,7 +857,6 @@ def get_context_parallel_manager(
     # remove this once flex is supported
     if enabled and any([layer.mask_mod is not None for layer in model.layers]):
         raise ValueError("Context parallel with flex attention is not yet supported")
-    model_buffers = list(model.buffers())
 
     @contextlib.contextmanager
     def context(model_inputs: list[torch.Tensor]):
@@ -864,11 +867,11 @@ def get_context_parallel_manager(
                 "Context parallel with flex attention is not yet supported"
             )
         if enabled:
-            set_rotate_method("allgather")
+            set_rotate_method(rotate_method)
             cp_context = context_parallel(
                 world_mesh["cp"],
-                buffers=model_inputs + model_buffers,
-                buffer_seq_dims=[1] * len(model_inputs) + [0] * len(model_buffers),
+                buffers=model_inputs,
+                buffer_seq_dims=[1] * len(model_inputs),
                 no_restore_buffers=set(model_inputs),
             )
 
@@ -876,6 +879,22 @@ def get_context_parallel_manager(
         sdpa_context = _get_sdpa_context()
 
         with sdpa_context(cp_context):
+            yield
+
+    return context
+
+
+def get_train_context(enable_loss_parallel: bool) -> Generator[None, None, None]:
+    @contextlib.contextmanager
+    def context(cp_context: Optional[Generator[None, None, None]] = None):
+        with contextlib.ExitStack() as stack:
+            if enable_loss_parallel:
+                stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
+
+            # because we create a noop ctx manager, this is never None in actual recipes
+            # leave condition so this can be used separately
+            if cp_context is not None:
+                stack.enter_context(cp_context)
             yield
 
     return context

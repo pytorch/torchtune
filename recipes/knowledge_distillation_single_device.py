@@ -141,6 +141,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         self._checkpoint_client = CheckpointClient(cfg)
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
@@ -163,6 +164,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         try:
             self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self.global_step = ckpt_dict[training.STEPS_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -238,6 +240,18 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             model_state_dict=teacher_checkpoint_dict[training.MODEL_KEY],
         )
 
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        self._logger.info("Tokenizer is initialized from file.")
+
+        self._optimizer = self._setup_optimizer(
+            cfg_optimizer=cfg.optimizer,
+            opt_state_dict=(
+                checkpoint_dict[training.OPT_KEY]
+                if training.OPT_KEY in checkpoint_dict
+                else None
+            ),
+        )
+
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
             # using the DistributedCheckpointer.
@@ -248,7 +262,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     self._model,
                     self._optimizer,
                     self._adapter_config,
-                    self._save_adapter_weights_only,
+                    single_device=True,
                 )
 
             if training.ADAPTER_KEY not in checkpoint_dict:
@@ -258,18 +272,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-
-        self._tokenizer = config.instantiate(cfg.tokenizer)
-        self._logger.info("Tokenizer is initialized from file.")
-
-        self._optimizer = self._setup_optimizer(
-            cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
-        )
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -298,6 +300,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             batch_size=cfg.batch_size,
             shuffle=cfg.shuffle,
+            dataloader_state_dict=checkpoint_dict.get(training.DATALOADER_KEY, None),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -316,6 +319,18 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
+
+        if (
+            self._resume_from_checkpoint
+            and self.global_step % self._steps_per_epoch == 0
+        ):
+            list(self._dataloader)
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -502,6 +517,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -543,20 +559,29 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             drop_last=True,
         )
 
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
+
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, full_tensors: bool) -> None:
+        training_progress_epoch = epoch
+        if self.global_step % self._steps_per_epoch == 0:
+            training_progress_epoch += 1
+
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=self.epochs_run,
+                epochs_run=training_progress_epoch,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
             ),
             epoch=epoch,
+            full_tensors=full_tensors,
+            dir_prefix=self.checkpoint_dir_prefix,
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
@@ -685,6 +710,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # If not last checkpoint
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and curr_epoch != self.total_epochs - 1
+                    ):
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Reset running stats for the next step
                     running_class_loss = 0
                     running_kd_loss = 0
@@ -715,9 +747,11 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

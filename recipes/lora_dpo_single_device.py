@@ -77,7 +77,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA or XPU.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
 
     """
@@ -117,9 +117,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             "enable_activation_offloading", False
         )
         if self._enable_activation_offloading:
-            if self._device.type != "cuda":
+            if self._device.type != "cuda" and self._device.type != "xpu":
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
+                    "enable_activation_offloading should only be True when training on CUDA or XPU"
                 )
             if not self._enable_activation_checkpointing:
                 raise RuntimeError(
@@ -144,6 +144,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
@@ -233,6 +234,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     self._model,
                     self._optimizer,
                     self._adapter_config,
+                    single_device=True,
                 )
 
             if training.ADAPTER_KEY not in checkpoint_dict:
@@ -270,6 +272,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
+
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
+
+        if (
+            self._resume_from_checkpoint
+            and self.global_step % self._steps_per_epoch == 0
+        ):
+            list(self._dataloader)
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -422,7 +436,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, full_tensors: bool) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
@@ -437,6 +451,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
+            full_tensors=full_tensors,
         )
 
     def concatenated_forward(
@@ -579,13 +594,22 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # If not last checkpoint
+                    if (
+                        self.global_step % self.save_every_n_steps == 0
+                        and curr_epoch != self.total_epochs - 1
+                    ):
+                        self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
+
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+
+        # Save final non-distributed ckpt
+        self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

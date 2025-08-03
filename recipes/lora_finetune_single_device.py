@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import hashlib
 import sys
 import time
 
@@ -38,6 +39,17 @@ from torchtune.training.checkpointing._checkpoint_client import (
 )
 
 from tqdm import tqdm
+
+
+def hash_batch(batch):
+    # Assume batch is a dict with 'labels' and data keys like 'input_ids' or 'tokens'
+    h = hashlib.sha256()
+    # Get the main data tensor (input_ids or tokens)
+    data = batch.get("input_ids", batch.get("tokens"))
+    labels = batch["labels"]
+    h.update(data.cpu().numpy().tobytes())
+    h.update(labels.cpu().numpy().tobytes())
+    return h.hexdigest()
 
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -116,7 +128,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA or XPU.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator
 
@@ -138,6 +150,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
+
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
             self._logger.info(
@@ -170,9 +184,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             "enable_activation_offloading", False
         )
         if self._enable_activation_offloading:
-            if self._device.type != "cuda":
+            if self._device.type != "cuda" and self._device.type != "xpu":
                 raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
+                    "enable_activation_offloading should only be True when training on CUDA or XPU"
                 )
             if not self._enable_activation_checkpointing:
                 raise RuntimeError(
@@ -285,6 +299,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self._model,
                     self._optimizer,
                     self._adapter_config,
+                    single_device=True,
                 )
 
             if training.ADAPTER_KEY not in checkpoint_dict:
@@ -331,6 +346,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.global_step = self.epochs_run * self._steps_per_epoch
+
+        self.checkpoint_dir_prefix = ""
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -541,7 +563,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, full_tensors: bool) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
@@ -556,6 +578,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_config=self._adapter_config.copy(),
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
+            full_tensors=full_tensors,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -665,22 +688,29 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         num_tokens = 0
                         t0 = time.perf_counter()
 
-                    # Stop tracking CUDA memory now that active steps are complete
-                    if (
-                        curr_epoch == 0
-                        and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
-                        and self._device.type == "cuda"
-                    ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                        # Stop tracking CUDA memory now that active steps are complete
+                        if (
+                            curr_epoch == 0
+                            and self.profiler_profile_memory
+                            and idx
+                            == self.profiler_wait_steps
+                            + self.profiler_warmup_steps
+                            + self.profiler_active_steps
+                            and self._device.type == "cuda"
+                        ):
+                            torch.cuda.memory._record_memory_history(enabled=None)
 
-                    # Step the profiler
-                    # Note we are stepping each batch, which might not include optimizer step in the trace
-                    # if the schedule cycle doesn't align with gradient accumulation.
-                    prof.step()
+                        # Step the profiler
+                        # Note we are stepping each batch, which might not include optimizer step in the trace
+                        # if the schedule cycle doesn't align with gradient accumulation.
+                        prof.step()
+
+                        # If not last checkpoint
+                        if (
+                            self.global_step % self.save_every_n_steps == 0
+                            and curr_epoch != self.total_epochs - 1
+                        ):
+                            self.save_checkpoint(epoch=curr_epoch, full_tensors=False)
 
                     if (
                         (idx + 1) // self._gradient_accumulation_steps
@@ -688,14 +718,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-                start_save_checkpoint = time.perf_counter()
-                self._logger.info("Starting checkpoint save...")
-                self.save_checkpoint(epoch=curr_epoch)
-                self._logger.info(
-                    "Checkpoint saved in {:.2f} seconds.".format(
-                        time.perf_counter() - start_save_checkpoint
-                    )
+            start_save_checkpoint = time.perf_counter()
+            self._logger.info("Starting checkpoint save...")
+
+            # Save final non-distributed ckpt
+            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
+            self._logger.info(
+                "Checkpoint saved in {:.2f} seconds.".format(
+                    time.perf_counter() - start_save_checkpoint
                 )
+            )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

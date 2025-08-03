@@ -26,11 +26,7 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
-from torchtune.training.checkpointing._utils import (
-    get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
-    SHARD_FNAME,
-)
+from torchtune.training.checkpointing._utils import get_largest_iter_folder, SHARD_FNAME
 
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
@@ -223,23 +219,20 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         policy_suffix = ".bin"
-        value_suffix = ".safetensors"
         policy_model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
             + policy_suffix
         )
-        value_model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
-            + value_suffix
-        )
+        value_model_ckpt_fname = "model.safetensors"
+
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_dir='{policy_tmpdir}/epoch_0' \
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA3 \
 
@@ -358,23 +351,20 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         epoch_folder = get_largest_iter_folder(value_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         policy_suffix = ".bin"
-        value_suffix = ".safetensors"
         policy_model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
             + policy_suffix
         )
-        value_model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
-            + value_suffix
-        )
+        value_model_ckpt_fname = "model.safetensors"
+
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_dir='{policy_tmpdir}/epoch_0' \
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, policy_model_ckpt_fname)}] \
+            checkpointer.recipe_checkpoint={os.path.join(epoch_folder_minus_one, "recipe_state.pt")} \
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA3 \
 
