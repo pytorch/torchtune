@@ -26,6 +26,7 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.loss import SFTLoss
+from recipes.validation import validate_custom_sharding_config
 from torchtune.modules.peft import (
     AdapterModule,
     get_adapter_params,
@@ -530,6 +531,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
+	# Validate custom_sharded_layers configuration
+        validate_custom_sharding_config(
+            self._loss_fn,
+            custom_sharded_layers,
+            parallelism_enabled=self.parallel_dims.dp_shard_enabled or self.parallel_dims.cp_enabled
+        
+	)
+	
         # Apply Fully Sharded Data Parallelism to the model
         if self.parallel_dims.dp_shard_enabled or self.parallel_dims.cp_enabled:
             # For FSDP sharding
