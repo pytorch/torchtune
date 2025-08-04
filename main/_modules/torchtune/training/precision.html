@@ -459,7 +459,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_npu_available</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_hpu_available</span><span class="p">,</span> <span class="n">is_npu_available</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
@@ -518,7 +518,8 @@
     <span class="n">mps_support</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_built</span><span class="p">()</span>
     <span class="n">npu_support</span> <span class="o">=</span> <span class="n">is_npu_available</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">npu</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
     <span class="n">xpu_support</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">xpu</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">xpu</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">cuda_support</span> <span class="ow">or</span> <span class="n">mps_support</span> <span class="ow">or</span> <span class="n">npu_support</span> <span class="ow">or</span> <span class="n">xpu_support</span>
+    <span class="n">hpu_support</span> <span class="o">=</span> <span class="n">is_hpu_available</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">hpu</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cuda_support</span> <span class="ow">or</span> <span class="n">mps_support</span> <span class="ow">or</span> <span class="n">npu_support</span> <span class="ow">or</span> <span class="n">xpu_support</span> <span class="ow">or</span> <span class="n">hpu_support</span>
 
 
 <div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_dtype</span><span class="p">(</span>

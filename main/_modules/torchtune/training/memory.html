@@ -497,7 +497,10 @@
 <span class="sd">    Call gc collect, empty device cache, and reset peak memory stats.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-    <span class="n">get_torch_device_namespace</span><span class="p">()</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_hpu_available</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_hpu_available</span><span class="p">:</span>
+        <span class="n">get_torch_device_namespace</span><span class="p">()</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
     <span class="n">get_torch_device_namespace</span><span class="p">()</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">()</span>
 
 

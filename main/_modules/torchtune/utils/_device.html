@@ -496,6 +496,19 @@
 <span class="n">is_npu_available</span> <span class="o">=</span> <span class="n">is_torch_npu_available</span><span class="p">()</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">is_torch_hpu_available</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check the availability of HPU&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">habana_frameworks.torch</span>  <span class="c1"># noqa: F401</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">hpu</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="n">is_hpu_available</span> <span class="o">=</span> <span class="n">is_torch_hpu_available</span><span class="p">()</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_local_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the local rank from the environment.</span>
 
@@ -527,7 +540,6 @@
     <span class="n">device_type</span> <span class="o">=</span> <span class="n">device_support</span><span class="o">.</span><span class="n">device_type</span>
     <span class="n">device_name</span> <span class="o">=</span> <span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span>
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">get_torch_device_namespace</span><span class="p">()</span>
-
     <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">device_type</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">local_rank</span><span class="p">)</span>
 
@@ -556,6 +568,8 @@
         <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
     <span class="k">elif</span> <span class="n">is_npu_available</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;npu&quot;</span>
+    <span class="k">elif</span> <span class="n">is_hpu_available</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;hpu&quot;</span>
     <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">xpu</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;xpu&quot;</span>
     <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
@@ -620,7 +634,7 @@
     <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">_get_device_type_from_env</span><span class="p">()</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="s2">&quot;npu&quot;</span><span class="p">,</span> <span class="s2">&quot;xpu&quot;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="s2">&quot;npu&quot;</span><span class="p">,</span> <span class="s2">&quot;xpu&quot;</span><span class="p">,</span> <span class="s2">&quot;hpu&quot;</span><span class="p">]:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">_setup_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">_validate_device_from_env</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">device</span></div>
@@ -669,6 +683,7 @@
     <span class="n">NPU</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;npu&quot;</span><span class="p">,</span> <span class="s2">&quot;NPU&quot;</span><span class="p">,</span> <span class="s2">&quot;hccl&quot;</span><span class="p">)</span>
     <span class="n">XPU</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;xpu&quot;</span><span class="p">,</span> <span class="s2">&quot;XPU&quot;</span><span class="p">,</span> <span class="s2">&quot;ccl&quot;</span><span class="p">)</span>
     <span class="n">MPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mps&quot;</span><span class="p">,</span> <span class="s2">&quot;MPS&quot;</span><span class="p">,</span> <span class="s2">&quot;gloo&quot;</span><span class="p">)</span>
+    <span class="n">HPU</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;hpu&quot;</span><span class="p">,</span> <span class="s2">&quot;HPU&quot;</span><span class="p">,</span> <span class="s2">&quot;hccl&quot;</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
