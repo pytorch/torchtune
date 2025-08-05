@@ -180,6 +180,7 @@ def setup_torch_profiler(
     cpu: bool = True,
     cuda: bool = True,
     xpu: bool = True,
+    hpu: bool = False,
     profile_memory: bool = DEFAULT_TRACE_OPTS["profile_memory"],
     with_stack: bool = DEFAULT_TRACE_OPTS["with_stack"],
     record_shapes: bool = DEFAULT_TRACE_OPTS["record_shapes"],
@@ -248,6 +249,7 @@ def setup_torch_profiler(
         cpu (bool): Enable cpu profiling. Default is True.
         cuda (bool): Enable cuda profiling. Default is True.
         xpu (bool): Enable xpu profiling. Default is True.
+        hpu (bool): Enable hpu profiling. Default is False.
         profile_memory (bool): Profile memory usage. Default is False.
         with_stack (bool): Profile stack. Default is False.
         record_shapes (bool): Record shapes. Default is True.
@@ -274,6 +276,8 @@ def setup_torch_profiler(
         activities.append(torch.profiler.ProfilerActivity.CUDA)
     if xpu:
         activities.append(torch.profiler.ProfilerActivity.XPU)
+    if hpu:
+        activities.append(torch.profiler.ProfilerActivity.HPU)
     if len(activities) == 0:
         _warn("No activities specified, defaulting to CPU + CUDA")
         activities = DEFAULT_PROFILER_ACTIVITIES
@@ -371,6 +375,7 @@ def setup_torch_profiler(
             "cpu": cpu,
             "cuda": cuda,
             "xpu": xpu,
+            "hpu": hpu,
             "profile_memory": profile_memory,
             "with_stack": with_stack,
             "record_shapes": record_shapes,
