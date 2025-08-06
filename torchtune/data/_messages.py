@@ -737,6 +737,7 @@ class OpenAIToMessages(Transform):
                     role=message["role"],
                     content=content,
                     eot=eot,
+                    ipython=message["ipython"] if "ipython" in message else False,
                 ),
             )
         mask_messages(updated_messages, self.masking_strategy)
