@@ -928,7 +928,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=epoch,
+                epochs_run=training_progress_epoch,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 steps_run=self.global_step,
