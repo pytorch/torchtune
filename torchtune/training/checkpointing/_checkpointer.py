@@ -983,6 +983,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.warning(
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
+            elif self._model_type == ModelType.LLAMA4:
+                logger.warning(
+                    "PEFT integration for Llama4 is not supported, skipping adapter config save"
+                )
             else:
                 state_dict[
                     training.ADAPTER_CONFIG
