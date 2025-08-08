@@ -204,8 +204,8 @@ class TestFullFinetuneSingleDeviceRecipe:
             final_ckpt_dir = "step_4"
             prev_ckpt_dir = "step_2"
         else:
-            final_ckpt_dir = "epoch_2"
-            prev_ckpt_dir = "epoch_1"
+            final_ckpt_dir = "epoch_1"
+            prev_ckpt_dir = "epoch_0"
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
