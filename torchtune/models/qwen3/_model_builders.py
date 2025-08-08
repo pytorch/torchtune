@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
+from torchtune.models.qwen3._component_builders import lora_qwen3_moe, qwen3_moe
 from torchtune.models.qwen3._component_builders import lora_qwen3, qwen3
 from torchtune.models.qwen3._tokenizer import QWEN3_SPECIAL_TOKENS, Qwen3Tokenizer
 from torchtune.modules import TransformerDecoder
@@ -321,6 +322,99 @@ def qwen3_32b() -> TransformerDecoder:
         num_kv_heads=8,
         embed_dim=5120,
         intermediate_dim=25600,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3_moe_30b_a3b_instruct() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 30B A3B instruct model initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-30B-A3B
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 30B A3B instruct model
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=48,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=6144,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3_moe_30b_a3b_base() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 30B A3B base model initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-30B-A3B-Base
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 30B A3B base model
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=48,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=6144,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=32768,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+    )
+
+
+def qwen3_moe_235b_a22b() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 235B A22B (instruct, no base variant) model initialized w/ the default parameter values
+    from https://huggingface.co/Qwen/Qwen3-235B-A22B
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 235B A22B base model (there's no base variant for the 235B)
+    """
+    return qwen3_moe(
+        vocab_size=151936,
+        num_layers=94,
+        num_heads=64,
+        num_kv_heads=4,
+        embed_dim=4096,
+        intermediate_dim=12288,
+        moe_intermediate_size=1536,
+        num_experts=128,
+        num_experts_per_tok=8,
         max_seq_len=40960,
         head_dim=128,
         attn_dropout=0.0,
@@ -1087,6 +1181,204 @@ def lora_qwen3_32b(
         num_kv_heads=8,
         embed_dim=5120,
         intermediate_dim=25600,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
+        quantize_base=quantize_base,
+    )
+
+
+def lora_qwen3_moe_30b_a3b_instruct(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
+    quantize_base: bool = False,
+) -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 MoE 30B A3B instruct model with LoRA enabled.
+
+    The Qwen3 defaults are the same as in :func:`~torchtune.models.qwen3.qwen3_moe_30b_a3b_instruct`,
+    while LoRA default params are based on
+    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        quantize_base (bool): Whether to quantize base model weights
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 MoE 30B A3B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen3 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
+    """
+    return lora_qwen3_moe(
+        lora_attn_modules=lora_attn_modules,
+        apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output=apply_lora_to_output,
+        vocab_size=151936,
+        num_layers=48,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=6144,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=40960,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
+        quantize_base=quantize_base,
+    )
+
+
+def lora_qwen3_moe_30b_a3b_base(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
+    quantize_base: bool = False,
+) -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 MoE 30B A3B base model with LoRA enabled.
+
+    The Qwen3 defaults are the same as in :func:`~torchtune.models.qwen3.qwen3_moe_30b_a3b_base`,
+    while LoRA default params are based on
+    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        quantize_base (bool): Whether to quantize base model weights
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 MoE 30B A3B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen3 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
+    """
+    return lora_qwen3_moe(
+        lora_attn_modules=lora_attn_modules,
+        apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output=apply_lora_to_output,
+        vocab_size=151936,
+        num_layers=48,
+        num_heads=32,
+        num_kv_heads=4,
+        embed_dim=2048,
+        intermediate_dim=6144,
+        moe_intermediate_size=768,
+        num_experts=128,
+        num_experts_per_tok=8,
+        max_seq_len=32768,
+        head_dim=128,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        rope_base=1000000.0,
+        q_proj_bias=False,
+        k_proj_bias=False,
+        v_proj_bias=False,
+        q_norm=True,
+        k_norm=True,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        use_dora=use_dora,
+        quantize_base=quantize_base,
+    )
+
+
+def lora_qwen3_moe_235b_a22b(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+    lora_dropout: float = 0.0,
+    use_dora: bool = False,
+    quantize_base: bool = False,
+) -> TransformerDecoder:
+    """
+    Builder for creating a Qwen3 MoE 235B A22B base model with LoRA enabled.
+
+    The Qwen3 defaults are the same as in :func:`~torchtune.models.qwen3.qwen3_moe_235b_a22b`,
+    while LoRA default params are based on
+    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        quantize_base (bool): Whether to quantize base model weights
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen3 MoE 30B A3B model with LoRA applied
+
+    Note:
+        The base and instruct versions have slightly different architectures for all Qwen3 model sizes
+        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
+    """
+    return lora_qwen3_moe(
+        lora_attn_modules=lora_attn_modules,
+        apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output=apply_lora_to_output,
+        vocab_size=151936,
+        num_layers=94,
+        num_heads=64,
+        num_kv_heads=4,
+        embed_dim=4096,
+        intermediate_dim=12288,
+        moe_intermediate_size=1536,
+        num_experts=128,
+        num_experts_per_tok=8,
         max_seq_len=40960,
         head_dim=128,
         attn_dropout=0.0,
