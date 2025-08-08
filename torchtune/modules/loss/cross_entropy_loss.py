@@ -104,6 +104,34 @@ class LinearCrossEntropyLoss(SFTLoss, nn.Module):
         # [num_valid, embed_dim] @ [embed_dim, vocab_size]
         if self.linear_projection is None:
             raise AttributeError("forward called before update_model")
+        # Fix for DTensor/torch.Tensor compatibility in distributed training
+        # When using FSDP with custom_sharded_layers, some tensors might be DTensors
+        # while others are regular tensors, causing compatibility issues
+        if hasattr(torch.distributed, '_tensor') and torch.distributed.is_initialized():
+            try:
+                from torch.distributed._tensor import DTensor
+                
+                # For linear_projection modules, we need to check the weight parameter
+                if hasattr(self.linear_projection, 'weight'):
+                    weight = self.linear_projection.weight
+                    weight_is_dtensor = isinstance(weight, DTensor)
+                    hidden_is_dtensor = isinstance(hidden_chunk, DTensor)
+                    
+                    if weight_is_dtensor and not hidden_is_dtensor:
+                        # Convert hidden to DTensor to match weight
+                        from torch.distributed._tensor import distribute_tensor
+                        hidden_chunk = distribute_tensor(
+                            hidden_chunk,
+                            device_mesh=weight.device_mesh,
+                            placements=weight.placements
+                        )
+                    elif hidden_is_dtensor and not weight_is_dtensor:
+                        # This case is less likely but handle it
+                        hidden_chunk = hidden_chunk.to_local()
+            except ImportError:
+                # DTensor not available in this PyTorch version
+                pass
+
         logits = self.linear_projection(hidden_chunk)  # [num_valid, vocab_size]
 
         loss = F.cross_entropy(
