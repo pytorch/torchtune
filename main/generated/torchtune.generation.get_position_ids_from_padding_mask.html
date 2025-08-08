@@ -457,19 +457,19 @@
 <h1>get_position_ids_from_padding_mask<a class="headerlink" href="#get-position-ids-from-padding-mask" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.generation.get_position_ids_from_padding_mask">
-<span class="sig-prename descclassname"><span class="pre">torchtune.generation.</span></span><span class="sig-name descname"><span class="pre">get_position_ids_from_padding_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">padding_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/generation/_generation.html#get_position_ids_from_padding_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.generation.get_position_ids_from_padding_mask" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">torchtune.generation.</span></span><span class="sig-name descname"><span class="pre">get_position_ids_from_padding_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">padding_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.8)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/generation/_generation.html#get_position_ids_from_padding_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.generation.get_position_ids_from_padding_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates position ids given a padding mask which right-shifts position ids to start
 from the first valid token.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>padding_mask</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><em>torch.Tensor</em></a>) – Boolean tensor where False indicates the corresponding token in the sequence
+<dd class="field-odd"><p><strong>padding_mask</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.8)"><em>torch.Tensor</em></a>) – Boolean tensor where False indicates the corresponding token in the sequence
 is a padding token and should be masked out in attention. Shape [bsz, seq_len]</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>position ids which are appropriately shifted according to any padding values.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)">torch.Tensor</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.8)">torch.Tensor</a></p>
 </dd>
 </dl>
 <p class="rubric">Example</p>
