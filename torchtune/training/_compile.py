@@ -41,16 +41,17 @@ def compile_model(
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if isinstance(model, DeepFusionModel):
         model = model.decoder
-    # Per-layer compilation by default
-    if verbose:
-        log.info(
-            "Compiling model layers with torch.compile. Expect a relatively slower first step."
-        )
-    for m in reversed(list(model.modules())):
-        if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
-            m, TransformerCrossAttentionLayer
-        ):
-            m.compile(backend=backend)
+    model.compile(backend=backend)
+    # # Per-layer compilation by default
+    # if verbose:
+    #     log.info(
+    #         "Compiling model layers with torch.compile. Expect a relatively slower first step."
+    #     )
+    # for m in reversed(list(model.modules())):
+    #     if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
+    #         m, TransformerCrossAttentionLayer
+    #     ):
+    #         m.compile(backend=backend)
 
 
 def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
