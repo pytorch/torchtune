@@ -915,8 +915,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return log_dict
 
     def save_checkpoint(self, *, epoch: int, full_tensors: bool):
+        training_progress_epoch = epoch
         if self.global_step % self._steps_per_epoch == 0:
-            epoch += 1
+            training_progress_epoch += 1
 
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -927,7 +928,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=epoch,
+                epochs_run=training_progress_epoch,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 steps_run=self.global_step,

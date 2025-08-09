@@ -526,14 +526,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
         # Since we might save at an epoch boundary, we need to increment the epoch counter
+        training_progress_epoch = epoch
         if step % self._steps_per_epoch == 0:
-            epoch += 1
+            training_progress_epoch += 1
+
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self.optimizer,
             training_progress=TrainingProgress(
                 seed=self.seed,
-                epochs_run=epoch,
+                epochs_run=training_progress_epoch,
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
