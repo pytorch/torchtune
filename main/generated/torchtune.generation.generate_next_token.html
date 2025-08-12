@@ -468,7 +468,7 @@ with shape [bsz x seq_length].</p></li>
 <li><p><strong>x</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.8)"><em>torch.Tensor</em></a>) – tensor with the token IDs associated with the given prompt,
 with shape [bsz x seq_length].</p></li>
 <li><p><strong>q</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.8)"><em>torch.Tensor</em></a><em>]</em>) – randomly sampled tensor for softmax sampling trick.
-See <a class="reference external" href="https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40">https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40</a></p></li>
+See <a class="reference external" href="https://github.com/meta-pytorch/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40">https://github.com/meta-pytorch/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40</a></p></li>
 <li><p><strong>mask</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.8)"><em>torch.Tensor</em></a><em>]</em>) – attention mask with shape [bsz x seq_length x seq_length],
 default None.</p></li>
 <li><p><strong>temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – value to scale the predicted logits by, default 1.0.</p></li>

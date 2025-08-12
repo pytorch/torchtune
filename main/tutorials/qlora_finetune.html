@@ -502,7 +502,7 @@ parameters are still held in the original precision, and activations, gradients,
 accuracy.</p>
 <p>The QLoRA authors introduce two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
 type, and a double quantization method that quantizes the quantization parameters themselves to save even more memory. torchtune uses
-the <a class="reference external" href="https://github.com/pytorch-labs/ao/blob/b9beaf351e27133d189b57d6fa725b1a7824a457/torchao/dtypes/nf4tensor.py#L153">NF4Tensor</a> abstraction from the <a class="reference external" href="https://github.com/pytorch-labs/ao">torchao library</a> to build QLoRA components as specified in the paper.
+the <a class="reference external" href="https://github.com/pytorch/ao/blob/b9beaf351e27133d189b57d6fa725b1a7824a457/torchao/dtypes/nf4tensor.py#L153">NF4Tensor</a> abstraction from the <a class="reference external" href="https://github.com/pytorch/ao">torchao library</a> to build QLoRA components as specified in the paper.
 torchao is a PyTorch-native library that allows you to quantize and prune your models.</p>
 </section>
 <section id="using-qlora-to-save-memory">
@@ -701,10 +701,10 @@ a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lor
 <p>As mentioned above, torchtune takes a dependency on torchao for some of the core components required for QLoRA. This includes the
 <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code>, as well as helpful utilities including <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> and <code class="docutils literal notranslate"><span class="pre">linear_nf4</span></code>.</p>
 <p>The key changes on top of the LoRA layer are the usage of the <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> and <code class="docutils literal notranslate"><span class="pre">linear_nf4</span></code> APIs.</p>
-<p><code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> accepts an unquantized (bf16 or fp32) tensor and produces an <code class="docutils literal notranslate"><span class="pre">NF4</span></code> representation of the weight. See the <a class="reference external" href="https://github.com/pytorch-labs/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587">implementation</a> of <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> for more details.
+<p><code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> accepts an unquantized (bf16 or fp32) tensor and produces an <code class="docutils literal notranslate"><span class="pre">NF4</span></code> representation of the weight. See the <a class="reference external" href="https://github.com/pytorch/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587">implementation</a> of <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> for more details.
 <code class="docutils literal notranslate"><span class="pre">linear_nf4</span></code> handles the forward pass and autograd when running with quantized base model weights. It computes the forward pass as a regular
 <code class="docutils literal notranslate"><span class="pre">F.linear</span></code> with the incoming activation and unquantized weight. The quantized weight is saved for backward, as opposed to the unquantized version of the weight, to avoid extra
-memory usage due to storing higher precision variables to compute gradients in the backward pass. See <a class="reference external" href="https://github.com/pytorch-labs/ao/blob/main/torchao/dtypes/nf4tensor.py#L577">linear_nf4</a> for more details.</p>
+memory usage due to storing higher precision variables to compute gradients in the backward pass. See <a class="reference external" href="https://github.com/pytorch/ao/blob/main/torchao/dtypes/nf4tensor.py#L577">linear_nf4</a> for more details.</p>
 </section>
 </section>
 
