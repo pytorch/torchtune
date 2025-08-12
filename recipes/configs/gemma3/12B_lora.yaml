@@ -1,0 +1,118 @@
+# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
+# using a gemma3 12B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download google/gemma-3-12b-it --ignore-patterns "gemma-3-12b-it.gguf" --output-dir /tmp/gemma-3-12b-it --hf-token <HF_TOKEN>
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config gemma3/12B_lora
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config gemma3/12B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only when the model is being fine-tuned on 2+ GPUs.
+
+output_dir: /tmp/torchtune/gemma3_12B/lora # /tmp may be deleted by your system. Change it to your preference.
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.gemma.gemma_tokenizer
+  path: /tmp/gemma-3-12b-it/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  packed: False  # True increases speed
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.gemma3.lora_gemma3_12b
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
+  lora_rank: 64  # higher increases accuracy and memory
+  lora_alpha: 128  # usually alpha=2*rank
+  lora_dropout: 0.0
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/gemma-3-12b-it/
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00005.safetensors,
+    model-00003-of-00005.safetensors,
+    model-00004-of-00005.safetensors,
+    model-00005-of-00005.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: GEMMA3
+resume_from_checkpoint: False
+
+save_adapter_weights_only: False
+
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  lr: 2e-5
+
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 10
+
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+
+# Fine-tuning arguments
+batch_size: 4
+epochs: 1
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1  # Use to increase effective batch size
+clip_grad_norm: null
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1
