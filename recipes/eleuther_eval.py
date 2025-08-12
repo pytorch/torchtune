@@ -42,7 +42,7 @@ from torchtune.training import FullModelTorchTuneCheckpointer
 
 class _VLMEvalWrapper(HFMultimodalLM):
     """An EvalWrapper for EleutherAI's eval harness based on gpt-fast's
-    EvalWrapper: https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py.
+    EvalWrapper: https://github.com/meta-pytorch/gpt-fast/blob/main/eval.py.
 
     Note:
         This is ONLY for vision-language models.
@@ -283,7 +283,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
 
 class _LLMEvalWrapper(HFLM):
     """An EvalWrapper for EleutherAI's eval harness based on gpt-fast's
-    EvalWrapper: https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py.
+    EvalWrapper: https://github.com/meta-pytorch/gpt-fast/blob/main/eval.py.
 
     Note:
         This is for text-only decoder models.
@@ -355,7 +355,7 @@ class _LLMEvalWrapper(HFLM):
         # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
         # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
         # though notably fast-gpt does the opposite
-        # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
+        # https://github.com/meta-pytorch/gpt-fast/blob/main/eval.py#L123.
         if isinstance(self._tokenizer, HuggingFaceModelTokenizer):
             return self._tokenizer.base_tokenizer.encode(
                 text=text, add_bos=False, add_eos=False
