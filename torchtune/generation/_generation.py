@@ -89,7 +89,7 @@ def generate_next_token(
         x (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape [bsz x seq_length].
         q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick.
-            See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
+            See https://github.com/meta-pytorch/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
         temperature (float): value to scale the predicted logits by, default 1.0.

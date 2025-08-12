@@ -42,7 +42,7 @@ accuracy.
 
 The QLoRA authors introduce two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
 type, and a double quantization method that quantizes the quantization parameters themselves to save even more memory. torchtune uses
-the `NF4Tensor <https://github.com/pytorch-labs/ao/blob/b9beaf351e27133d189b57d6fa725b1a7824a457/torchao/dtypes/nf4tensor.py#L153>`_ abstraction from the `torchao library <https://github.com/pytorch-labs/ao>`_ to build QLoRA components as specified in the paper.
+the `NF4Tensor <https://github.com/pytorch/ao/blob/b9beaf351e27133d189b57d6fa725b1a7824a457/torchao/dtypes/nf4tensor.py#L153>`_ abstraction from the `torchao library <https://github.com/pytorch/ao>`_ to build QLoRA components as specified in the paper.
 torchao is a PyTorch-native library that allows you to quantize and prune your models.
 
 
@@ -275,7 +275,7 @@ As mentioned above, torchtune takes a dependency on torchao for some of the core
 
 The key changes on top of the LoRA layer are the usage of the ``to_nf4`` and ``linear_nf4`` APIs.
 
-``to_nf4`` accepts an unquantized (bf16 or fp32) tensor and produces an ``NF4`` representation of the weight. See the `implementation <https://github.com/pytorch-labs/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587>`_ of ``to_nf4`` for more details.
+``to_nf4`` accepts an unquantized (bf16 or fp32) tensor and produces an ``NF4`` representation of the weight. See the `implementation <https://github.com/pytorch/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587>`_ of ``to_nf4`` for more details.
 ``linear_nf4`` handles the forward pass and autograd when running with quantized base model weights. It computes the forward pass as a regular
 ``F.linear`` with the incoming activation and unquantized weight. The quantized weight is saved for backward, as opposed to the unquantized version of the weight, to avoid extra
-memory usage due to storing higher precision variables to compute gradients in the backward pass. See `linear_nf4 <https://github.com/pytorch-labs/ao/blob/main/torchao/dtypes/nf4tensor.py#L577>`_ for more details.
+memory usage due to storing higher precision variables to compute gradients in the backward pass. See `linear_nf4 <https://github.com/pytorch/ao/blob/main/torchao/dtypes/nf4tensor.py#L577>`_ for more details.

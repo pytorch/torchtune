@@ -241,7 +241,7 @@ Running generation with our LoRA-finetuned model, we see the following output:
 Faster generation via quantization
 ----------------------------------
 
-We rely on `torchao <https://github.com/pytorch-labs/ao>`_ for `post-training quantization <https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization>`_.
+We rely on `torchao <https://github.com/pytorch/ao>`_ for `post-training quantization <https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization>`_.
 To quantize the fine-tuned model after installing torchao we can run the following command::
 
   # we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see
