@@ -48,6 +48,8 @@ checkpointer:
   model_type: LLAMA3_VISION
 resume_from_checkpoint: False
 save_adapter_weights_only: False # PeFT formatting not available yet. This will save it in torchtune format only.
+save_last_epoch_only: False
+epochs_to_save: 'all'
 
 # Dataset
 dataset:
