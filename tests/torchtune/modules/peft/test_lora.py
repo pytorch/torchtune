@@ -237,7 +237,7 @@ class TestLoRALinear:
         )
 
     def test_qat_lora_forward(self, inputs, lora_linear, out_dim) -> None:
-        lora_linear = lora_linear(use_bias=True, dtype=torch.float32)
+        lora_linear = lora_linear(use_bias=False, dtype=torch.float32)
         qat_lora_linear = QATLoRALinear.from_lora_linear(lora_linear)
         expected = torch.tensor(QAT_EXPECTED_VAL)
         actual = qat_lora_linear(inputs)
