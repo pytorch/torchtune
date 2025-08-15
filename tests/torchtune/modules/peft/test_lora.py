@@ -237,9 +237,16 @@ class TestLoRALinear:
         )
 
     def test_qat_lora_forward(self, inputs, lora_linear, out_dim) -> None:
-        lora_linear = lora_linear(use_bias=True, dtype=torch.float32)
+        lora_linear = lora_linear(use_bias=False, dtype=torch.float32)
         qat_lora_linear = QATLoRALinear.from_lora_linear(lora_linear)
         expected = torch.tensor(QAT_EXPECTED_VAL)
         actual = qat_lora_linear(inputs)
         assert actual.shape == (BSZ, SEQ_LEN, out_dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
+
+    def test_qat_lora_with_bias_raises_error(self, lora_linear) -> None:
+        lora_linear_with_bias = lora_linear(use_bias=True, dtype=torch.float32)
+        with pytest.raises(
+            ValueError, match="Bias is not supported in QAT \\+ LoRA yet"
+        ):
+            QATLoRALinear.from_lora_linear(lora_linear_with_bias)
