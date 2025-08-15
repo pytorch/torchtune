@@ -246,6 +246,7 @@ class TestLoRALinear:
 
     def test_qat_lora_with_bias_raises_error(self, lora_linear) -> None:
         lora_linear_with_bias = lora_linear(use_bias=True, dtype=torch.float32)
-        with pytest.raises(ValueError, match="Bias is not supported in QAT \\+ LoRA yet"):
+        with pytest.raises(
+            ValueError, match="Bias is not supported in QAT \\+ LoRA yet"
+        ):
             QATLoRALinear.from_lora_linear(lora_linear_with_bias)
-
