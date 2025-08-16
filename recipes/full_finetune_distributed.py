@@ -335,6 +335,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
             # log config with parameter override
+            config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
             self._metric_logger.log_config(cfg)
 
         # Load the base model
@@ -1158,7 +1159,6 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()

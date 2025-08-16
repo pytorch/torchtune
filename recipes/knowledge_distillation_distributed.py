@@ -218,7 +218,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
-
+            config.log_config(recipe_name="KDRecipeDistributed", cfg=cfg)
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
@@ -920,8 +920,6 @@ def recipe_main(cfg: DictConfig) -> None:
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-
-    config.log_config(recipe_name="KDRecipeDistributed", cfg=cfg)
 
     recipe = KDRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
