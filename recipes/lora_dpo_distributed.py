@@ -6,6 +6,7 @@
 
 import sys
 import time
+from datetime import timedelta
 
 from functools import partial
 from typing import Any, Optional
@@ -143,7 +144,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             cfg.device, offload_ops_to_cpu=True
         )
 
-        init_process_group(self.distributed_backend)
+        init_process_group(self.distributed_backend, timeout=timedelta(minutes=120))
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
 

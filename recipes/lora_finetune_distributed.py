@@ -6,6 +6,7 @@
 
 import sys
 import time
+from datetime import timedelta
 
 from functools import partial
 from typing import Any, Optional, Union
@@ -148,7 +149,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
-        init_process_group(self.distributed_backend)
+        init_process_group(self.distributed_backend, timeout=timedelta(minutes=120))
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
