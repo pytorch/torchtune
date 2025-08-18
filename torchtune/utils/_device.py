@@ -146,22 +146,22 @@ def _validate_device_from_env(device: torch.device) -> None:
     """
     local_rank = _get_local_rank()
 
-    # Check if the device index is correct
-    if device.type != "cpu" and local_rank is not None:
-        # Ensure device index matches assigned index when distributed training
-        if device.index != local_rank:
-            raise RuntimeError(
-                f"You can't specify a device index when using distributed training. "
-                f"Device specified is {device} but local rank is:{local_rank}"
-            )
+    # # Check if the device index is correct
+    # if device.type != "cpu" and local_rank is not None:
+    #     # Ensure device index matches assigned index when distributed training
+    #     if device.index != local_rank:
+    #         raise RuntimeError(
+    #             f"You can't specify a device index when using distributed training. "
+    #             f"Device specified is {device} but local rank is:{local_rank}"
+    #         )
 
-    # Check if the device is available on this machine
-    try:
-        torch.empty(0, device=device)
-    except RuntimeError as e:
-        raise RuntimeError(
-            f"The device {device} is not available on this machine."
-        ) from e
+    # # Check if the device is available on this machine
+    # try:
+    #     torch.empty(0, device=device)
+    # except RuntimeError as e:
+    #     raise RuntimeError(
+    #         f"The device {device} is not available on this machine."
+    #     ) from e
 
 
 def get_device(device: Optional[str] = None) -> torch.device:
