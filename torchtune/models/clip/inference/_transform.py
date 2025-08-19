@@ -67,7 +67,7 @@ class _CLIPImageTransform(torch.nn.Module):
         # Check lower <= target_size <= canvas_size.
         for i in range(len(target_size)):
             torch._check(target_size[i] >= lower)
-            torch._check(target_size[i] <= canvas_size[i])
+            torch._check(target_size[i] < canvas_size[i])
 
     def forward(
         self, image: torch.Tensor, target_size: torch.Tensor, canvas_size: torch.Tensor
