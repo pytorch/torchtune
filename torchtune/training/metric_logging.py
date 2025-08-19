@@ -406,12 +406,13 @@ class TensorBoardLogger(MetricLoggerInterface):
             self.log(name, data, step)
 
     def __del__(self) -> None:
-        if self._writer:
+        # extra check for when there is an import error
+        if hasattr(self, "_writer"):
             self._writer.close()
             self._writer = None
 
     def close(self) -> None:
-        if self._writer:
+        if hasattr(self, "_writer"):
             self._writer.close()
             self._writer = None
 
