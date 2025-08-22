@@ -726,9 +726,9 @@
 <span class="sd">        preserving the weights and adapters.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bias is not supported in QAT + LoRA yet&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bias is not supported in QAT + LoRA yet&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">_quantize_base</span><span class="p">:</span>
-            <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;quantize_base is not compatible with QAT + LoRA&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;quantize_base is not compatible with QAT + LoRA&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lora_linear</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">):</span>
             <span class="n">dropout</span> <span class="o">=</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">p</span>
         <span class="k">else</span><span class="p">:</span>
