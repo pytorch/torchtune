@@ -277,9 +277,9 @@ class QATLoRALinear(LoRALinear):
         preserving the weights and adapters.
         """
         if lora_linear.bias is not None:
-            ValueError("Bias is not supported in QAT + LoRA yet")
+            raise ValueError("Bias is not supported in QAT + LoRA yet")
         if lora_linear._quantize_base:
-            ValueError("quantize_base is not compatible with QAT + LoRA")
+            raise ValueError("quantize_base is not compatible with QAT + LoRA")
         if isinstance(lora_linear.dropout, nn.Dropout):
             dropout = lora_linear.dropout.p
         else:
