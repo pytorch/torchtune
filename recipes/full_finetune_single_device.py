@@ -441,8 +441,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 **cfg_optimizer,
             )
         else:
+            optimizer_cls = cfg_optimizer["_component_"]
+            params = self._model.named_parameters() if 'muon' in optimizer_cls.lower() else self._model.parameters()
             optimizer = config.instantiate(
-                cfg_optimizer, params=self._model.parameters()
+                cfg_optimizer, params=params
             )
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
