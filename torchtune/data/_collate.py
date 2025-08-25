@@ -722,4 +722,4 @@ def _stack_encoder_input(batch: list[dict[str, Any]], new_dim=False) -> dict[str
                 stacked_batch[k] = new_dict
         else:
             raise ValueError(f"Unsupported type {type(v)} for key {k}")
-        return stacked_batch
+    return stacked_batch

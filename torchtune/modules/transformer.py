@@ -91,6 +91,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
+        window_index: Optional[torch.Tensor] = None,
         **kwargs: dict,
     ) -> torch.Tensor:
         """
@@ -115,6 +116,8 @@ class TransformerSelfAttentionLayer(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            window_index (Optional[torch.Tensor]): Optional tensor which contains the window index
+                of each token. Default is None.
             **kwargs (dict): transformer layer inputs not relevant to self attention.
 
         Returns:
@@ -129,7 +132,9 @@ class TransformerSelfAttentionLayer(nn.Module):
             # With TP we need to use a replicated tensor here
             bsz, seq_len, *_ = h.shape
             mask = self.mask_mod(mask=mask, bsz=bsz, seq_len=seq_len)
-        attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
+        attn_out = self.attn(
+            h, h, mask=mask, input_pos=input_pos, window_index=window_index
+        )
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
 
