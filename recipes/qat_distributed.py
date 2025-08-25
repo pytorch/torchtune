@@ -44,6 +44,8 @@ from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
+from datetime import timedelta
+
 
 class QATRecipeDistributed(FTRecipeInterface):
     """
@@ -157,7 +159,8 @@ class QATRecipeDistributed(FTRecipeInterface):
             offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
-        init_process_group(self.distributed_backend)
+        # delay ProcessGroupNCCL.cpp Watchdog caught collective operation timeout to 1 hour
+        init_process_group(backend=self.distributed_backend, timeout=timedelta(seconds=3600))
 
         # Initialize distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()

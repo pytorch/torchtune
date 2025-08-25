@@ -36,6 +36,7 @@ from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
+from datetime import timedelta
 
 class FullDPORecipeDistributed(FTRecipeInterface):
     """
@@ -153,8 +154,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.distributed_backend = training.get_distributed_backend(
             cfg.device, offload_ops_to_cpu=True
         )
-        init_process_group(self.distributed_backend)
-        self._checkpoint_client = CheckpointClient(cfg)
+        # delay ProcessGroupNCCL.cpp Watchdog caught collective operation timeout to 1 hour
+        init_process_group(backend=self.distributed_backend, timeout=timedelta(seconds=3600))
+	self._checkpoint_client = CheckpointClient(cfg)
 
         self.world_size, self.rank = get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0

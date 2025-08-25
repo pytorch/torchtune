@@ -39,6 +39,8 @@ from torchtune.training.checkpointing._checkpoint_client import (
 
 from tqdm import tqdm
 
+from datetime import timedelta
+
 
 class KDRecipeDistributed(FTRecipeInterface):
     """
@@ -124,8 +126,8 @@ class KDRecipeDistributed(FTRecipeInterface):
             offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
-        init_process_group(self.distributed_backend)
-
+	# delay ProcessGroupNCCL.cpp Watchdog caught collective operation timeout to 1 hour
+        init_process_group(backend=self.distributed_backend, timeout=timedelta(seconds=3600))
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
         self._is_rank_zero = self.rank == 0
