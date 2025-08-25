@@ -66,6 +66,7 @@ Here is an example of an instruct dataset to fine-tune for a grammar correction 
       max_seq_len: 8192
 
     dataset:
+      _component_: torchtune.datasets.instruct_dataset
       source: csv
       data_files: data/my_data.csv
       split: train
