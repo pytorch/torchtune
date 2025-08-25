@@ -170,6 +170,20 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
+        if cfg.save_last_epoch_only and cfg.epochs_to_save:
+            utils.log_rank_zero(
+                self._logger,
+                "Both save_last_epoch_only and epochs_to_save are in use. "
+                "The value for save_last_epoch_only takes precedence but will be removed in a future release.",
+            )
+        self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
+        self._epochs_to_save = (
+            [self.total_epochs - 1]
+            if self._save_last_epoch_only
+            else cfg.get("epochs_to_save", "all")
+        )
+        if self._epochs_to_save == "all":
+            self._epochs_to_save = list(range(self.total_epochs))
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
@@ -718,17 +732,22 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-            start_save_checkpoint = time.perf_counter()
-            self._logger.info("Starting checkpoint save...")
-
-            # Save final non-distributed ckpt
-            self.save_checkpoint(epoch=curr_epoch, full_tensors=True)
-            self._logger.info(
-                "Checkpoint saved in {:.2f} seconds.".format(
-                    time.perf_counter() - start_save_checkpoint
-                )
-            )
-
+                if curr_epoch in self._epochs_to_save:
+                    start_save_checkpoint = time.perf_counter()
+                    self._logger.info(
+                        f"Starting checkpoint save for epoch {curr_epoch}..."
+                    )
+                    self.save_checkpoint(epoch=curr_epoch)
+                    self._logger.info(
+                        "Checkpoint saved in {:.2f} seconds.".format(
+                            time.perf_counter() - start_save_checkpoint
+                        )
+                    )
+                else:
+                    self._log.info(
+                        f"Skipping checkpoint save for epoch {curr_epoch}..."
+                    )
+                    
     def cleanup(self) -> None:
         self._metric_logger.close()
 
