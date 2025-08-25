@@ -304,11 +304,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         if (
-            cfg.checkpointer.model_type == "LLAMA4"
+            cfg.checkpointer.model_type in ("LLAMA4", "QWEN3_MOE")
             and self._save_adapter_weights_only is False
         ):
             raise ValueError(
-                "For Llama4 training, you should set save_adapter_weights_only to True."
+                f"For {cfg.checkpointer.model_type} training, you should set save_adapter_weights_only to True."
             )
 
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()

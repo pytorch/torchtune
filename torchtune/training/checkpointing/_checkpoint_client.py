@@ -367,9 +367,12 @@ class CheckpointClient:
                     }
                 )
 
-                get_merged_lora_ckpt(
-                    model_state_dict, adapter_config["r"], adapter_config["lora_alpha"]
-                )
+                if not adapter_only:
+                    get_merged_lora_ckpt(
+                        model_state_dict,
+                        adapter_config["r"],
+                        adapter_config["lora_alpha"],
+                    )
 
             checkpoint_dict.update(
                 {

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from ._component_builders import lora_qwen3_moe, qwen3_moe
 from ._model_builders import (
     lora_qwen3_0_6b_base,
     lora_qwen3_0_6b_instruct,
@@ -16,6 +17,9 @@ from ._model_builders import (
     lora_qwen3_4b_instruct,
     lora_qwen3_8b_base,
     lora_qwen3_8b_instruct,
+    lora_qwen3_moe_235b_a22b,
+    lora_qwen3_moe_30b_a3b_base,
+    lora_qwen3_moe_30b_a3b_instruct,
     qwen3_0_6b_base,
     qwen3_0_6b_instruct,
     qwen3_14b_base,
@@ -27,10 +31,18 @@ from ._model_builders import (
     qwen3_4b_instruct,
     qwen3_8b_base,
     qwen3_8b_instruct,
+    qwen3_moe_235b_a22b,
+    qwen3_moe_30b_a3b_base,
+    qwen3_moe_30b_a3b_instruct,
     qwen3_tokenizer,
 )
 
+from ._parallelism import tp_plan
+
 __all__ = [
+    "tp_plan",
+    "qwen3_moe",
+    "lora_qwen3_moe",
     "lora_qwen3_0_6b_base",
     "lora_qwen3_0_6b_instruct",
     "lora_qwen3_1_7b_base",
@@ -42,6 +54,9 @@ __all__ = [
     "lora_qwen3_14b_base",
     "lora_qwen3_14b_instruct",
     "lora_qwen3_32b",
+    "lora_qwen3_moe_30b_a3b_base",
+    "lora_qwen3_moe_30b_a3b_instruct",
+    "lora_qwen3_moe_235b_a22b",
     "qwen3_0_6b_base",
     "qwen3_0_6b_instruct",
     "qwen3_1_7b_base",
@@ -53,5 +68,8 @@ __all__ = [
     "qwen3_14b_base",
     "qwen3_14b_instruct",
     "qwen3_32b",
+    "qwen3_moe_30b_a3b_base",
+    "qwen3_moe_30b_a3b_instruct",
+    "qwen3_moe_235b_a22b",
     "qwen3_tokenizer",
 ]
