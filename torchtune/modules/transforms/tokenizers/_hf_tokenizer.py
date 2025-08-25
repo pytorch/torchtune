@@ -6,7 +6,9 @@
 
 import json
 
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
+
+from warnings import warn
 
 import jinja2
 from jinja2 import StrictUndefined
@@ -60,7 +62,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self._infer_bos_eos_tokens()
         self._infer_should_add_bos_eos()
 
-    def _get_token_from_config(self, config: dict[str, Any], key: str) -> str:
+    def _get_token_from_config(self, config: dict[str, Any], key: str) -> Optional[str]:
         """
         HF BOS/EOS tokens are either stored as e.g. {'bos_token': 5}
         or {'bos_token': {'content': 5, ...}}. This utility handles both.
@@ -68,11 +70,13 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         token = config.get(key)
         if isinstance(token, dict):
             if "content" not in token:
-                raise ValueError(f"Could not parse {key} from config")
+                warn(f"Could not parse {key} from config")
+                return None
             token = token["content"]
         else:
             if not isinstance(token, str):
-                raise ValueError(f"Could not parse {key} from config")
+                warn(f"Could not parse {key} from config")
+                return None
         return token
 
     def _infer_bos_eos_tokens(self):
@@ -90,8 +94,12 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self.eos_token = "<eos>"
 
         if self.config:
-            self.bos_token = self._get_token_from_config(self.config, "bos_token")
-            self.eos_token = self._get_token_from_config(self.config, "eos_token")
+            if self._get_token_from_config(self.config, "bos_token"):
+                self.bos_token = self._get_token_from_config(self.config, "bos_token")
+
+            if self._get_token_from_config(self.config, "eos_token"):
+                self.eos_token = self._get_token_from_config(self.config, "eos_token")
+
             if self.bos_token is not None:
                 self.bos_id = self.tokenizer.token_to_id(self.bos_token)
             if self.eos_token is not None:
@@ -102,9 +110,6 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
                 self.bos_id = self.generation_config.get("bos_token_id")
             if self.eos_id is None:
                 self.eos_id = self.generation_config.get("eos_token_id")
-
-        if self.bos_id is None or self.eos_id is None:
-            raise ValueError("Could not infer BOS and EOS token IDs from config")
 
     def _infer_should_add_bos_eos(self):
         """
@@ -136,9 +141,16 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             list[int]: The list of token ids.
         """
         token_ids = self.tokenizer.encode(text).ids
-        if add_bos and not self.hf_adds_bos and self.bos_token not in text:
+
+        # Both bos_id and eos_id might be None (null). Therefore, we need an additional check.
+        if (
+            add_bos
+            and not self.hf_adds_bos
+            and self.bos_token not in text
+            and self.bos_id
+        ):
             token_ids.insert(0, self.bos_id)
-        if add_eos and not self.hf_adds_eos:
+        if add_eos and not self.hf_adds_eos and self.eos_id:
             token_ids.append(self.eos_id)
         return token_ids
 
@@ -211,6 +223,8 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         tokenizer_config_json_path (Optional[str]): Path to tokenizer_config.json file. Default: None
         generation_config_path (Optional[str]): Path to generation_config.json file.
             Default: None
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
         truncation_type (str): type of truncation to apply, either "left" or "right".
             Default is "right".
     """
@@ -221,6 +235,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         *,
         tokenizer_config_json_path: Optional[str] = None,
         generation_config_path: Optional[str] = None,
+        max_seq_len: Optional[int] = None,
         truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
@@ -228,6 +243,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
             tokenizer_config_json_path=tokenizer_config_json_path,
             generation_config_path=generation_config_path,
         )
+        self.max_seq_len = max_seq_len
 
         # Contents of the tokenizer_config.json
         config = self.base_tokenizer.config
@@ -272,7 +288,6 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         self,
         messages: list[Message],
         add_eos: bool = True,
-        max_seq_len: Optional[int] = None,
     ) -> tuple[list[int], list[bool]]:
         tokenized_messages = []
         mask = []
@@ -280,7 +295,11 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
         for i, message in enumerate(messages):
             current_messages = [
-                {"role": m.role, "content": m.content[0]["content"]}
+                {
+                    "role": m.role,
+                    "content": m.content[0]["content"],
+                    "tool_calls": m.tool_calls,
+                }
                 for m in messages[: i + 1]
             ]
 
@@ -310,16 +329,28 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         # Finally, truncate if necessary
         tokenized_messages = truncate(
             tokens=tokenized_messages,
-            max_seq_len=max_seq_len,
+            max_seq_len=self.max_seq_len,
             eos_id=self.base_tokenizer.eos_id,
             truncation_type=self.truncation_type,
         )
 
         mask = truncate(
             tokens=mask,
-            max_seq_len=max_seq_len,
+            max_seq_len=self.max_seq_len,
             eos_id=True if add_eos else None,
             truncation_type=self.truncation_type,
         )
 
         return tokenized_messages, mask
+
+    def __call__(
+        self, sample: Mapping[str, Any], inference: bool = False
+    ) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages, add_eos=not inference)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample
