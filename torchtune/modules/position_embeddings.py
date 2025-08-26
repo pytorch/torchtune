@@ -17,7 +17,7 @@ class RotaryPositionalEmbeddings(nn.Module):
 
     Reference implementation (used for correctness verfication)
     can be found here:
-    https://github.com/meta-llama/llama/blob/main/llama/model.py#L80
+    https://github.com/meta-llama/llama/blob/689c7f261b9c5514636ecc3c5fefefcbb3e6eed7/llama/model.py#L132
 
     In this implementation we cache the embeddings for each position upto
     ``max_seq_len`` by computing this during init.
