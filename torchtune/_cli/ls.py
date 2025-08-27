@@ -40,6 +40,11 @@ class List(Subcommand):
             ),
             formatter_class=argparse.RawTextHelpFormatter,
         )
+        self._parser.add_argument(
+            "--experimental",
+            action="store_true",
+            help="Includes experimental recipes and configs in output",
+        )
         self._parser.set_defaults(func=self._ls_cmd)
 
     def _ls_cmd(self, args: argparse.Namespace) -> None:
@@ -49,7 +54,7 @@ class List(Subcommand):
         print(header)
 
         # Print recipe/config pairs
-        for recipe in get_all_recipes():
+        for recipe in get_all_recipes(include_experimental=args.experimental):
             # If there are no configs for a recipe, print a blank config
             recipe_str = recipe.name
             if len(recipe.configs) == 0:
