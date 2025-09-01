@@ -398,13 +398,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         if self._compile_optimizer_step:
             if self._optimizer_in_bwd:
-                raise ValueError(
-                    "optimizer_in_bwd not supported with compiling the optimizer step"
+                self._logger.warning(
+                    "Compile optimizer is not supported for optimizer_in_bwd. Setting self._compile_optimizer_step to False."
                 )
-            self._optimizer.step = torch.compile(
-                self._optimizer.step,
-                backend=self._compile_backend,
-            )
+                self._compile_optimizer_step = False
+            else:
+                self._optimizer.step = torch.compile(
+                    self._optimizer.step,
+                    backend=self._compile_backend,
+                )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
