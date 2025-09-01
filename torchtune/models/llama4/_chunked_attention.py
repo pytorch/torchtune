@@ -22,6 +22,8 @@ def get_chunked_attention_mask(
     chunk_size: int,
     bsz: int,
     seq_len: int,
+    # Unused, but listed for consistency
+    device: Optional[torch.device] = None,
 ) -> _MaskType:
     """ """
     # TODO: check this somewhere that doesn't get called every forward

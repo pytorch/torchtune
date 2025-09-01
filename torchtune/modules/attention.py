@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Optional
+from typing import Callable, Optional
 
 import torch
 from torch import nn
@@ -71,6 +71,8 @@ class MultiHeadAttention(nn.Module):
         is_causal (bool): sets the default mask to causal when no mask is provided
         attn_dropout (float): dropout value passed onto the scaled_dot_product_attention function.
             Default value is 0.0.
+        scale (Optional[float]): Optional arg, passed to attention implementations to modify the scores after
+            query-key multiplication before the softmax. Default is None.
 
     Raises:
         ValueError:
@@ -98,6 +100,7 @@ class MultiHeadAttention(nn.Module):
         max_seq_len: int = 4096,
         is_causal: bool = True,
         attn_dropout: float = 0.0,
+        scale: Optional[float] = None,
     ) -> None:
         super().__init__()
         if num_heads % num_kv_heads != 0:
@@ -138,6 +141,9 @@ class MultiHeadAttention(nn.Module):
 
         # Use flex attention if supported and we are sample packing
         self._attention_call = _sdpa_or_flex_attention()
+
+        # Set attention arguments
+        self.scale = scale
 
         # this flag indicates whether to update the kv-cache during forward
         # passes. when disabled, we can have the cache setup but still
@@ -294,6 +300,7 @@ class MultiHeadAttention(nn.Module):
             k,
             v,
             mask=mask,
+            scale=self.scale,
             dropout_p=self.attn_dropout if self.training else 0.0,
             is_causal=self.kv_cache is None and mask is None and self.is_causal,
         )
