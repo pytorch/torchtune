@@ -239,6 +239,11 @@ class QATRecipeDistributed(FTRecipeInterface):
                     "Gradient accumulation is not supported with optimizer in bwd."
                     "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
                 )
+            if self.fsdp_cpu_offload:
+                raise RuntimeError(
+                    "CPU offload is not supported with optimizer in bwd atm."
+                    "Please set fsdp_cpu_offload=False, or optimizer_in_bwd=False."
+                )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
