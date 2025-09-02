@@ -81,7 +81,7 @@ class TestQwenTokenizer:
         assert len(tokens) == 10
         assert len(mask) == 10
 
-    def test_tokenize_message_drop_eos(self, messages):
+    def test_tokenize_message_drop_eot_and_eos(self, messages):
         tokenizer = self.tokenizer()
 
         # fmt: off
