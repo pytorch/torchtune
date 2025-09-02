@@ -145,6 +145,7 @@ class InferenceRecipe:
         self.model = model
         self.model.eval()
         if self._is_rank_zero:
+            config.log_config(recipe_name="InferenceRecipe", cfg=cfg)
             self._logger.info(
                 f"Model was initialized with precision {self._dtype} and TP degree {tp_degree}."
             )
@@ -302,7 +303,6 @@ class InferenceRecipe:
 
 @config.parse
 def main(cfg: DictConfig) -> None:
-    config.log_config(recipe_name="InferenceRecipe", cfg=cfg)
     recipe = InferenceRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.generate(cfg=cfg)

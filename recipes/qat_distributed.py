@@ -342,6 +342,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
+            config.log_config(recipe_name="QATRecipeDistributed", cfg=cfg)
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
@@ -1135,7 +1136,16 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    config.log_config(recipe_name="QATRecipeDistributed", cfg=cfg)
+    if not training.is_distributed():
+        raise RuntimeError(
+            "Distributed finetune recipe should be run via a distributed launcher."
+            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
+        )
+    if cfg.get("fsdp_cpu_offload", False):
+        # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
+        # speed up when benchmarking fused AdamW on CPU
+        training.set_torch_num_threads()
+
     recipe = QATRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
