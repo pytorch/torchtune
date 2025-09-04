@@ -77,8 +77,11 @@ class OffloadActivations(saved_tensors_hooks):
         )
         self.tracker = (
             {}
-        )  # tensor_id => (new_tensor, if_modified)  ---> track what saved/offloaded tensors are where
+        )  # tensor_id => (new_tensor, if_modified, is_shared)  ---> track what saved/offloaded tensors are where
         self.tensor_id: int = 0
+        self.dupe_cache = (
+            {}
+        )  # (prev_dataptr, prev_version_count) => (new_tensor, tensor_ids)
         self.is_first_forward_call = True
         self.is_first_backward_call = True
         self.is_first_forward_pass = True
@@ -151,17 +154,36 @@ class OffloadActivations(saved_tensors_hooks):
 
             # only offload hefty bois if they're activations on CUDA (our heuristic
             # for that is to check if they're not params or buffers)!
+            act_is_param = isinstance(activation, torch.nn.Parameter)
+            act_is_buffer = hasattr(torch.nn, "Buffer") and isinstance(
+                activation, torch.nn.Buffer
+            )
             if (
                 activation.device.type == torch.accelerator.current_accelerator().type
                 and num_bytes >= self.min_tensor_size_bytes
-                and (
-                    not isinstance(activation, torch.nn.Parameter)
-                    and not (
-                        hasattr(torch.nn, "Buffer")
-                        and isinstance(activation, torch.nn.Buffer)
-                    )
-                )
+                and not act_is_param
+                and not act_is_buffer
             ):
+                # if we've seen this tensor before, we should not offload it again!
+                prev_dataptr = activation.data_ptr()
+                prev_version_count = torch._C._storage_Use_Count(
+                    activation.untyped_storage()._cdata
+                )
+                if (prev_dataptr, prev_version_count) in self.dupe_cache:
+                    offloaded_tensor, shared_tensor_ids = self.dupe_cache[
+                        (prev_dataptr, prev_version_count)
+                    ]
+                    # Update the lonely tensor to be tagged as shared as well
+                    assert (
+                        len(shared_tensor_ids) > 0
+                    ), "Internal error: shared_tensor_ids should never be empty but is."
+                    if len(shared_tensor_ids) == 1:
+                        a, b, _ = self.tracker[shared_tensor_ids[0]]
+                        self.tracker[shared_tensor_ids[0]] = (a, b, True)
+                    shared_tensor_ids.append(tensor_id)
+                    self.tracker[tensor_id] = (offloaded_tensor, True, True)
+                    return tensor_id
+
                 if self.use_streams:
                     # First, sync back and dereference previously offloaded tensors
                     # as the offloading should be done sufficiently long ago.
@@ -194,8 +216,9 @@ class OffloadActivations(saved_tensors_hooks):
                     cpu_tensor.copy_(activation, non_blocking=True)
                     self.tracker[tensor_id] = (
                         cpu_tensor,
-                        True,
-                    )  # True = (in future) modified
+                        True,  # True = (in future) modified
+                        False,  # False = not shared, this could be updated
+                    )
 
                 if self.use_streams:
                     event = self.s1.record_event()
@@ -205,8 +228,9 @@ class OffloadActivations(saved_tensors_hooks):
             else:
                 self.tracker[tensor_id] = (
                     activation,
-                    False,
-                )  # False = not modified, tensor is as is
+                    False,  # False = not modified, tensor is as is
+                    False,  # False = not shared, this could be updated
+                )
 
             return tensor_id
 
@@ -226,7 +250,29 @@ class OffloadActivations(saved_tensors_hooks):
                 unpack_tensor_id in self.tracker
             ), f"untracked tensor with id {unpack_tensor_id}"
 
-            maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
+            maybe_gpu_tensor, modified, shared = self.tracker[unpack_tensor_id]
+            if shared:
+                for (dataptr, version_count) in self.dupe_cache.keys():
+                    maybe_gpu_tensor, shared_tensor_ids = self.dupe_cache[
+                        (dataptr, version_count)
+                    ]
+                    if unpack_tensor_id in shared_tensor_ids:
+                        shared_tensor_ids.remove(unpack_tensor_id)
+                        if not maybe_gpu_tensor.is_cuda:
+                            gpu_tensor = maybe_gpu_tensor.to("cuda", non_blocking=True)
+                            self.dupe_cache[(dataptr, version_count)] = (
+                                gpu_tensor,
+                                shared_tensor_ids,
+                            )
+                            maybe_gpu_tensor = gpu_tensor
+
+                        del self.tracker[
+                            unpack_tensor_id
+                        ]  # we could maybe move this up instead of duplicating with line 266
+                        if len(shared_tensor_ids) == 0:
+                            del self.dupe_cache[(dataptr, version_count)]
+                        return maybe_gpu_tensor
+
             if modified:
                 gpu_tensor = maybe_gpu_tensor.to(
                     torch.accelerator.current_accelerator(), non_blocking=True
@@ -266,7 +312,7 @@ class OffloadActivations(saved_tensors_hooks):
                 unpack_tensor_id in self.tracker
             ), f"untracked tensor with id {unpack_tensor_id}"
 
-            maybe_gpu_tensor, modified = self.tracker[unpack_tensor_id]
+            maybe_gpu_tensor, modified, shared = self.tracker[unpack_tensor_id]
             if modified:
                 # Get data on the current autograd node
                 graph_id = torch._C._current_graph_task_id()
