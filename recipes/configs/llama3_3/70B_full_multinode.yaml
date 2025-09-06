@@ -9,12 +9,12 @@
 #
 # This config is only tested on 2 nodes w/ 8 H100 machines.
 
-output_dir: /tmp/torchtune/llama3_3_70B/full
+output_dir: ${output_dir}
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3.3-70B-Instruct/original/tokenizer.model
+  path: ${checkpoint_dir}/original/tokenizer.model
   max_seq_len: 1024
 
 # Dataset and Sampler
@@ -38,7 +38,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Llama-3.3-70B-Instruct/
+  checkpoint_dir: ${checkpoint_dir}
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
     max_filename: "00030"
@@ -61,7 +61,7 @@ epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
-  fused: True
+  fused: False
 
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
