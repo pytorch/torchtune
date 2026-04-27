@@ -350,6 +350,104 @@ class WandBLogger(MetricLoggerInterface):
             self._wandb.finish()
 
 
+class TrackioLogger(MetricLoggerInterface):
+    """Logger for use w/ Trackio (https://github.com/gradio-app/trackio), a lightweight,
+    local-first experiment tracker with a wandb-compatible API.
+
+    Args:
+        project (str): Trackio project name. Default is `torchtune`.
+        name (Optional[str]): Run name. If not specified, Trackio assigns one automatically.
+        group (Optional[str]): Group name for organizing related runs.
+        space_id (Optional[str]): Optional Hugging Face Space id (``"username/space"``)
+            to host the dashboard. If unset, runs are kept locally.
+        log_dir (Optional[str]): Directory used by Trackio for local artifacts.
+        **kwargs: additional arguments forwarded to ``trackio.init``.
+
+    Example:
+        >>> from torchtune.training.metric_logging import TrackioLogger
+        >>> logger = TrackioLogger(project="my_project", name="my_run")
+        >>> logger.log("my_metric", 1.0, 1)
+        >>> logger.log_dict({"my_metric": 1.0}, 1)
+        >>> logger.close()
+
+    Raises:
+        ImportError: If ``trackio`` package is not installed.
+
+    Note:
+        This logger requires the trackio package to be installed.
+        You can install it with `pip install trackio`.
+    """
+
+    def __init__(
+        self,
+        project: str = "torchtune",
+        name: Optional[str] = None,
+        group: Optional[str] = None,
+        space_id: Optional[str] = None,
+        log_dir: Optional[str] = None,
+        **kwargs,
+    ):
+        try:
+            import trackio
+        except ImportError as e:
+            raise ImportError(
+                "``trackio`` package not found. Please install trackio using `pip install trackio` to use TrackioLogger."
+                "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
+            ) from e
+        self._trackio = trackio
+
+        self.log_dir = kwargs.pop("dir", log_dir)
+        if self.log_dir is not None and not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+
+        _, self.rank = get_world_size_and_rank()
+        self._run = None
+
+        if self.rank == 0:
+            init_kwargs = {"project": project, **kwargs}
+            if name is not None:
+                init_kwargs["name"] = name
+            if group is not None:
+                init_kwargs["group"] = group
+            if space_id is not None:
+                init_kwargs["space_id"] = space_id
+            self._run = self._trackio.init(**init_kwargs)
+
+    def log_config(self, config: DictConfig) -> None:
+        """Saves the config locally and logs the resolved config to Trackio.
+
+        Args:
+            config (DictConfig): config to log
+        """
+        if self._run is not None:
+            resolved = OmegaConf.to_container(config, resolve=True)
+            try:
+                self._trackio.config.update(resolved)
+            except Exception as e:
+                log.warning(f"Error updating Trackio config: {e}")
+            save_config(config)
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        if self._run is not None:
+            self._trackio.log({name: data}, step=step)
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        if self._run is not None:
+            self._trackio.log(dict(payload), step=step)
+
+    def __del__(self) -> None:
+        if getattr(self, "_run", None) is not None:
+            try:
+                self._trackio.finish()
+            except Exception:
+                pass
+
+    def close(self) -> None:
+        if self._run is not None:
+            self._trackio.finish()
+            self._run = None
+
+
 class TensorBoardLogger(MetricLoggerInterface):
     """Logger for use w/ PyTorch's implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).
 
