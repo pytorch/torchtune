@@ -99,6 +99,7 @@ Various logging utilities.
 
     metric_logging.CometLogger
     metric_logging.WandBLogger
+    metric_logging.TrackioLogger
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
