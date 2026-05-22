@@ -6,6 +6,7 @@
 
 import inspect
 import logging
+import os
 import warnings
 from functools import lru_cache, wraps
 from typing import Callable, Optional, TypeVar
@@ -93,13 +94,22 @@ def log_rank_zero(logger: logging.Logger, msg: str, level: int = logging.INFO) -
     """
     Logs a message only on rank zero.
 
+    When the distributed process group is already initialized, the rank is
+    queried directly from ``torch.distributed``. Before initialization (e.g.
+    in ``recipe_main`` before ``setup()`` is called), the ``RANK`` environment
+    variable set by ``torchrun`` is used as a fallback so that only the rank-0
+    process logs the message even before ``init_process_group`` has been called.
+
     Args:
         logger (logging.Logger): The logger.
         msg (str): The warning message.
         level (int): The logging level. See https://docs.python.org/3/library/logging.html#levels for values.
             Defaults to ``logging.INFO``.
     """
-    rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+    if dist.is_available() and dist.is_initialized():
+        rank = dist.get_rank()
+    else:
+        rank = int(os.environ.get("RANK", 0))
     if rank != 0:
         return
     logger.log(level, msg, stacklevel=2)
