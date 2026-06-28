@@ -413,7 +413,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             mask = truncate(
                 tokens=mask,
                 max_seq_len=self.max_seq_len,
-                eos_id=True if add_end_tokens else None,
+                eos_id=mask[-1] if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
 
