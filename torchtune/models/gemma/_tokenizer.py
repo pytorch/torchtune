@@ -165,7 +165,7 @@ class GemmaTokenizer(ModelTokenizer, Transform):
                 and the "messages" field removed.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_eos=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample
