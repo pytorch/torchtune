@@ -13,6 +13,12 @@ _SUPPORTS_FLEX_ATTENTION = (
     torch.cuda.is_available() and torch.cuda.get_device_capability() >= (7, 5)
 )
 
+# torchembed fused Triton RoPE kernel — requires both packages at runtime
+_SUPPORTS_TORCHEMBED = (
+    importlib.util.find_spec("torchembed") is not None
+    and importlib.util.find_spec("triton") is not None
+)
+
 _TORCHDATA_MIN_VERSION = "0.10.0"
 if (
     importlib.util.find_spec("torchdata") is not None
