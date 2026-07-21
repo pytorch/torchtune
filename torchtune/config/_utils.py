@@ -14,6 +14,17 @@ from omegaconf import DictConfig, OmegaConf
 from torchtune.config._errors import InstantiationError
 from torchtune.utils._logging import get_logger, log_rank_zero
 
+# Recipe configs resolve `_component_` paths via importlib. Only allow known
+# package roots used by torchtune recipes/tests so untrusted YAML cannot import
+# arbitrary modules (e.g. os.system) or run top-level import side effects.
+_ALLOWED_COMPONENT_ROOTS = frozenset(
+    {
+        "torchtune",
+        "torch",
+        "bitsandbytes",
+    }
+)
+
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
     """
@@ -74,35 +85,50 @@ def _get_component_from_path(
             f"Invalid dotstring. Relative imports are not supported. Got {path=}."
         )
 
+    def _search_globals() -> dict[str, Any]:
+        search_globals = caller_globals if caller_globals is not None else {}
+        if caller_globals is None:
+            current_frame = inspect.currentframe()
+            if current_frame and current_frame.f_back:
+                search_globals = current_frame.f_back.f_globals
+        return search_globals
+
     # single part, e.g. "torch" or "my_local_fn"
     if len(parts) == 1:
         name = parts[0]
-        try:
-            # try to import as a module, e.g. "torch"
-            return import_module(name)
-        except ImportError:
-            # if caller_globals is None, collect __main__ globals of the caller
-            search_globals = caller_globals if caller_globals is not None else {}
-            if caller_globals is None:
-                current_frame = inspect.currentframe()
-                if current_frame and current_frame.f_back:
-                    search_globals = current_frame.f_back.f_globals
+        # Prefer caller's globals first so local helpers still work.
+        search_globals = _search_globals()
+        if name in search_globals:
+            return search_globals[name]
 
-            # check if local_fn is in caller_globals, e.g. "my_local_fn"
-            if name in search_globals:
-                return search_globals[name]
-            else:
-                # scope to differentiate between provided globals and caller's globals in error message
-                scope = (
-                    "the provided globals"
-                    if caller_globals is not None
-                    else "the caller's globals"
-                )
+        if name in _ALLOWED_COMPONENT_ROOTS:
+            try:
+                return import_module(name)
+            except ImportError as e:
                 raise InstantiationError(
-                    f"Could not resolve '{name}': not a module and not found in {scope}."
-                ) from None
+                    f"Could not import allowed module '{name}': {str(e)}."
+                ) from e
+
+        scope = (
+            "the provided globals"
+            if caller_globals is not None
+            else "the caller's globals"
+        )
+        raise InstantiationError(
+            f"Could not resolve '{name}': not a module and not found in {scope}."
+            if name not in _ALLOWED_COMPONENT_ROOTS
+            else f"Could not resolve '{name}'."
+        )
 
     # multiple parts, e.g. "torch.nn.Linear"
+    root = parts[0]
+    if root not in _ALLOWED_COMPONENT_ROOTS:
+        allowed = ", ".join(sorted(_ALLOWED_COMPONENT_ROOTS))
+        raise InstantiationError(
+            f"Component path '{path}' is not allowed. "
+            f"Only imports under these roots are permitted: {allowed}."
+        )
+
     module_path = ".".join(parts[:-1])
     try:
         module = import_module(module_path)

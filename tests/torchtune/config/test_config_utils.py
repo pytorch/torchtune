@@ -43,7 +43,7 @@ class TestUtils:
         # Test valid paths with three components
         valid_paths = [
             "torchtune",
-            "os.path.join",
+            "torch.nn.Linear",
         ]
         for path in valid_paths:
             result = _get_component_from_path(path)
@@ -90,16 +90,29 @@ class TestUtils:
 
         # Multi-part path with import failure
         with pytest.raises(
-            InstantiationError, match=r"Could not import module 'os\.nonexistent': .*"
+            InstantiationError, match=r"Could not import module 'torch\.nonexistent': .*"
         ):
-            _get_component_from_path("os.nonexistent.attr")
+            _get_component_from_path("torch.nonexistent.attr")
 
         # Multi-part path with attribute error
         with pytest.raises(
             InstantiationError,
-            match=r"Module 'os\.path' has no attribute 'nonexistent'",
+            match=r"Module 'torch\.nn' has no attribute 'nonexistent'",
         ):
-            _get_component_from_path("os.path.nonexistent")
+            _get_component_from_path("torch.nn.nonexistent")
+
+        # Disallowed roots must not be imported (security: untrusted recipe configs)
+        with pytest.raises(
+            InstantiationError,
+            match=r"Component path 'os\.system' is not allowed",
+        ):
+            _get_component_from_path("os.system")
+
+        with pytest.raises(
+            InstantiationError,
+            match=r"Component path 'subprocess\.run' is not allowed",
+        ):
+            _get_component_from_path("subprocess.run")
 
     @mock.patch(
         "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
