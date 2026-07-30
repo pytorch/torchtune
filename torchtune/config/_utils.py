@@ -155,6 +155,8 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: list[str]) -> DictC
     """
     # Convert Namespace to simple dict
     yaml_kwargs = vars(yaml_args)
+    yaml_top_level_keys = set(yaml_kwargs.keys())
+    unused_keys: list[str] = []
     cli_dotlist = []
     for arg in cli_args:
         # If CLI override uses the remove flag (~), remove the key from the yaml config
@@ -183,6 +185,13 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: list[str]) -> DictC
         if k in yaml_kwargs and _has_component(yaml_kwargs[k]):
             k += "._component_"
 
+        # Track CLI overrides that introduce a new top-level key not defined in the
+        # YAML config. These are likely typos or recipe-unsupported kwargs and should
+        # be surfaced to the user as a warning (see issue #1646).
+        top_level_key = k.split(".")[0]
+        if top_level_key not in yaml_top_level_keys and top_level_key not in unused_keys:
+            unused_keys.append(top_level_key)
+
         # None passed via CLI will be parsed as string, but we really want OmegaConf null
         if v == "None":
             v = "!!null"
@@ -194,12 +203,47 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: list[str]) -> DictC
             v = "!!str " + v
         cli_dotlist.append(f"{k}={v}")
 
+    if unused_keys:
+        logger = get_logger("WARNING")
+        suggestions = ", ".join(
+            f"'{key}' (did you mean one of: "
+            f"{', '.join(_closest_yaml_keys(key, yaml_top_level_keys)) or 'no matches'}?)"
+            for key in unused_keys
+        )
+        log_rank_zero(
+            logger=logger,
+            msg=(
+                "The following CLI override key(s) are not present in the YAML config "
+                f"and may be unused by the recipe: {suggestions}. If this was "
+                "intentional (e.g. adding a brand new field), you can ignore this "
+                "warning. Otherwise, please check the key name against the config and "
+                "recipe for a typo or unsupported option."
+            ),
+        )
+
     # Merge the args
     cli_conf = OmegaConf.from_dotlist(cli_dotlist)
     yaml_conf = OmegaConf.create(yaml_kwargs)
 
     # CLI takes precedence over yaml args
     return OmegaConf.merge(yaml_conf, cli_conf)
+
+
+def _closest_yaml_keys(key: str, yaml_keys: set[str], max_suggestions: int = 3) -> list[str]:
+    """Return up to ``max_suggestions`` keys from ``yaml_keys`` that look similar to
+    ``key``. Uses a simple substring + difflib heuristic to surface likely typos."""
+    import difflib
+
+    candidates: list[tuple[float, str]] = []
+    for yk in yaml_keys:
+        score = difflib.SequenceMatcher(None, key, yk).ratio()
+        # also reward substring containment so prefix typos rank high
+        if key in yk or yk in key:
+            score = max(score, 0.75)
+        if score >= 0.6:
+            candidates.append((score, yk))
+    candidates.sort(reverse=True)
+    return [yk for _, yk in candidates[:max_suggestions]]
 
 
 def _remove_key_by_dotpath(nested_dict: dict[str, Any], dotpath: str) -> None:
