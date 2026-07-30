@@ -147,7 +147,7 @@ torchtune exposes a number of levers for memory efficiency and performance. The 
 | Baseline | 25.5 | - | 2091 | - |
 | [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 60.0 | +135.16% | 7075 | +238.40% |
 | [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 51.0 | -14.93% | 8998 | +27.18% |
-| [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 42.9 | -15.83% | 9174 | +1.96% |
+| [+ Linear Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.LinearCrossEntropyLoss.html) | 42.9 | -15.83% | 9174 | +1.96% |
 | [+ Activation Checkpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 24.9 | -41.93% | 7210 | -21.41% |
 | [+ Fuse optimizer step into backward](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.1 | -7.29% | 7309 | +1.38% |
 | [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 21.8 | -5.48% | 7301 | -0.11% |
@@ -164,7 +164,7 @@ The final row in the table vs baseline + Packed Dataset uses **81.9%** less memo
 tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
 dataset.packed=True \
 compile=True \
-loss=torchtune.modules.loss.CEWithChunkedOutputLoss \
+loss=torchtune.modules.loss.LinearCrossEntropyLoss \
 enable_activation_checkpointing=True \
 optimizer_in_bwd=False \
 enable_activation_offloading=True \
