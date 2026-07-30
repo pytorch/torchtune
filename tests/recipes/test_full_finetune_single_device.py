@@ -56,7 +56,7 @@ class TestFullFinetuneSingleDeviceRecipe:
     @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
         "micro_batch_size, gradient_accumulation_steps, optimizer_in_bwd",
-        [(8, 1, True), (2, 4, False)],
+        [(8, 1, True), (2, 4, False), (8, 1, False)],
     )
     @pytest.mark.parametrize(
         "config, model_ckpt",
