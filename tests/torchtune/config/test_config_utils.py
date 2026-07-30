@@ -242,3 +242,94 @@ class TestUtils:
         cfg = copy.deepcopy(_CONFIG)
         with pytest.raises(KeyError, match="'i'"):
             _remove_key_by_dotpath(cfg, "i")
+
+    @mock.patch(
+        "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
+    )
+    def test_merge_warns_on_unused_cli_key(self, mock_load, capsys):
+        parser = TuneRecipeArgumentParser("test parser")
+        yaml_args, cli_args = parser.parse_known_args(
+            [
+                "--config",
+                "test.yaml",
+                "d=6",  # Override existing key — should NOT warn
+                "foo_bar=1",  # Typo or unsupported key — SHOULD warn
+                "foobbar=2",  # Another unknown key similar to "foobar"
+            ]
+        )
+
+        logger = logging.getLogger(__name__)
+        logger.setLevel("DEBUG")
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        logger.addHandler(handler)
+        try:
+            with (
+                mock.patch(
+                    "torchtune.config._utils.get_logger", return_value=logger
+                ),
+                mock.patch(
+                    "torchtune.utils._logging.dist.is_available", return_value=False
+                ),
+            ):
+                _merge_yaml_and_cli_args(yaml_args, cli_args)
+            output = stream.getvalue()
+            # The unknown keys should both be reported
+            assert "foo_bar" in output, (
+                f"Expected 'foo_bar' in warning, got: {output!r}"
+            )
+            assert "foobbar" in output, (
+                f"Expected 'foobbar' in warning, got: {output!r}"
+            )
+            # Existing key 'd' should not appear in the unused list
+            assert "'d' (did you mean" not in output
+        finally:
+            logger.removeHandler(handler)
+
+    @mock.patch(
+        "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
+    )
+    def test_merge_no_warning_when_all_keys_known(self, mock_load, capsys):
+        parser = TuneRecipeArgumentParser("test parser")
+        yaml_args, cli_args = parser.parse_known_args(
+            [
+                "--config",
+                "test.yaml",
+                "a=2",  # override existing
+                "d=6",  # override existing
+            ]
+        )
+        logger = logging.getLogger(__name__)
+        logger.setLevel("DEBUG")
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        logger.addHandler(handler)
+        try:
+            with (
+                mock.patch(
+                    "torchtune.config._utils.get_logger", return_value=logger
+                ),
+                mock.patch(
+                    "torchtune.utils._logging.dist.is_available", return_value=False
+                ),
+            ):
+                _merge_yaml_and_cli_args(yaml_args, cli_args)
+            assert not stream.getvalue().strip(), (
+                f"Expected no warning output, got: {stream.getvalue()!r}"
+            )
+        finally:
+            logger.removeHandler(handler)
+
+    def test_closest_yaml_keys(self):
+        from torchtune.config._utils import _closest_yaml_keys
+
+        yaml_keys = {"batch_size", "epochs", "batch", "optimizer", "lr_scheduler"}
+        # exact-ish typo: 'batch_siz' should match 'batch_size' (and maybe 'batch')
+        matches = _closest_yaml_keys("batch_siz", yaml_keys)
+        assert "batch_size" in matches, f"Expected 'batch_size' in {matches}"
+
+        # No matches for a wildly different key
+        assert _closest_yaml_keys("zzz", yaml_keys) == []
+
+        # max_suggestions is respected
+        assert len(_closest_yaml_keys("batch", yaml_keys, max_suggestions=1)) <= 1
