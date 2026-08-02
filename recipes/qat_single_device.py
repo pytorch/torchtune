@@ -575,7 +575,13 @@ class QATRecipeSingleDevice(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = current_loss * current_num_tokens
+                skip_loss_scale = (
+                    not self._optimizer_in_bwd
+                    and self._gradient_accumulation_steps == 1
+                )
+                current_loss = current_loss * (
+                    1.0 if skip_loss_scale else current_num_tokens
+                )
 
                 # free outputs otherwise it peaks backward memory
                 del outputs
@@ -590,8 +596,10 @@ class QATRecipeSingleDevice(FTRecipeInterface):
                 current_loss.backward()
 
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
+                    grad_norm = None
+                    if not self._optimizer_in_bwd and not skip_loss_scale:
                         training.scale_grads(self._model, 1 / num_tokens)
+                    if not self._optimizer_in_bwd:
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
@@ -603,7 +611,10 @@ class QATRecipeSingleDevice(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.detach().item() / num_tokens
+                    loss_to_log = (
+                        running_loss.detach().item()
+                        / (1.0 if skip_loss_scale else num_tokens)
+                    )
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"

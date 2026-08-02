@@ -776,6 +776,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    # NOTE: we can't skip the loss multiply / scale_grads when
+                    # gradient_accumulation_steps == 1 here. current_num_tokens is
+                    # rank-local (count of unmasked labels on this rank), while
+                    # num_tokens below is all-reduced across ranks. Skipping both
+                    # would normalize each rank by its own local token count,
+                    # up-weighting ranks with shorter batches. The single-device
+                    # recipes can skip because world_size == 1 makes the two
+                    # quantities identical.
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
                     current_loss.backward()
