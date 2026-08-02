@@ -58,7 +58,7 @@ class TrainingWorker:
         self.replay_buffer = replay_buffer
 
         # Device and dtype setup
-        device_type = "cuda"  # Harcoded for now
+        device_type = cfg.get("device", "cuda")
         self._device = utils.get_device(device=device_type)
         self._dtype = training.get_dtype("bf16", device=self._device)
 
@@ -91,6 +91,7 @@ class TrainingWorker:
 
         # Training configuration
         self._clip_grad_norm = cfg.training.get("clip_grad_norm", None)
+        self._cfg_batch_size = cfg.training.batch_size
 
         # Activation checkpointing and offloading
         self._enable_activation_checkpointing = cfg.training.get(
@@ -199,7 +200,7 @@ class TrainingWorker:
             master_port,
             rank,
             world_size,
-            torch.device("cuda:0"),  # FIXME: Hardcoded device
+            torch.device(self._device),  # was hardcoded to cuda:0
         )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
@@ -319,9 +320,9 @@ class TrainingWorker:
             GRPOStats: Instance of :class:`~torchtune.rlhf.GRPOStats`
         """
         # Create an output mask to avoid computing model.output on tokens we won't train
-        # FIXME: when bsz>1, don't we have multiple context_length?
-        # FIXME: because of chunked CE, the outout of pi_logits is a chunked list, so masking after the fact is
-        # more annoying. Masking before the chunking is easier, but we have to figure out masking for bsz>1
+        # context_length is a single value per batch: the collector pads every
+        # response to the same length (pad_output=True), so the context is
+        # uniform across all samples in the batch.
         output_mask = torch.zeros_like(
             trajectory.query_responses, dtype=torch.bool, device=self._device
         )
@@ -543,7 +544,6 @@ class TrainingWorker:
 
         # Iterate over each sample
         for idx in range(num_samples):
-            func_names = metadata["reward_metadata"][idx]["func_names"]
             sequence_id = metadata["sequence_ids"][idx]
             seq_len = grpo_trajectory.seq_lens[idx].item()
 
@@ -570,10 +570,23 @@ class TrainingWorker:
             per_sample_dict["prompt"] = prompt
             per_sample_dict["response"] = response
             per_sample_dict["answers"] = grpo_trajectory.answers[idx]
-            per_sample_dict["policy_version"] = metadata["policy_version"][idx]
+            # policy_version is a single int shared by every sample in the batch
+            policy_version = metadata["policy_version"]
+            per_sample_dict["policy_version"] = (
+                policy_version[idx]
+                if isinstance(policy_version, list)
+                else policy_version
+            )
 
-            for reward_output in metadata["reward_outputs"][idx]:
-                per_sample_dict.update(reward_output.log(prefix="rewards"))
+            for reward_func_idx, reward_func_name in enumerate(
+                metadata["reward_func_names"][idx]
+            ):
+                per_sample_dict[f"rewards/{reward_func_name}"] = metadata["rewards"][
+                    idx, reward_func_idx
+                ].item()
+                per_sample_dict[
+                    f"rewards/{reward_func_name}/successes"
+                ] = metadata["successes"][idx, reward_func_idx].item()
 
             # Add GRPO statistics, handling per-sample vs. scalar cases
             # TODO: currently has one scalar per batch. We should enable a scalar per sentence.
@@ -694,7 +707,16 @@ class TrainingWorker:
                 log.info("waiting for replay buffer")
                 time.sleep(1.0)
 
-            trajectory = self.replay_buffer.sample().to(self._device)
+            # The replay buffer stores each trajectory batch as a single item
+            # (see PostProcessingWorker.run), so sampling one item yields one
+            # [batch_size, T] batch. Sampling more than one item would return
+            # repeated copies of the whole batch.
+            trajectory = self.replay_buffer.sample(1).squeeze(0).to(self._device)
+            batch_size = trajectory.batch_size[0]
+            if batch_size != self._cfg_batch_size:
+                log.warning(
+                    f"sampled batch has {batch_size} samples, expected {self._cfg_batch_size}"
+                )
             time_waiting_buffer = time.perf_counter() - time_waiting_buffer_start
             if self._is_rank_zero:
                 log.info(f"{self.rank=} got from queue traj {trajectory}")
@@ -913,8 +935,10 @@ class TrainingWorker:
             "avg_policy_age": avg_policy_age,
             "sequence_ids": raw_trajectory.sequence_ids,
             "policy_version": raw_trajectory.policy_version,
-            "reward_outputs": raw_trajectory.reward_outputs,
             "query_response_padding_masks": raw_trajectory.query_response_padding_masks,
+            "rewards": raw_trajectory.rewards,
+            "successes": raw_trajectory.successes,
+            "reward_func_names": raw_trajectory.reward_func_names,
         }
 
         return prepared_trajectory, context_length, metadata

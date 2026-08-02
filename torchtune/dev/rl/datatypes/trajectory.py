@@ -5,8 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+from tensordict import NonTensorStack
 from tensordict import TensorClass
-from torchtune.dev.rl.rewards import RewardOutput
 
 
 class Trajectory(TensorClass["nocast"]):
@@ -19,5 +19,7 @@ class Trajectory(TensorClass["nocast"]):
     answers: torch.Tensor
     policy_version: int
     advantages: torch.Tensor
-    reward_outputs: list[RewardOutput]
+    rewards: torch.Tensor
+    successes: torch.Tensor
+    reward_func_names: NonTensorStack
     sequence_ids: list[str]

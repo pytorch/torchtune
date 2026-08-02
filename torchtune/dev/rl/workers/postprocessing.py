@@ -10,12 +10,31 @@ import ray
 import torch
 import torchtune.training as training
 from omegaconf import DictConfig
+from tensordict import NonTensorStack
 
 from torchtune import config, generation, rlhf, utils
 from torchtune.dev.rl.datatypes import Trajectory
-from torchtune.dev.rl.rewards import Reward, RewardOutput
+from torchtune.dev.rl.rewards import Reward, RewardOutput, group_normalized_advantages
 
 log = utils.get_logger("DEBUG")
+
+
+def reward_func_names_per_sample(
+    reward_outputs: list[RewardOutput], num_samples: int
+) -> NonTensorStack:
+    """Label every sample with the names of the reward functions that scored it.
+
+    Args:
+        reward_outputs (list[RewardOutput]): one ``RewardOutput`` per reward
+            function, in the same order as the columns of the per-sample rewards
+            tensor built from them.
+        num_samples (int): the number of samples in the batch.
+
+    Returns:
+        NonTensorStack: one list of reward function names per sample, shape ``[num_samples]``.
+    """
+    func_names = [reward_output.reward_base_name for reward_output in reward_outputs]
+    return NonTensorStack(*[func_names for _ in range(num_samples)])
 
 
 @ray.remote(num_cpus=8, num_gpus=1)
@@ -31,7 +50,7 @@ class PostProcessingWorker:
         self.cfg = kwargs.pop("cfg")
         self.rollout_queue = kwargs.pop("rollout_queue")
         self.replay_buffer = kwargs.pop("replay_buffer")
-        device_type = "cuda"
+        device_type = cfg.get("device", "cuda")
         self._device = utils.get_device(device=device_type)
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
         self._dtype = training.get_dtype("bf16", device=self._device)
@@ -257,16 +276,19 @@ class PostProcessingWorker:
             for reward_fn in self.reward_functions:
                 reward_outputs.append(reward_fn(response_ids, responses_str, answers))
 
-            group_rewards = torch.stack(
+            # Per-sample reward metadata for the training worker, shape (B * G, num_funcs).
+            # Rewards are also aggregated below to compute advantages.
+            rewards_all = torch.stack(
                 [reward_output.total_reward for reward_output in reward_outputs], dim=-1
             )  # (B * G, num_funcs)
-            group_rewards = group_rewards.reshape(batch_size, group_size, -1)
+            successes_all = torch.stack(
+                [reward_output.successes for reward_output in reward_outputs], dim=-1
+            )  # (B * G, num_funcs)
+            group_rewards = rewards_all.reshape(batch_size, group_size, -1)
             # Compute advantages: B, G, num_funcs -> B, G
             group_rewards = group_rewards.sum(-1)
             # To compute advantage, subtract the mean of the group rewards from each group reward
-            group_advantages = (group_rewards - group_rewards.mean(1, keepdim=True)) / (
-                group_rewards.std(1, keepdim=True) + 1e-4
-            )  # (B, G)
+            group_advantages = group_normalized_advantages(group_rewards)  # (B, G)
             # Repack trajectory with policy_version
 
             trajectory = Trajectory(
@@ -279,17 +301,26 @@ class PostProcessingWorker:
                 answers=trajectory.answers,
                 policy_version=trajectory.policy_version,
                 advantages=group_advantages.reshape(batch_size * group_size),  # (B, G)
+                rewards=rewards_all,
+                successes=successes_all,
+                # The collector does not know which reward functions will score
+                # the rollout, so label the per-sample rewards here.
+                reward_func_names=reward_func_names_per_sample(
+                    reward_outputs, batch_size * group_size
+                ),
                 batch_size=batch_size * group_size,
                 sequence_ids=trajectory.sequence_ids,
-                reward_outputs=reward_outputs,
             )
 
             log.info(f"Constructed trajectory: {trajectory}")
             # Move tensors to CPU before putting into the queue
             trajectory = trajectory.cpu()
 
-            # Update circular queue
-            self.replay_buffer.extend(trajectory)
+            # Store the whole batch as a single replay buffer item: the storage
+            # counts each stored element as one item, so extending a batched
+            # trajectory directly would let its capacity in *rows* silently
+            # overwrite all but the last few samples of the batch.
+            self.replay_buffer.extend(trajectory.unsqueeze(0))
 
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start

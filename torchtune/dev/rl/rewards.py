@@ -267,6 +267,34 @@ def extract_tags(text: str) -> tuple[str, str]:
     return cot, potential_answer
 
 
+def group_normalized_advantages(
+    group_rewards: torch.Tensor, eps: float = 1e-4
+) -> torch.Tensor:
+    """Normalize per-group rewards into GRPO advantages.
+
+    Rewards are normalized within each group (second dimension), so that each
+    group has zero mean and unit variance. This is the advantage baseline used
+    by both the synchronous and asynchronous GRPO recipes.
+
+    Args:
+        group_rewards (torch.Tensor): rewards of shape ``[B, G]``, where ``G``
+            is the group size and ``B`` the batch size.
+        eps (float): small constant added to the standard deviation for numerical
+            stability.
+
+    Returns:
+        torch.Tensor: advantages of shape ``[B, G]``.
+
+    Example:
+        >>> group_rewards = torch.tensor([[10.0, 0.0, 5.0]])
+        >>> group_normalized_advantages(group_rewards)
+        tensor([[1.3363, -1.0690, -0.2673]])
+    """
+    mean = group_rewards.mean(1, keepdim=True)
+    std = group_rewards.std(1, keepdim=True)
+    return (group_rewards - mean) / (std + eps)
+
+
 def batched_rewards(
     tokenizer: Union[ModelTokenizer, HuggingFaceModelTokenizer],
     completions: torch.Tensor,
