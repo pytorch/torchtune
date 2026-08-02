@@ -21,7 +21,7 @@ from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
 from torchtune.dev.rl.generation import generate
-from torchtune.dev.rl.rewards import batched_rewards
+from torchtune.dev.rl.rewards import batched_rewards, group_normalized_advantages
 from torchtune.dev.rl.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -656,9 +656,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         rewards = rewards.sum(dim=-1)  # [B, G]
         successes = successes.sum(dim=-1)  # [B, G]
 
-        advantages = (rewards - rewards.mean(1, keepdim=True)) / (
-            rewards.std(1, keepdim=True) + 1e-4
-        )
+        advantages = group_normalized_advantages(rewards)  # [B, G]
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
         del responses
         torch.cuda.empty_cache()

@@ -134,7 +134,9 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
             storage=functools.partial(
                 LazyStackStorage, max_size=cfg.orchestration.replay_buffer_size
             ),
-            batch_size=cfg.training.batch_size,
+            # Each item in the buffer is one whole trajectory batch (see
+            # PostProcessingWorker.run), so a sample of size 1 is a single batch.
+            batch_size=1,
             remote_config={"num_cpus": 10, "num_gpus": 0},
         )
 

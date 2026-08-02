@@ -18,6 +18,7 @@
 name: grpo_async_qwen3b
 output_dir: /tmp/checkpoints/${name}
 base_model_path: /tmp/Qwen2.5-3B
+device: cuda
 
 # Model architecture (Qwen2.5-3B)
 model:
@@ -39,7 +40,7 @@ orchestration:
   num_inference_workers: 4
   num_postprocessing_workers: 1
   num_training_workers: 2
-  replay_buffer_size: ${inference.batch_size}  # TODO: Right now this can't be bigger, or else we'll get padding issues
+  replay_buffer_size: ${inference.batch_size}  # Number of trajectory batches to keep
   num_steps: 250
 
 # All inference args

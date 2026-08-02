@@ -153,9 +153,9 @@ class SyncLLMCollector(SyncDataCollector):
         seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
         del response_padding_masks
 
-        # Generate unique sequence IDs for the batch
-        # FIXME: it outputs a list[list[str]] when sampling from replay buffer, with shape num_samples X 16.
-        # It should have shape num_samplesX1, so we can log a single sequence_id per sequence.
+        # Generate unique sequence IDs for the batch. Each sequence in the batch
+        # gets a single ID; the replay buffer stores whole batches as one item,
+        # so IDs come back flat (one string per sample) when sampled out.
         batch_size = query_responses.shape[0]
         sequence_ids = NonTensorStack(
             *[
@@ -174,8 +174,10 @@ class SyncLLMCollector(SyncDataCollector):
             seq_lens=seq_lens,
             answers=answers,
             policy_version=policy_version,
-            reward_outputs=None,
             advantages=None,
+            rewards=None,
+            successes=None,
+            reward_func_names=None,
             sequence_ids=sequence_ids,
         )
 

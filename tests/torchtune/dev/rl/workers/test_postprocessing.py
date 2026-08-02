@@ -141,7 +141,9 @@ class TestPostProcessingWorker:
                         sequence_ids=None,
                         policy_version=None,
                         advantages=None,
-                        reward_outputs=None,
+                        rewards=None,
+                        successes=None,
+                        reward_func_names=None,
                     )
                 )
             replay_buffer = []
