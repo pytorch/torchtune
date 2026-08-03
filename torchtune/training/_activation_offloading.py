@@ -13,7 +13,11 @@ import torch
 import torchao
 from torch import nn
 from torch.autograd.graph import saved_tensors_hooks
-from torchao.quantization import NF4Tensor
+try:
+    from torchao.quantization import NF4Tensor
+except ImportError:
+    # torchao >= 0.17 moved NF4Tensor to torchao.dtypes.nf4tensor
+    from torchao.dtypes.nf4tensor import NF4Tensor
 
 from torchtune.modules import TiedLinear
 from torchtune.utils import get_logger

@@ -17,15 +17,15 @@ from ray.util.queue import Full as QueueFull
 from tensordict import lazy_stack, NonTensorStack, TensorDictBase
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
-from torchrl.collectors import (
-    SyncDataCollector,
-    WeightUpdateReceiverBase,
-    WeightUpdateSenderBase,
-)
 
 from torchtune import utils
 from torchtune.dev.rl.datatypes import Trajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
+from torchtune.dev.rl.utils._torchrl_compat import (
+    SyncDataCollector,
+    WeightUpdateReceiverBase,
+    WeightUpdateSenderBase,
+)
 from vllm import LLM
 from vllm.worker.worker import Worker
 
@@ -103,7 +103,16 @@ class SyncLLMCollector(SyncDataCollector):
         )
 
         # local import below LLM call to avoid vLLM no CUDA GPUs available error
-        from torchrl.envs import LLMEnv
+        try:
+            from torchrl.envs import LLMEnv
+        except ImportError:
+            # torchrl >= 0.13 removed LLMEnv
+            class LLMEnv:
+                @classmethod
+                def from_dataloader(cls, *args, **kwargs):
+                    raise NotImplementedError(
+                        "LLMEnv is only available with torchrl < 0.13."
+                    )
 
         env = LLMEnv.from_dataloader(
             dataloader=dataloader,
