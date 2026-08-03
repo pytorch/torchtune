@@ -65,11 +65,8 @@ dev = [
     "expecttest",
 ]
 async_rl = [
-    # We will update this to a stable release soon!
-    "torchrl @ git+https://github.com/pytorch/rl@0475cbf64de0cdf5f185a77badaa6eb241c63b0b",
-
-    # We will update this to a stable release soon!
-    "tensordict @ git+https://github.com/pytorch/tensordict@c61d045aaadf6c0625706a3670fc6a741f31f1b0",
+    "torchrl==0.13.3",
+    "tensordict==0.13.0",
 
     # Regular PyPI dependencies
     "ray",

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import ray
-from torchrl.collectors import WeightUpdateReceiverBase
+from torchtune.dev.rl.utils._torchrl_compat import WeightUpdateReceiverBase
 
 
 class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):

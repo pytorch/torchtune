@@ -35,7 +35,8 @@ jobs:
     runs-on: linux.g5.12xlarge.nvidia.gpu
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        # torchrl 0.13.3 requires Python >= 3.10
+        python-version: ['3.10', '3.11']
         torch-version: ["stable", "nightly"]
         # Do not run against nightlies on PR
         exclude:

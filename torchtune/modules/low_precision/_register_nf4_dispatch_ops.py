@@ -5,8 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from torchao.quantization import to_nf4
-from torchao.quantization.quantize_.workflows.nf4.nf4_tensor import implements as nf4_tensor_impl
+try:
+    from torchao.quantization import to_nf4
+    from torchao.quantization.quantize_.workflows.nf4.nf4_tensor import implements as nf4_tensor_impl
+except ImportError:
+    # torchao >= 0.17 moved these to torchao.dtypes.nf4tensor
+    from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl
+    from torchao.dtypes.nf4tensor import to_nf4
 
 
 @nf4_tensor_impl([torch.ops.aten.clone.default])
