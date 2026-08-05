@@ -63,7 +63,7 @@ In the following sections, we'll take a closer look at each of these components.
 For a complete working example, refer to the
 `full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_
 in torchtune and the associated
-`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml>`_.
+`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full.yaml>`_.
 
 .. TODO (SalmanMohammadi) ref to full finetune recipe doc
 
