@@ -131,6 +131,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         *,
         add_start_tokens: bool = True,
         add_end_tokens: bool = True,
+        add_eos: bool | None = None,
     ) -> tuple[list[int], list[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -166,10 +167,15 @@ class MistralTokenizer(ModelTokenizer, Transform):
                 first message. Default True.
             add_end_tokens (bool): Whether to add EOS token to the end of the last
                 message. Default True.
+            add_eos (bool | None): Deprecated compatibility alias for add_end_tokens.
+                When provided, it takes precedence.
 
         Returns:
             tuple[list[int], list[bool]]: The tokenized messages
         """
+        if add_eos is not None:
+            add_end_tokens = add_eos
+
         templated_messages = (
             self.prompt_template(messages)
             if self.prompt_template is not None
