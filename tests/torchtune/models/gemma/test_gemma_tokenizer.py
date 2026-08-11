@@ -97,3 +97,10 @@ class TestGemmaTokenizer:
         )
         assert expected_tokens == tokens
         assert expected_mask == mask
+
+        if not add_end_tokens:
+            legacy_tokens, legacy_mask = tokenizer.tokenize_messages(
+                messages, add_eos=False
+            )
+            assert legacy_tokens == tokens
+            assert legacy_mask == mask
