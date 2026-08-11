@@ -55,7 +55,16 @@ class TestGemmaTokenizer:
         assert expected_tokens == tokens
         assert expected_mask == mask
 
-    def test_tokenize_messages_drop_eos(self, tokenizer, expected_tokens):
+    @pytest.mark.parametrize(
+        "add_start_tokens, add_end_tokens",
+        [
+            (True, True),
+            (False, False),
+        ],
+    )
+    def test_tokenize_messages_special_token_control(
+        self, tokenizer, expected_tokens, add_start_tokens, add_end_tokens
+    ):
         messages = [
             Message(
                 role="user",
@@ -74,10 +83,24 @@ class TestGemmaTokenizer:
                 "good conversation over coffee.",
             ),
         ]
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
-        # Drop eos token.
-        expected_tokens = expected_tokens[:-1]
-        # On 1 less then with eos
-        expected_mask = [True] * 75 + [False] * 124
+        tokens, mask = tokenizer.tokenize_messages(
+            messages,
+            add_start_tokens=add_start_tokens,
+            add_end_tokens=add_end_tokens,
+        )
+        if not add_start_tokens:
+            expected_tokens = expected_tokens[1:]
+        if not add_end_tokens:
+            expected_tokens = expected_tokens[:-1]
+        expected_mask = [True] * (75 if add_start_tokens else 74) + [False] * (
+            125 if add_end_tokens else 124
+        )
         assert expected_tokens == tokens
         assert expected_mask == mask
+
+        if not add_end_tokens:
+            legacy_tokens, legacy_mask = tokenizer.tokenize_messages(
+                messages, add_eos=False
+            )
+            assert legacy_tokens == tokens
+            assert legacy_mask == mask
