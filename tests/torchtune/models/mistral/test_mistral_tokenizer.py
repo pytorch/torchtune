@@ -114,6 +114,13 @@ class TestMistralTokenizer:
         assert expected_tokens == tokens
         assert expected_mask == mask
 
+        if not add_end_tokens:
+            legacy_tokens, legacy_mask = tokenizer.tokenize_messages(
+                messages, add_eos=False
+            )
+            assert legacy_tokens == tokens
+            assert legacy_mask == mask
+
     def test_inference_drops_end_token(self, messages, expected_tokens):
         tokenizer = self.tokenizer(template=False)
         sample = tokenizer({"messages": messages}, inference=True)
