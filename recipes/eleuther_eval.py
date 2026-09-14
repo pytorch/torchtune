@@ -277,8 +277,9 @@ class _VLMEvalWrapper(HFMultimodalLM):
                 generated_tokens.append(token.item())
                 seq_len += 1
 
-        # 5. Return generated tokens
-        return torch.tensor(generated_tokens, dtype=torch.int32).unsqueeze(0)
+        # 5. Return generated tokens (must include prompt so the harness can slice it)
+        gen_tensor = torch.tensor(generated_tokens, dtype=torch.int32, device=prompt.device).unsqueeze(0)
+        return torch.cat([prompt, gen_tensor], dim=1)
 
 
 class _LLMEvalWrapper(HFLM):
@@ -310,8 +311,8 @@ class _LLMEvalWrapper(HFLM):
         dtype: torch.dtype = torch.float32,
         enable_kv_cache: bool = True,
     ):
-        # TODO (@joecummings): Remove this init function so we don't load in extraneous stuff
-        super().__init__(pretrained="gpt2", device=str(device))
+        from lm_eval.api.model import LM
+        LM.__init__(self)
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
@@ -334,9 +335,7 @@ class _LLMEvalWrapper(HFLM):
     def max_length(self):
         return self._max_seq_length
 
-    @property
-    def max_gen_toks(self):
-        return 256
+
 
     @property
     def batch_size(self):
