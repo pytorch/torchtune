@@ -21,7 +21,33 @@ def _create_component(
     kwargs: dict[str, Any],
 ) -> Any:
     """Create an instance of a component with given arguments."""
-    return _component_(*args, **kwargs)
+    try:
+        return _component_(*args, **kwargs)
+    except TypeError as e:
+        try:
+            sig = inspect.signature(_component_)
+            has_var_keyword = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+            )
+            if not has_var_keyword:
+                unexpected = [k for k in kwargs if k not in sig.parameters]
+                if unexpected:
+                    comp_name = getattr(
+                        _component_,
+                        "__qualname__",
+                        getattr(_component_, "__name__", str(_component_)),
+                    )
+                    unexpected_str = ", ".join(repr(k) for k in unexpected)
+                    err_msg = (
+                        f"Failed to instantiate {comp_name} due to unexpected keyword argument(s): {unexpected_str}.\n"
+                        f"If you changed this component from a recipe configuration that provided default arguments "
+                        f"(such as 'fused: True' for torch.optim.AdamW), you can remove unexpected argument(s) "
+                        f"using the '~<field>.<arg>' CLI syntax (for example, '~optimizer.fused')."
+                    )
+                    raise InstantiationError(err_msg) from e
+        except (ValueError, TypeError):
+            pass
+        raise
 
 
 def _instantiate_node(

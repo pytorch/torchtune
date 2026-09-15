@@ -34,6 +34,12 @@ class Food:
         self.ingredient = ingredient
 
 
+class BuggyComponent:
+    def __init__(self, value: int):
+        # Raises a TypeError internally despite valid keyword argument
+        _ = value + "not_an_int"  # type: ignore
+
+
 class TestInstantiate:
     @pytest.fixture
     def config(self):
@@ -144,3 +150,37 @@ class TestInstantiate:
             config.food, ingredient={"_component_": "Spice", "heat_level": 10}
         )
         assert food.ingredient.heat_level == 10
+
+    def test_unexpected_keyword_argument_raises_instantiation_error(self) -> None:
+        s = dedent(
+            """\
+        spice:
+          _component_: Spice
+          heat_level: 5
+          fused: True
+        """
+        )
+        config = OmegaConf.create(s)
+
+        with pytest.raises(
+            InstantiationError,
+            match=r"Failed to instantiate .*Spice.* due to unexpected keyword argument\(s\): 'fused'",
+        ) as exc_info:
+            _ = instantiate(config.spice)
+
+        assert "~<field>.<arg>" in str(exc_info.value)
+        assert "~optimizer.fused" in str(exc_info.value)
+
+    def test_internal_type_error_preserved(self) -> None:
+        s = dedent(
+            """\
+        buggy:
+          _component_: BuggyComponent
+          value: 42
+        """
+        )
+        config = OmegaConf.create(s)
+
+        # Should raise TypeError directly, not InstantiationError
+        with pytest.raises(TypeError, match="unsupported operand type"):
+            _ = instantiate(config.buggy)
