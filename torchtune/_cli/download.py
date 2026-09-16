@@ -19,7 +19,10 @@ from huggingface_hub import snapshot_download
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
 from kagglehub import model_download
-from kagglehub.auth import set_kaggle_credentials
+try:
+    from kagglehub.auth import set_kaggle_api_token as set_kaggle_credentials
+except ImportError:
+    from kagglehub.auth import set_kaggle_credentials
 from kagglehub.exceptions import KaggleApiHTTPError
 from kagglehub.handle import parse_model_handle
 from torchtune._cli.subcommand import Subcommand
