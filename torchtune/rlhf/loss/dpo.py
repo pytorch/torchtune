@@ -11,6 +11,9 @@ import torch.nn.functional as F
 from torchtune.rlhf._types import ChosenRejectedOutputs
 from torchtune.utils._logging import deprecated
 
+from typing import Optional, Tuple, TypeVar
+from dataclasses import dataclass
+
 T = TypeVar("T", bound=dataclass)
 
 
