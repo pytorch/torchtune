@@ -130,6 +130,7 @@ torchtune tutorials.
 
    basics/datasets_overview
    basics/custom_datasets
+   basics/custom_data_quickstart
    basics/chat_datasets
    basics/instruct_datasets
    basics/multimodal_datasets
