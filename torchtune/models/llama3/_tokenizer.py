@@ -31,6 +31,8 @@ SPECIAL_TOKENS = {
     "<|python_tag|>": 128010,
     "<|image|>": 128256,
     "<|video|>": 128012,
+    # This token is deliberately reserved: its embedding is untrained in the
+    # supported checkpoints. The trained image token is 128256.
     "<|reserved_special_token_245|>": 128011,
 }
 
