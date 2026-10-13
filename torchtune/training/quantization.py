@@ -6,6 +6,7 @@
 
 from typing import Callable, Optional
 
+import torch
 from torch import nn
 from torch.distributed.tensor.parallel.style import ParallelStyle
 
@@ -24,6 +25,7 @@ from torchao.quantization import (
 )
 from torchao.quantization.quantize_.workflows import Int4PackingFormat
 from torchao.quantization.qat import (
+    FakeQuantizedLinear,
     Int4WeightOnlyQATQuantizer,
     Int8DynActInt4WeightQATQuantizer,
 )
@@ -86,7 +88,9 @@ class Int8DynActInt4WeightQuantizer:
         self.groupsize = groupsize
 
     def quantize(self, model):
-        quantize_fn = Int8DynamicActivationIntxWeightConfig(weight_dtype=torch.int4, weight_granularity=PerGroup(self.groupsize))
+        quantize_fn = Int8DynamicActivationIntxWeightConfig(
+            weight_dtype=torch.int4, weight_granularity=PerGroup(self.groupsize)
+        )
         quantize_(model, quantize_fn)
         return model
 
@@ -140,12 +144,12 @@ class Int4WeightOnlyQATQuantizerModuleSwap(Int4WeightOnlyQATQuantizer):
 disable_4w_fake_quant_module_swap = _disable_linear_fake_quant
 enable_4w_fake_quant_module_swap = _enable_linear_fake_quant
 _quantizer_to_mode[Int4WeightOnlyQATQuantizerModuleSwap] = "4w-qat-module-swap"
-_quantizer_mode_to_disable_fake_quant[
-    "4w-qat-module-swap"
-] = disable_4w_fake_quant_module_swap
-_quantizer_mode_to_enable_fake_quant[
-    "4w-qat-module-swap"
-] = enable_4w_fake_quant_module_swap
+_quantizer_mode_to_disable_fake_quant["4w-qat-module-swap"] = (
+    disable_4w_fake_quant_module_swap
+)
+_quantizer_mode_to_enable_fake_quant["4w-qat-module-swap"] = (
+    enable_4w_fake_quant_module_swap
+)
 
 
 # int8 dynamic activations + int4 weight
@@ -156,12 +160,12 @@ class Int8DynActInt4WeightQATQuantizerModuleSwap(Int8DynActInt4WeightQATQuantize
 disable_8da4w_fake_quant_module_swap = _disable_linear_fake_quant
 enable_8da4w_fake_quant_module_swap = _enable_linear_fake_quant
 _quantizer_to_mode[Int8DynActInt4WeightQATQuantizerModuleSwap] = "8da4w-qat-module-swap"
-_quantizer_mode_to_disable_fake_quant[
-    "8da4w-qat-module-swap"
-] = disable_8da4w_fake_quant_module_swap
-_quantizer_mode_to_enable_fake_quant[
-    "8da4w-qat-module-swap"
-] = enable_8da4w_fake_quant_module_swap
+_quantizer_mode_to_disable_fake_quant["8da4w-qat-module-swap"] = (
+    disable_8da4w_fake_quant_module_swap
+)
+_quantizer_mode_to_enable_fake_quant["8da4w-qat-module-swap"] = (
+    enable_8da4w_fake_quant_module_swap
+)
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
