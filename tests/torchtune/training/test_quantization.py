@@ -13,8 +13,10 @@ from torchao.float8.float8_linear import Float8Linear
 from torchtune.models.llama3 import base_llama_tp_plan
 from torchtune.models.llama3._parallelism import _get_fp8_llama_tp_training_plan
 from torchtune.training.quantization import (
+    _enable_linear_fake_quant,
     _validate_float8_tp_plan,
     convert_to_float8_training,
+    Int8DynActInt4WeightQuantizer,
     is_fp8_tensorwise_scaling,
 )
 
@@ -71,3 +73,29 @@ class TestFloat8:
         assert is_fp8_tensorwise_scaling("tensorwise")
         assert not is_fp8_tensorwise_scaling("rowwise")
         assert not is_fp8_tensorwise_scaling("rowwise_with_gw_hp")
+
+
+class TestQuantization:
+    def test_int8_dynamic_activation_int4_weight_quantizer_uses_int4(self, monkeypatch):
+        captured_kwargs = {}
+
+        def mock_quantize_config(**kwargs):
+            captured_kwargs.update(kwargs)
+            return object()
+
+        monkeypatch.setattr(
+            "torchtune.training.quantization.Int8DynamicActivationIntxWeightConfig",
+            mock_quantize_config,
+        )
+        monkeypatch.setattr(
+            "torchtune.training.quantization.quantize_",
+            lambda model, quantize_fn: None,
+        )
+
+        model = torch.nn.Linear(2, 2)
+
+        assert Int8DynActInt4WeightQuantizer().quantize(model) is model
+        assert captured_kwargs["weight_dtype"] is torch.int4
+
+    def test_enable_linear_fake_quant_ignores_non_fake_quantized_linear(self):
+        _enable_linear_fake_quant(torch.nn.Linear(2, 2))
