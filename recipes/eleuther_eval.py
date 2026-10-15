@@ -423,6 +423,16 @@ class _LLMEvalWrapper(HFLM):
             (0, 0, 0, self._batch_size - bsz),
             value=self._tokenizer.eos_id,  # pad with one of the tokenizer's stop tokens so generation can stop early
         )
+        # The harness communicates the per-request generation budget via
+        # max_length (= context_len + max_gen_toks); max_gen_toks itself is
+        # popped from the kwargs before _model_generate is called. Derive the
+        # actual budget instead of using the hardcoded default.
+        # See pytorch/torchtune#2990.
+        requested_max_length = generation_kwargs.get("max_length")
+        if requested_max_length is not None:
+            max_generated_tokens = max(1, requested_max_length - seq_len)
+        else:
+            max_generated_tokens = self.max_gen_toks
         with local_kv_cache(
             self.model,
             batch_size=self.batch_size,
@@ -433,7 +443,7 @@ class _LLMEvalWrapper(HFLM):
             toks, _ = generate(
                 self.model,
                 maybe_padded_context,
-                max_generated_tokens=self.max_gen_toks,
+                max_generated_tokens=max_generated_tokens,
                 temperature=temperature,
                 top_k=None,
                 pad_id=self._tokenizer.pad_id,
