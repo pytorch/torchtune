@@ -322,6 +322,13 @@ class _LLMEvalWrapper(HFLM):
         # `device_list` in `HFLM` class
         self._device = torch.device(device)
 
+    def _create_model(self, *args, **kwargs):
+        # Skip downloading and loading the HFLM "pretrained" weights (GPT-2).
+        # The base-class model is immediately discarded when torchtune rebinds
+        # self._model above, so fetching it is pure waste and breaks offline
+        # evaluation. See pytorch/torchtune#2990.
+        self._model = None
+
     @property
     def model(self):
         return self._model
