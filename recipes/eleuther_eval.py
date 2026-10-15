@@ -277,8 +277,15 @@ class _VLMEvalWrapper(HFMultimodalLM):
                 generated_tokens.append(token.item())
                 seq_len += 1
 
-        # 5. Return generated tokens
-        return torch.tensor(generated_tokens, dtype=torch.int32).unsqueeze(0)
+        # 5. Return the full sequence (prompt + generated tokens).
+        # The harness slices off the first context_enc.shape[1] tokens
+        # expecting the full sequence, so returning only generated tokens
+        # silently truncates the graded output to an empty string.
+        # See pytorch/torchtune#2990.
+        generated = torch.tensor(
+            generated_tokens, dtype=prompt.dtype, device=prompt.device
+        ).unsqueeze(0)
+        return torch.cat([prompt, generated], dim=1)
 
 
 class _LLMEvalWrapper(HFLM):
