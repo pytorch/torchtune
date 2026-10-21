@@ -548,7 +548,7 @@ def padded_collate_tiled_images_and_mask(
             )
 
             # Concatenate masks for multiple images across image_seq_len dimension
-            concat_masks = collated_masks.view(bsz, max_seq_len, -1)
+            concat_masks = collated_masks.transpose(1, 2).reshape(bsz, max_seq_len, -1)
             if pad_max_images is not None:
                 _, _, img_seq = concat_masks.shape
                 concat_masks = F.pad(
