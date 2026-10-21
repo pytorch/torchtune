@@ -21,6 +21,7 @@ from torchtune.data import (
     padded_collate_tiled_images_and_mask,
 )
 from torchtune.modules.attention_utils import _SUPPORTS_FLEX_ATTENTION
+from torchtune.modules.transforms import VisionCrossAttentionMask
 
 
 class TestPaddedCollateSFT:
@@ -186,6 +187,27 @@ class TestPaddedCollateTiledImagesAndMask:
         # But we do need to make sure the masks are padded to a multiple of 5
         assert actual["encoder_mask"].size(1) % 5 == 0
 
+    @pytest.mark.parametrize("num_images", [1, 2])
+    def test_preserves_image_attention_intervals(self, num_images):
+        tokens = [1, 7] * num_images
+        sample = {
+            "tokens": tokens,
+            "labels": tokens,
+            "encoder_input": {
+                "images": [torch.ones(1, 3, 2, 2) for _ in range(num_images)],
+                "aspect_ratio": [torch.tensor([1, 1]) for _ in range(num_images)],
+            },
+        }
+        sample = VisionCrossAttentionMask(tile_size=2, patch_size=2, image_token_id=1)(
+            sample
+        )
+        # Each text position must retain its mask for every image, in image order.
+        expected_mask = torch.cat(sample["encoder_mask"], dim=-1).unsqueeze(0)
+
+        actual = padded_collate_tiled_images_and_mask(batch=[sample])
+
+        torch.testing.assert_close(actual["encoder_mask"], expected_mask)
+
     def test_right_pad_sequence(self, batch):
         actual = padded_collate_tiled_images_and_mask(
             batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="right"
@@ -197,9 +219,9 @@ class TestPaddedCollateTiledImagesAndMask:
         mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 10)], dim=1)
         mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5)], dim=1)
         mask_3 = torch.concat([torch.ones(2, 5 * 4), torch.zeros(2, 20)], dim=0)
-        sample_1 = torch.stack([mask_1, mask_2])
-        sample_2 = torch.stack([mask_3, torch.zeros(4, 20)])
-        expected_mask = torch.stack([sample_1, sample_2]).view(2, 4, -1)
+        sample_1 = torch.cat([mask_1, mask_2], dim=-1)
+        sample_2 = torch.cat([mask_3, torch.zeros(4, 20)], dim=-1)
+        expected_mask = torch.stack([sample_1, sample_2])
 
         expected = {
             "tokens": torch.tensor([[1, 2, 1, 3], [1, 4, 0, 0]]),
@@ -249,9 +271,9 @@ class TestPaddedCollateTiledImagesAndMask:
         # Left pad text tokens
         mask_3 = torch.concat([torch.zeros(2, 20), torch.ones(2, 5 * 4)], dim=0)
         mask_3 = F.pad(mask_3, (0, 5), value=0)  # pad 5th tile
-        sample_1 = torch.stack([mask_1, mask_2])
-        sample_2 = torch.stack([mask_3, torch.zeros(4, 25)])
-        expected_mask = torch.stack([sample_1, sample_2]).view(2, 4, -1)
+        sample_1 = torch.cat([mask_1, mask_2], dim=-1)
+        sample_2 = torch.cat([mask_3, torch.zeros(4, 25)], dim=-1)
+        expected_mask = torch.stack([sample_1, sample_2])
         expected_mask = F.pad(expected_mask, (0, 50), value=0)
 
         expected = {
